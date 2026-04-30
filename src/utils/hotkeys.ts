@@ -9,6 +9,23 @@ export function isGlobeLikeHotkey(hotkey: string): boolean {
   return hotkey === "GLOBE" || hotkey === "Fn";
 }
 
+export function isMouseButtonHotkey(hotkey: string): boolean {
+  return /^MouseButton:\d+$/.test(hotkey);
+}
+
+const MOUSE_BUTTON_LABELS: Record<number, string> = {
+  2: "Middle Click",
+  3: "Mouse Button 4",
+  4: "Mouse Button 5",
+};
+
+export function formatMouseButtonLabel(hotkey: string): string {
+  const match = hotkey.match(/^MouseButton:(\d+)$/);
+  if (!match) return hotkey;
+  const num = parseInt(match[1], 10);
+  return MOUSE_BUTTON_LABELS[num] || `Mouse Button ${num + 1}`;
+}
+
 function formatModifierPart(part: string, platform: Platform): string {
   switch (part) {
     case "CommandOrControl":
@@ -62,6 +79,10 @@ export function formatHotkeyLabelForPlatform(hotkey: string, platform: Platform)
 
   if (isGlobeLikeHotkey(hotkey)) {
     return "Globe/Fn";
+  }
+
+  if (isMouseButtonHotkey(hotkey)) {
+    return formatMouseButtonLabel(hotkey);
   }
 
   // Right-side single modifiers
@@ -133,7 +154,7 @@ export function isCompoundHotkey(hotkey: string): boolean {
  */
 export function getDefaultHotkey(): string {
   const platform = getPlatform();
-  return platform === "darwin" ? "GLOBE" : "Control+Super";
+  return platform === "darwin" ? "Control+Space" : "Control+Super";
 }
 
 /**
@@ -149,6 +170,10 @@ export function isValidHotkeyFormat(hotkey: string): boolean {
   }
 
   if (isGlobeLikeHotkey(hotkey)) {
+    return true;
+  }
+
+  if (isMouseButtonHotkey(hotkey)) {
     return true;
   }
 

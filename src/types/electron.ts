@@ -596,6 +596,11 @@ declare global {
       onGlobeKeyPressed?: (callback: () => void) => () => void;
       onGlobeKeyReleased?: (callback: () => void) => () => void;
 
+      // Mouse button as secondary trigger (macOS only)
+      onMouseButtonPressed?: (callback: (button: number) => void) => () => void;
+      getMouseButton?: () => Promise<number>;
+      setMouseButton?: (button: number) => Promise<{ success: boolean; button: number }>;
+
       // Hotkey registration events
       onHotkeyFallbackUsed?: (
         callback: (data: { original: string; fallback: string; message: string }) => void

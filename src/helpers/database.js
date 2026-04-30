@@ -141,6 +141,76 @@ class DatabaseManager {
         )
         .run("notes.actions.builtin.cleanupNotes", "Clean Up Notes");
 
+      // ScottySpeaks: Usage stats table
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS usage_stats (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          date TEXT NOT NULL UNIQUE,
+          word_count INTEGER NOT NULL DEFAULT 0,
+          dictation_count INTEGER NOT NULL DEFAULT 0,
+          total_duration_seconds REAL NOT NULL DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // ScottySpeaks: Snippets table
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS snippets (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          keyword TEXT NOT NULL UNIQUE COLLATE NOCASE,
+          expansion TEXT NOT NULL,
+          use_count INTEGER NOT NULL DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // ScottySpeaks: Style profiles table
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS style_profiles (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL UNIQUE,
+          rules TEXT NOT NULL DEFAULT '{}',
+          is_active INTEGER NOT NULL DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Seed default style profiles
+      const profileCount = this.db.prepare("SELECT COUNT(*) as count FROM style_profiles").get();
+      if (profileCount.count === 0) {
+        const seedProfile = this.db.prepare(
+          "INSERT INTO style_profiles (name, rules, is_active) VALUES (?, ?, ?)"
+        );
+        seedProfile.run("Casual", JSON.stringify({
+          removeFillers: true,
+          capitalization: "sentence",
+          autoPunctuation: true,
+          formality: "casual",
+        }), 1);
+        seedProfile.run("Professional", JSON.stringify({
+          removeFillers: true,
+          capitalization: "sentence",
+          autoPunctuation: true,
+          formality: "formal",
+        }), 0);
+        seedProfile.run("Email", JSON.stringify({
+          removeFillers: true,
+          capitalization: "sentence",
+          autoPunctuation: true,
+          formality: "formal",
+          greeting: "Hi,",
+          signoff: "Best,\nScott",
+        }), 0);
+        seedProfile.run("Raw", JSON.stringify({
+          removeFillers: false,
+          capitalization: "none",
+          autoPunctuation: false,
+          formality: "none",
+        }), 0);
+      }
+
       return true;
     } catch (error) {
       debugLogger.error("Database initialization failed", { error: error.message }, "database");
@@ -527,6 +597,219 @@ class DatabaseManager {
     } catch (error) {
       debugLogger.error("Error deleting note", { error: error.message }, "notes");
       throw error;
+    }
+  }
+
+  // === Usage Stats ===
+
+  recordUsage(wordCount, durationSeconds) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      const today = new Date().toISOString().split("T")[0];
+      this.db
+        .prepare(
+          `INSERT INTO usage_stats (date, word_count, dictation_count, total_duration_seconds)
+           VALUES (?, ?, 1, ?)
+           ON CONFLICT(date) DO UPDATE SET
+             word_count = word_count + excluded.word_count,
+             dictation_count = dictation_count + 1,
+             total_duration_seconds = total_duration_seconds + excluded.total_duration_seconds`
+        )
+        .run(today, wordCount, durationSeconds);
+      return { success: true };
+    } catch (error) {
+      debugLogger.error("Error recording usage", { error: error.message }, "database");
+      return { success: false };
+    }
+  }
+
+  getUsageStats() {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      const row = this.db
+        .prepare(
+          `SELECT
+             COUNT(DISTINCT date) as total_days,
+             COALESCE(SUM(word_count), 0) as total_words,
+             COALESCE(SUM(dictation_count), 0) as total_dictations,
+             COALESCE(SUM(total_duration_seconds), 0) as total_duration_seconds
+           FROM usage_stats`
+        )
+        .get();
+      const avgWpm =
+        row.total_duration_seconds > 0
+          ? Math.round(row.total_words / (row.total_duration_seconds / 60))
+          : 0;
+      return {
+        totalDays: row.total_days,
+        totalWords: row.total_words,
+        totalDictations: row.total_dictations,
+        averageWpm: avgWpm,
+      };
+    } catch (error) {
+      debugLogger.error("Error getting usage stats", { error: error.message }, "database");
+      return { totalDays: 0, totalWords: 0, totalDictations: 0, averageWpm: 0 };
+    }
+  }
+
+  // === Snippets ===
+
+  getSnippets() {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      return this.db.prepare("SELECT * FROM snippets ORDER BY use_count DESC, created_at DESC").all();
+    } catch (error) {
+      debugLogger.error("Error getting snippets", { error: error.message }, "database");
+      return [];
+    }
+  }
+
+  createSnippet(keyword, expansion) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      const trimmedKeyword = (keyword || "").trim();
+      const trimmedExpansion = (expansion || "").trim();
+      if (!trimmedKeyword) return { success: false, error: "Keyword is required" };
+      if (!trimmedExpansion) return { success: false, error: "Expansion is required" };
+      const existing = this.db.prepare("SELECT id FROM snippets WHERE keyword = ?").get(trimmedKeyword);
+      if (existing) return { success: false, error: "A snippet with that keyword already exists" };
+      const result = this.db
+        .prepare("INSERT INTO snippets (keyword, expansion) VALUES (?, ?)")
+        .run(trimmedKeyword, trimmedExpansion);
+      const snippet = this.db.prepare("SELECT * FROM snippets WHERE id = ?").get(result.lastInsertRowid);
+      return { success: true, snippet };
+    } catch (error) {
+      debugLogger.error("Error creating snippet", { error: error.message }, "database");
+      return { success: false, error: error.message };
+    }
+  }
+
+  updateSnippet(id, updates) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      const allowedFields = ["keyword", "expansion"];
+      const fields = [];
+      const values = [];
+      for (const [key, value] of Object.entries(updates)) {
+        if (allowedFields.includes(key) && value !== undefined) {
+          fields.push(`${key} = ?`);
+          values.push(typeof value === "string" ? value.trim() : value);
+        }
+      }
+      if (fields.length === 0) return { success: false };
+      fields.push("updated_at = CURRENT_TIMESTAMP");
+      values.push(id);
+      this.db.prepare(`UPDATE snippets SET ${fields.join(", ")} WHERE id = ?`).run(...values);
+      const snippet = this.db.prepare("SELECT * FROM snippets WHERE id = ?").get(id);
+      return { success: true, snippet };
+    } catch (error) {
+      debugLogger.error("Error updating snippet", { error: error.message }, "database");
+      return { success: false, error: error.message };
+    }
+  }
+
+  deleteSnippet(id) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      this.db.prepare("DELETE FROM snippets WHERE id = ?").run(id);
+      return { success: true, id };
+    } catch (error) {
+      debugLogger.error("Error deleting snippet", { error: error.message }, "database");
+      return { success: false, error: error.message };
+    }
+  }
+
+  findSnippet(text) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      const normalized = (text || "").trim().toLowerCase();
+      if (!normalized) return null;
+      const snippet = this.db
+        .prepare("SELECT * FROM snippets WHERE LOWER(TRIM(keyword)) = ?")
+        .get(normalized);
+      if (snippet) {
+        this.db.prepare("UPDATE snippets SET use_count = use_count + 1 WHERE id = ?").run(snippet.id);
+      }
+      return snippet || null;
+    } catch (error) {
+      debugLogger.error("Error finding snippet", { error: error.message }, "database");
+      return null;
+    }
+  }
+
+  // Style Profile methods
+  getStyleProfiles() {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      return this.db.prepare("SELECT * FROM style_profiles ORDER BY id ASC").all();
+    } catch (error) {
+      debugLogger.error("Error getting style profiles", { error: error.message }, "database");
+      return [];
+    }
+  }
+
+  getActiveStyleProfile() {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      return this.db.prepare("SELECT * FROM style_profiles WHERE is_active = 1").get() || null;
+    } catch (error) {
+      debugLogger.error("Error getting active style profile", { error: error.message }, "database");
+      return null;
+    }
+  }
+
+  setActiveStyleProfile(id) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      this.db.prepare("UPDATE style_profiles SET is_active = 0").run();
+      if (id !== null) {
+        this.db.prepare("UPDATE style_profiles SET is_active = 1 WHERE id = ?").run(id);
+      }
+      return { success: true };
+    } catch (error) {
+      debugLogger.error("Error setting active profile", { error: error.message }, "database");
+      return { success: false, error: error.message };
+    }
+  }
+
+  createStyleProfile(name, rules) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      const result = this.db
+        .prepare("INSERT INTO style_profiles (name, rules) VALUES (?, ?)")
+        .run(name, JSON.stringify(rules));
+      return { success: true, id: result.lastInsertRowid };
+    } catch (error) {
+      debugLogger.error("Error creating style profile", { error: error.message }, "database");
+      return { success: false, error: error.message };
+    }
+  }
+
+  updateStyleProfile(id, updates) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      const fields = [];
+      const values = [];
+      if (updates.name !== undefined) { fields.push("name = ?"); values.push(updates.name); }
+      if (updates.rules !== undefined) { fields.push("rules = ?"); values.push(JSON.stringify(updates.rules)); }
+      fields.push("updated_at = CURRENT_TIMESTAMP");
+      values.push(id);
+      this.db.prepare(`UPDATE style_profiles SET ${fields.join(", ")} WHERE id = ?`).run(...values);
+      return { success: true };
+    } catch (error) {
+      debugLogger.error("Error updating style profile", { error: error.message }, "database");
+      return { success: false, error: error.message };
+    }
+  }
+
+  deleteStyleProfile(id) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      this.db.prepare("DELETE FROM style_profiles WHERE id = ?").run(id);
+      return { success: true };
+    } catch (error) {
+      debugLogger.error("Error deleting style profile", { error: error.message }, "database");
+      return { success: false, error: error.message };
     }
   }
 

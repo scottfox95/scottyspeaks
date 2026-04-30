@@ -522,6 +522,61 @@ class IPCHandlers {
       return result;
     });
 
+    // === Usage Stats ===
+    ipcMain.handle("db-record-usage", async (event, wordCount, durationSeconds) => {
+      return this.databaseManager.recordUsage(wordCount, durationSeconds);
+    });
+
+    ipcMain.handle("db-get-usage-stats", async () => {
+      return this.databaseManager.getUsageStats();
+    });
+
+    // === Snippets ===
+    ipcMain.handle("db-get-snippets", async () => {
+      return this.databaseManager.getSnippets();
+    });
+
+    ipcMain.handle("db-create-snippet", async (event, keyword, expansion) => {
+      return this.databaseManager.createSnippet(keyword, expansion);
+    });
+
+    ipcMain.handle("db-update-snippet", async (event, id, updates) => {
+      return this.databaseManager.updateSnippet(id, updates);
+    });
+
+    ipcMain.handle("db-delete-snippet", async (event, id) => {
+      return this.databaseManager.deleteSnippet(id);
+    });
+
+    ipcMain.handle("db-find-snippet", async (event, text) => {
+      return this.databaseManager.findSnippet(text);
+    });
+
+    // Style profile handlers
+    ipcMain.handle("db-get-style-profiles", async () => {
+      return this.databaseManager.getStyleProfiles();
+    });
+
+    ipcMain.handle("db-get-active-style-profile", async () => {
+      return this.databaseManager.getActiveStyleProfile();
+    });
+
+    ipcMain.handle("db-set-active-style-profile", async (event, id) => {
+      return this.databaseManager.setActiveStyleProfile(id);
+    });
+
+    ipcMain.handle("db-create-style-profile", async (event, name, rules) => {
+      return this.databaseManager.createStyleProfile(name, rules);
+    });
+
+    ipcMain.handle("db-update-style-profile", async (event, id, updates) => {
+      return this.databaseManager.updateStyleProfile(id, updates);
+    });
+
+    ipcMain.handle("db-delete-style-profile", async (event, id) => {
+      return this.databaseManager.deleteStyleProfile(id);
+    });
+
     ipcMain.handle("export-note", async (event, noteId, format) => {
       try {
         const note = this.databaseManager.getNote(noteId);

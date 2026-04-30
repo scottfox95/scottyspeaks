@@ -9,6 +9,7 @@ class UpdateManager {
     this.lastUpdateInfo = null;
     this.isInstalling = false;
     this.isDownloading = false;
+    this.isStartupCheck = false;
     this.eventListeners = [];
 
     this.setupAutoUpdater();
@@ -29,8 +30,8 @@ class UpdateManager {
     // Configure auto-updater for GitHub releases
     autoUpdater.setFeedURL({
       provider: "github",
-      owner: "OpenWhispr",
-      repo: "openwhispr",
+      owner: "scottfox95",
+      repo: "scottyspeaks",
       private: false,
     });
 
@@ -106,7 +107,10 @@ class UpdateManager {
       error: (err) => {
         console.error("❌ Auto-updater error:", err);
         this.isDownloading = false;
-        this.notifyRenderers("update-error", err);
+        // Don't show error toasts for startup checks (e.g. no releases yet)
+        if (!this.isStartupCheck) {
+          this.notifyRenderers("update-error", err);
+        }
       },
       "download-progress": (progressObj) => {
         console.log(
@@ -306,8 +310,11 @@ class UpdateManager {
     if (process.env.NODE_ENV !== "development") {
       setTimeout(() => {
         console.log("🔄 Checking for updates on startup...");
+        this.isStartupCheck = true;
         autoUpdater.checkForUpdates().catch((err) => {
-          console.error("Startup update check failed:", err);
+          console.warn("Startup update check failed (no releases published yet?):", err.message || err);
+        }).finally(() => {
+          this.isStartupCheck = false;
         });
       }, 3000);
     }

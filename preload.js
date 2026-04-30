@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onToggleDictation: registerListener("toggle-dictation", (callback) => () => callback()),
   onStartDictation: registerListener("start-dictation", (callback) => () => callback()),
   onStopDictation: registerListener("stop-dictation", (callback) => () => callback()),
+  onHandsFreeChanged: registerListener("hands-free-changed", (callback) => (_event, active) => callback(active)),
 
   // Database functions
   saveTranscription: (text) => ipcRenderer.invoke("db-save-transcription", text),
@@ -83,6 +84,26 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("db-create-action", name, description, prompt, icon),
   updateAction: (id, updates) => ipcRenderer.invoke("db-update-action", id, updates),
   deleteAction: (id) => ipcRenderer.invoke("db-delete-action", id),
+
+  // Usage stats
+  recordUsage: (wordCount, durationSeconds) =>
+    ipcRenderer.invoke("db-record-usage", wordCount, durationSeconds),
+  getUsageStats: () => ipcRenderer.invoke("db-get-usage-stats"),
+
+  // Snippets
+  getSnippets: () => ipcRenderer.invoke("db-get-snippets"),
+  createSnippet: (keyword, expansion) => ipcRenderer.invoke("db-create-snippet", keyword, expansion),
+  updateSnippet: (id, updates) => ipcRenderer.invoke("db-update-snippet", id, updates),
+  deleteSnippet: (id) => ipcRenderer.invoke("db-delete-snippet", id),
+  findSnippet: (text) => ipcRenderer.invoke("db-find-snippet", text),
+
+  // Style profile functions
+  getStyleProfiles: () => ipcRenderer.invoke("db-get-style-profiles"),
+  getActiveStyleProfile: () => ipcRenderer.invoke("db-get-active-style-profile"),
+  setActiveStyleProfile: (id) => ipcRenderer.invoke("db-set-active-style-profile", id),
+  createStyleProfile: (name, rules) => ipcRenderer.invoke("db-create-style-profile", name, rules),
+  updateStyleProfile: (id, updates) => ipcRenderer.invoke("db-update-style-profile", id, updates),
+  deleteStyleProfile: (id) => ipcRenderer.invoke("db-delete-style-profile", id),
 
   // Audio file operations
   selectAudioFile: () => ipcRenderer.invoke("select-audio-file"),
@@ -336,83 +357,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openSoundInputSettings: () => ipcRenderer.invoke("open-sound-input-settings"),
   openAccessibilitySettings: () => ipcRenderer.invoke("open-accessibility-settings"),
   openWhisperModelsFolder: () => ipcRenderer.invoke("open-whisper-models-folder"),
-  authClearSession: () => ipcRenderer.invoke("auth-clear-session"),
 
-  // OpenWhispr Cloud API
-  cloudTranscribe: (audioBuffer, opts) => ipcRenderer.invoke("cloud-transcribe", audioBuffer, opts),
-  cloudReason: (text, opts) => ipcRenderer.invoke("cloud-reason", text, opts),
-  cloudStreamingUsage: (text, audioDurationSeconds, opts) =>
-    ipcRenderer.invoke("cloud-streaming-usage", text, audioDurationSeconds, opts),
-  cloudUsage: () => ipcRenderer.invoke("cloud-usage"),
-  cloudCheckout: (plan) => ipcRenderer.invoke("cloud-checkout", plan),
-  cloudBillingPortal: () => ipcRenderer.invoke("cloud-billing-portal"),
-  getSttConfig: () => ipcRenderer.invoke("get-stt-config"),
-
-  // Cloud audio file transcription
-  transcribeAudioFileCloud: (filePath) =>
-    ipcRenderer.invoke("transcribe-audio-file-cloud", filePath),
-  transcribeAudioFileByok: (options) => ipcRenderer.invoke("transcribe-audio-file-byok", options),
-  onUploadTranscriptionProgress: registerListener(
-    "upload-transcription-progress",
-    (callback) => (_event, data) => callback(data)
-  ),
-
-  // Referral stats
-  getReferralStats: () => ipcRenderer.invoke("get-referral-stats"),
-  sendReferralInvite: (email) => ipcRenderer.invoke("send-referral-invite", email),
-  getReferralInvites: () => ipcRenderer.invoke("get-referral-invites"),
-
-  // Assembly AI Streaming
-  assemblyAiStreamingWarmup: (options) =>
-    ipcRenderer.invoke("assemblyai-streaming-warmup", options),
-  assemblyAiStreamingStart: (options) => ipcRenderer.invoke("assemblyai-streaming-start", options),
-  assemblyAiStreamingSend: (audioBuffer) =>
-    ipcRenderer.send("assemblyai-streaming-send", audioBuffer),
-  assemblyAiStreamingForceEndpoint: () => ipcRenderer.send("assemblyai-streaming-force-endpoint"),
-  assemblyAiStreamingStop: () => ipcRenderer.invoke("assemblyai-streaming-stop"),
-  assemblyAiStreamingStatus: () => ipcRenderer.invoke("assemblyai-streaming-status"),
-  onAssemblyAiPartialTranscript: registerListener(
-    "assemblyai-partial-transcript",
-    (callback) => (_event, text) => callback(text)
-  ),
-  onAssemblyAiFinalTranscript: registerListener(
-    "assemblyai-final-transcript",
-    (callback) => (_event, text) => callback(text)
-  ),
-  onAssemblyAiError: registerListener(
-    "assemblyai-error",
-    (callback) => (_event, error) => callback(error)
-  ),
-  onAssemblyAiSessionEnd: registerListener(
-    "assemblyai-session-end",
-    (callback) => (_event, data) => callback(data)
-  ),
-
-  // Deepgram Streaming
-  deepgramStreamingWarmup: (options) => ipcRenderer.invoke("deepgram-streaming-warmup", options),
-  deepgramStreamingStart: (options) => ipcRenderer.invoke("deepgram-streaming-start", options),
-  deepgramStreamingSend: (audioBuffer) => ipcRenderer.send("deepgram-streaming-send", audioBuffer),
-  deepgramStreamingFinalize: () => ipcRenderer.send("deepgram-streaming-finalize"),
-  deepgramStreamingStop: () => ipcRenderer.invoke("deepgram-streaming-stop"),
-  deepgramStreamingStatus: () => ipcRenderer.invoke("deepgram-streaming-status"),
-  onDeepgramPartialTranscript: registerListener(
-    "deepgram-partial-transcript",
-    (callback) => (_event, text) => callback(text)
-  ),
-  onDeepgramFinalTranscript: registerListener(
-    "deepgram-final-transcript",
-    (callback) => (_event, text) => callback(text)
-  ),
-  onDeepgramError: registerListener(
-    "deepgram-error",
-    (callback) => (_event, error) => callback(error)
-  ),
-  onDeepgramSessionEnd: registerListener(
-    "deepgram-session-end",
-    (callback) => (_event, data) => callback(data)
-  ),
-
-  // Usage limit events (for showing UpgradePrompt in ControlPanel)
+  // Usage limit events
   notifyLimitReached: (data) => ipcRenderer.send("limit-reached", data),
   onLimitReached: registerListener("limit-reached", (callback) => (_event, data) => callback(data)),
 
@@ -427,6 +373,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("globe-key-released", listener);
     return () => ipcRenderer.removeListener("globe-key-released", listener);
   },
+
+  // Mouse button as secondary trigger (macOS only)
+  onMouseButtonPressed: (callback) => {
+    const listener = (_event, button) => callback?.(button);
+    ipcRenderer.on("mouse-button-pressed", listener);
+    return () => ipcRenderer.removeListener("mouse-button-pressed", listener);
+  },
+  getMouseButton: () => ipcRenderer.invoke("get-mouse-button"),
+  setMouseButton: (button) => ipcRenderer.invoke("set-mouse-button", button),
 
   // Hotkey registration events (for notifying user when hotkey fails)
   onHotkeyFallbackUsed: (callback) => {

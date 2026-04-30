@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { useToast } from "./components/ui/Toast";
 import { LoadingDots } from "./components/ui/LoadingDots";
 import { useHotkey } from "./hooks/useHotkey";
+import { formatHotkeyLabel } from "./utils/hotkeys";
 import { useWindowDrag } from "./hooks/useWindowDrag";
 import { useAudioRecording } from "./hooks/useAudioRecording";
 import { useSettingsStore } from "./stores/settingsStore";
@@ -72,6 +73,7 @@ const Tooltip = ({ children, content, emoji }) => {
 export default function App() {
   const [isHovered, setIsHovered] = useState(false);
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false);
+  const [isHandsFree, setIsHandsFree] = useState(false);
   const commandMenuRef = useRef(null);
   const buttonRef = useRef(null);
   const { toast, dismiss, toastCount } = useToast();
@@ -94,6 +96,14 @@ export default function App() {
     setWindowInteractivity(false);
     return () => setWindowInteractivity(false);
   }, [setWindowInteractivity]);
+
+  // Listen for hands-free mode changes from main process
+  useEffect(() => {
+    const unsubscribe = window.electronAPI?.onHandsFreeChanged?.((active) => {
+      setIsHandsFree(active);
+    });
+    return () => unsubscribe?.();
+  }, []);
 
   useEffect(() => {
     const unsubscribeFallback = window.electronAPI?.onHotkeyFallbackUsed?.((data) => {
@@ -269,7 +279,7 @@ export default function App() {
       case "hover":
         return {
           className: `${baseClasses} bg-black/50 cursor-pointer`,
-          tooltip: t("app.mic.hotkeyToSpeak", { hotkey }),
+          tooltip: t("app.mic.hotkeyToSpeak", { hotkey: formatHotkeyLabel(hotkey) }),
         };
       case "recording":
         return {
@@ -309,6 +319,13 @@ export default function App() {
             }
           }}
         >
+          {/* Hands-free indicator */}
+          {isHandsFree && isRecording && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/90 backdrop-blur-sm shadow-sm animate-pulse">
+              <div className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+              <span className="text-[10px] font-medium text-white whitespace-nowrap">Hands-free</span>
+            </div>
+          )}
           {(isRecording || isProcessing) && isHovered && (
             <button
               aria-label={

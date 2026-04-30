@@ -115,6 +115,16 @@ class GlobeKeyManager extends EventEmitter {
             if (modifier) {
               this.emit("modifier-up", modifier);
             }
+          } else if (line.startsWith("MOUSE_DOWN:")) {
+            const button = parseInt(line.replace("MOUSE_DOWN:", "").trim(), 10);
+            if (!isNaN(button)) {
+              this.emit("mouse-button-down", button);
+            }
+          } else if (line.startsWith("MOUSE_UP:")) {
+            const button = parseInt(line.replace("MOUSE_UP:", "").trim(), 10);
+            if (!isNaN(button)) {
+              this.emit("mouse-button-up", button);
+            }
           }
         });
     });
@@ -179,7 +189,7 @@ class GlobeKeyManager extends EventEmitter {
         this.reportError(
           new Error(
             `Globe key listener keeps exiting unexpectedly (${MAX_RESTART_ATTEMPTS} restarts failed). ` +
-              "Try restarting OpenWhispr."
+              "Try restarting ScottySpeaks."
           )
         );
       }
@@ -195,6 +205,21 @@ class GlobeKeyManager extends EventEmitter {
     if (this.process) {
       this.process.kill();
       this.process = null;
+    }
+  }
+
+  /**
+   * Tell the native listener which mouse button to suppress (consume the OS event).
+   * Pass -1 to stop suppressing.
+   */
+  setMouseButtonSuppress(button) {
+    if (this.process && this.process.stdin && !this.process.stdin.destroyed) {
+      try {
+        this.process.stdin.write(`SUPPRESS:${button}\n`);
+        debugLogger.info("[GlobeKeyManager] Set mouse suppress", { button });
+      } catch (err) {
+        debugLogger.warn("[GlobeKeyManager] Failed to write suppress command", { error: err.message });
+      }
     }
   }
 

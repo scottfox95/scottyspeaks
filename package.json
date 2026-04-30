@@ -1,7 +1,7 @@
 {
-  "name": "open-whispr",
-  "version": "1.5.5",
-  "description": "A desktop dictation application using whisper.cpp for speech-to-text transcription",
+  "name": "scotty-speaks",
+  "version": "0.1.0",
+  "description": "ScottySpeaks - Local-first voice dictation for macOS",
   "main": "main.js",
   "private": true,
   "scripts": {
@@ -11,7 +11,7 @@
     "compile:text-monitor": "node scripts/build-text-monitor.js",
     "compile:winpaste": "node scripts/build-windows-fast-paste.js",
     "compile:linux-paste": "node scripts/build-linux-fast-paste.js",
-    "compile:native": "npm run compile:globe && npm run compile:fast-paste && npm run compile:winkeys && npm run compile:winpaste && npm run compile:linux-paste && npm run compile:text-monitor",
+    "compile:native": "npm run compile:globe && npm run compile:fast-paste && npm run compile:text-monitor",
     "prestart": "npm run compile:native",
     "start": "electron .",
     "predev": "npm run compile:native",
@@ -68,8 +68,8 @@
     "desktop-app"
   ],
   "author": {
-    "name": "OpenWhispr Team",
-    "email": "support@openwhispr.com"
+    "name": "Scott Tenenbaum",
+    "email": "scott.f.tenenbaum@gmail.com"
   },
   "license": "MIT",
   "devDependencies": {
@@ -96,8 +96,6 @@
     "vite": "^6.3.5"
   },
   "dependencies": {
-    "@neondatabase/auth": "^0.1.0-beta.21",
-    "@neondatabase/neon-js": "^0.1.0-beta.22",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-dropdown-menu": "^2.1.15",
@@ -109,7 +107,6 @@
     "better-sqlite3": "^11.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "dbus-next": "^0.10.2",
     "dotenv": "^16.3.1",
     "electron-updater": "^6.6.2",
     "ffmpeg-static": "^5.2.0",

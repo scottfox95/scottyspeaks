@@ -1,9 +1,9 @@
 {
-  "appId": "com.herotools.openwispr",
-  "productName": "OpenWhispr",
+  "appId": "com.scottfox.scottyspeaks",
+  "productName": "ScottySpeaks",
   "protocols": {
-    "name": "OpenWhispr Protocol",
-    "schemes": ["openwhispr"]
+    "name": "ScottySpeaks Protocol",
+    "schemes": ["scottyspeaks"]
   },
   "directories": {
     "output": "dist"
@@ -88,8 +88,6 @@
     "resources/bin/macos-globe-listener",
     "resources/bin/macos-fast-paste",
     "resources/bin/macos-text-monitor",
-    "resources/bin/linux-fast-paste",
-    "resources/bin/linux-text-monitor",
     {
       "from": "resources/bin/",
       "to": "bin/",
@@ -98,12 +96,7 @@
         "whisper-server-*",
         "llama-server-*",
         "sherpa-onnx-*",
-        "windows-key-listener*",
-        "windows-text-monitor*",
-        "windows-fast-paste*",
-        "*.dylib",
-        "*.dll",
-        "*.so*"
+        "*.dylib"
       ]
     }
   ],
@@ -115,82 +108,15 @@
     "hardenedRuntime": true,
     "entitlements": "resources/mac/entitlements.mac.plist",
     "entitlementsInherit": "resources/mac/entitlements.mac.plist",
-    "identity": "HeroTools Inc. (9R85XFMH59)",
-    "notarize": true,
+    "notarize": false,
     "extendInfo": {
       "LSUIElement": false,
-      "NSMicrophoneUsageDescription": "OpenWhispr needs microphone access for speech-to-text transcription.",
-      "NSAccessibilityUsageDescription": "OpenWhispr needs accessibility permissions to paste transcribed text into other applications."
+      "NSMicrophoneUsageDescription": "ScottySpeaks needs microphone access for speech-to-text transcription.",
+      "NSAccessibilityUsageDescription": "ScottySpeaks needs accessibility permissions to paste transcribed text into other applications."
     }
   },
-  "win": {
-    "target": ["nsis", "portable"],
-    "icon": "src/assets/icon.ico",
-    "extraResources": [
-      {
-        "from": "resources/bin/nircmd.exe",
-        "to": "bin/nircmd.exe"
-      }
-    ]
-  },
-  "linux": {
-    "target": ["AppImage", "deb", "rpm", "tar.gz"],
-    "icon": "src/assets/icon.png",
-    "category": "Utility",
-    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
-  },
-  "flatpak": {
-    "runtime": "org.freedesktop.Platform",
-    "runtimeVersion": "24.08",
-    "sdk": "org.freedesktop.Sdk",
-    "useWaylandFlags": true,
-    "finishArgs": [
-      "--socket=wayland",
-      "--socket=fallback-x11",
-      "--share=network",
-      "--share=ipc",
-      "--device=dri",
-      "--socket=pulseaudio",
-      "--filesystem=home",
-      "--filesystem=xdg-documents",
-      "--filesystem=xdg-download",
-      "--talk-name=org.freedesktop.Notifications",
-      "--talk-name=org.freedesktop.portal.Desktop"
-    ]
-  },
-  "deb": {
-    "afterRemove": "resources/linux/after-remove.sh",
-    "depends": ["ydotool"],
-    "fpm": [
-      "--deb-suggests",
-      "xdotool",
-      "--deb-suggests",
-      "wtype",
-      "--deb-recommends",
-      "wl-clipboard"
-    ]
-  },
-  "rpm": {
-    "fpm": [
-      "--rpm-tag",
-      "Requires: ydotool",
-      "--rpm-tag",
-      "Suggests: xdotool",
-      "--rpm-tag",
-      "Suggests: wtype",
-      "--rpm-tag",
-      "Recommends: wl-clipboard"
-    ]
-  },
-  "nsis": {
-    "oneClick": false,
-    "allowToChangeInstallationDirectory": true,
-    "createDesktopShortcut": true,
-    "createStartMenuShortcut": true,
-    "include": "resources/nsis/cleanup-models.nsh"
-  },
   "dmg": {
-    "title": "OpenWhispr",
+    "title": "ScottySpeaks",
     "icon": "src/assets/icon.icns",
     "window": {
       "width": 540,
@@ -199,8 +125,8 @@
   },
   "publish": {
     "provider": "github",
-    "owner": "OpenWhispr",
-    "repo": "openwhispr",
+    "owner": "scottfox95",
+    "repo": "scottyspeaks",
     "private": false,
     "releaseType": "draft"
   }

@@ -607,6 +607,88 @@ function AiModelsSection({
   );
 }
 
+// Mouse button as secondary dictation trigger (macOS only)
+function MouseButtonSetting() {
+  const [buttonNumber, setButtonNumber] = useState<number>(-1);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    window.electronAPI?.getMouseButton?.().then((b) => {
+      setButtonNumber(typeof b === "number" ? b : -1);
+      setLoaded(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isCapturing) return;
+    const dispose = window.electronAPI?.onMouseButtonPressed?.((button: number) => {
+      setButtonNumber(button);
+      setIsCapturing(false);
+      window.electronAPI?.setMouseButton?.(button);
+    });
+    return () => { dispose?.(); };
+  }, [isCapturing]);
+
+  const isEnabled = buttonNumber >= 0;
+
+  const BUTTON_LABELS: Record<number, string> = {
+    2: "Middle Click",
+    3: "Mouse Button 4",
+    4: "Mouse Button 5",
+  };
+  const label = BUTTON_LABELS[buttonNumber] || (isEnabled ? `Mouse Button ${buttonNumber + 1}` : "");
+
+  if (!loaded) return null;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {isEnabled ? (
+            <kbd className="px-2.5 py-1 bg-surface-raised border border-border rounded-sm text-xs font-semibold text-foreground">
+              {label}
+            </kbd>
+          ) : (
+            <span className="text-xs text-muted-foreground">No mouse button configured</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {isCapturing ? (
+            <span className="flex items-center gap-1.5 text-xs text-primary">
+              <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
+              Press a mouse button...
+            </span>
+          ) : (
+            <>
+              <button
+                onClick={() => setIsCapturing(true)}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {isEnabled ? "Change" : "Assign button"}
+              </button>
+              {isEnabled && (
+                <button
+                  onClick={() => {
+                    setButtonNumber(-1);
+                    window.electronAPI?.setMouseButton?.(-1);
+                  }}
+                  className="text-xs text-muted-foreground/60 hover:text-destructive transition-colors"
+                >
+                  Remove
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground/60">
+        Works alongside your keyboard hotkey. Supports hold-to-speak, tap, and double-tap hands-free.
+      </p>
+    </div>
+  );
+}
+
 export default function SettingsPage({ activeSection = "general" }: SettingsPageProps) {
   const {
     confirmDialog,
@@ -692,8 +774,8 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
   const [isRemovingModels, setIsRemovingModels] = useState(false);
   const cachePathHint =
     typeof navigator !== "undefined" && /Windows/i.test(navigator.userAgent)
-      ? "%USERPROFILE%\\.cache\\openwhispr"
-      : "~/.cache/openwhispr";
+      ? "%USERPROFILE%\\.cache\\scottyspeaks"
+      : "~/.cache/scottyspeaks";
 
   const {
     status: updateStatus,
@@ -1824,6 +1906,21 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
                 )}
               </SettingsPanel>
             </div>
+
+            {/* Mouse Button Trigger (macOS only) */}
+            {getCachedPlatform() === "darwin" && (
+              <div>
+                <SectionHeader
+                  title="Mouse Button Trigger"
+                  description="Use a mouse button as an additional trigger alongside your keyboard hotkey."
+                />
+                <SettingsPanel>
+                  <SettingsPanelRow>
+                    <MouseButtonSetting />
+                  </SettingsPanelRow>
+                </SettingsPanel>
+              </div>
+            )}
           </div>
         );
 

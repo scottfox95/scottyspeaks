@@ -21,6 +21,7 @@ const PERSISTED_KEYS = [
   "LLAMA_VULKAN_ENABLED",
   "DICTATION_KEY",
   "ACTIVATION_MODE",
+  "MOUSE_BUTTON",
   "FLOATING_ICON_AUTO_HIDE",
   "UI_LANGUAGE",
   "WHISPER_CUDA_ENABLED",
@@ -133,7 +134,7 @@ class EnvironmentManager {
 
   getActivationMode() {
     const mode = this._getKey("ACTIVATION_MODE");
-    return mode === "push" ? "push" : "tap";
+    return mode === "tap" ? "tap" : "push";
   }
 
   saveActivationMode(mode) {

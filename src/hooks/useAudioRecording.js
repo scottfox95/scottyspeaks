@@ -99,12 +99,39 @@ export const useAudioRecording = (toast, options = {}) => {
             return;
           }
 
-          setTranscript(result.text);
+          // Snippet matching: check if transcribed text matches a snippet keyword
+          let finalText = result.text;
+          let wasSnippet = false;
+          try {
+            const snippet = await window.electronAPI?.findSnippet?.(transcribedText);
+            if (snippet) {
+              finalText = snippet.expansion;
+              wasSnippet = true;
+            }
+          } catch (e) {
+            // Snippet lookup failed, use original text
+          }
+
+          // Apply active style profile (skip for snippet expansions)
+          if (!wasSnippet) {
+            try {
+              const profile = await window.electronAPI?.getActiveStyleProfile?.();
+              if (profile) {
+                const { applyStyleRules } = await import("../services/StyleProcessor");
+                const rules = JSON.parse(profile.rules);
+                finalText = applyStyleRules(finalText, rules);
+              }
+            } catch (e) {
+              // Style processing failed, use text as-is
+            }
+          }
+
+          setTranscript(finalText);
 
           const isStreaming = result.source?.includes("streaming");
           const pasteStart = performance.now();
           await audioManagerRef.current.safePaste(
-            result.text,
+            finalText,
             isStreaming ? { fromStreaming: true } : {}
           );
           logger.info(
@@ -112,12 +139,19 @@ export const useAudioRecording = (toast, options = {}) => {
             {
               pasteMs: Math.round(performance.now() - pasteStart),
               source: result.source,
-              textLength: result.text.length,
+              textLength: finalText.length,
             },
             "streaming"
           );
 
-          audioManagerRef.current.saveTranscription(result.text);
+          audioManagerRef.current.saveTranscription(wasSnippet ? finalText : result.text);
+
+          // Record usage stats
+          const wordCount = finalText.split(/\s+/).filter(w => w.length > 0).length;
+          const durationSeconds = result.audioDurationMs
+            ? Math.round(result.audioDurationMs / 1000)
+            : 0;
+          window.electronAPI?.recordUsage?.(wordCount, durationSeconds).catch(() => {});
 
           if (result.source === "openai" && getSettings().useLocalWhisper) {
             toast({

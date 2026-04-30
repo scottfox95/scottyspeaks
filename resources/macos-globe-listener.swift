@@ -2,10 +2,17 @@ import Cocoa
 import Foundation
 import Darwin
 
-let mask = CGEventMask(1 << CGEventType.flagsChanged.rawValue)
+let mask = CGEventMask(
+    (1 << CGEventType.flagsChanged.rawValue) |
+    (1 << CGEventType.otherMouseDown.rawValue) |
+    (1 << CGEventType.otherMouseUp.rawValue)
+)
 var fnIsDown = false
 var eventTap: CFMachPort?
 var lastModifierFlags: CGEventFlags = []
+
+// Mouse button to suppress (-1 = none, pass all through)
+var suppressMouseButton: Int64 = -1
 
 let rightModifiers: [(Int64, CGEventFlags, String)] = [
     (61, .maskAlternate, "RightOption"),
@@ -32,6 +39,25 @@ func eventTapCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent,
     if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
         if let tap = eventTap {
             CGEvent.tapEnable(tap: tap, enable: true)
+        }
+        return Unmanaged.passUnretained(event)
+    }
+
+    // Handle mouse button events (buttons beyond left/right, i.e. button >= 2)
+    if type == .otherMouseDown {
+        let button = event.getIntegerValueField(.mouseEventButtonNumber)
+        emit("MOUSE_DOWN:\(button)")
+        // Suppress this event if it matches the configured button
+        if button == suppressMouseButton {
+            return nil
+        }
+        return Unmanaged.passUnretained(event)
+    }
+    if type == .otherMouseUp {
+        let button = event.getIntegerValueField(.mouseEventButtonNumber)
+        emit("MOUSE_UP:\(button)")
+        if button == suppressMouseButton {
+            return nil
         }
         return Unmanaged.passUnretained(event)
     }
@@ -69,9 +95,10 @@ func eventTapCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent,
     return Unmanaged.passUnretained(event)
 }
 
+// Use .defaultTap so we can suppress mouse events (return nil to consume them)
 guard let createdTap = CGEvent.tapCreate(tap: .cgAnnotatedSessionEventTap,
                                          place: .tailAppendEventTap,
-                                         options: .listenOnly,
+                                         options: .defaultTap,
                                          eventsOfInterest: mask,
                                          callback: eventTapCallback,
                                          userInfo: nil) else {
@@ -84,6 +111,29 @@ eventTap = createdTap
 let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, createdTap, 0)
 CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
 CGEvent.tapEnable(tap: createdTap, enable: true)
+
+// Read stdin for commands (e.g., "SUPPRESS:2" to suppress button 2)
+let stdinSource = DispatchSource.makeReadSource(fileDescriptor: FileHandle.standardInput.fileDescriptor, queue: .global())
+var stdinBuffer = Data()
+stdinSource.setEventHandler {
+    let data = FileHandle.standardInput.availableData
+    if data.isEmpty { return }
+    stdinBuffer.append(data)
+    // Process complete lines
+    while let newlineRange = stdinBuffer.range(of: Data("\n".utf8)) {
+        let lineData = stdinBuffer.subdata(in: stdinBuffer.startIndex..<newlineRange.lowerBound)
+        stdinBuffer.removeSubrange(stdinBuffer.startIndex...newlineRange.lowerBound)
+        if let line = String(data: lineData, encoding: .utf8)?.trimmingCharacters(in: .whitespaces) {
+            if line.hasPrefix("SUPPRESS:") {
+                let value = line.replacingOccurrences(of: "SUPPRESS:", with: "")
+                if let num = Int64(value) {
+                    suppressMouseButton = num
+                }
+            }
+        }
+    }
+}
+stdinSource.resume()
 
 let signalSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
 signal(SIGTERM, SIG_IGN)

@@ -220,7 +220,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   customReasoningApiKey: readString("customReasoningApiKey", ""),
 
   dictationKey: readString("dictationKey", ""),
-  activationMode: (readString("activationMode", "tap") === "push" ? "push" : "tap") as
+  activationMode: (readString("activationMode", "push") === "tap" ? "tap" : "push") as
     | "tap"
     | "push",
 

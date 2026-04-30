@@ -3,46 +3,46 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* OpenWhispr Theme — registers color tokens with Tailwind v4.
-     These are the light-mode defaults; .dark overrides them below. */
-  --color-primary: #2563eb;
+  /* ScottySpeaks Theme — warm, clean WisprFlow-inspired palette.
+     Light-mode defaults; .dark overrides them below. */
+  --color-primary: #1a1a1a;
   --color-primary-foreground: #ffffff;
-  --color-secondary: #f5f5f5;
-  --color-secondary-foreground: #171717;
-  --color-muted: #f5f5f5;
-  --color-muted-foreground: #525252;
+  --color-secondary: #f5f2ed;
+  --color-secondary-foreground: #1a1a1a;
+  --color-muted: #f0ede8;
+  --color-muted-foreground: #6b6560;
   --color-accent: oklch(0.55 0.22 285);
   --color-accent-foreground: #ffffff;
   --color-destructive: #dc2626;
   --color-destructive-foreground: #ffffff;
-  --color-border: #e5e5e5;
+  --color-border: #e8e4de;
   --color-input: #f9f6f1;
-  --color-ring: #2563eb;
-  --color-background: #ffffff;
-  --color-foreground: #171717;
+  --color-ring: #1a1a1a;
+  --color-background: #faf8f5;
+  --color-foreground: #1a1a1a;
   --color-card: #ffffff;
-  --color-card-foreground: #171717;
+  --color-card-foreground: #1a1a1a;
   --color-popover: #ffffff;
-  --color-popover-foreground: #171717;
-  --color-link: #2563eb;
+  --color-popover-foreground: #1a1a1a;
+  --color-link: #1a1a1a;
   --color-success: #16a34a;
   --color-success-foreground: #ffffff;
   --color-warning: #d97706;
   --color-warning-foreground: #ffffff;
-  --color-info: #2563eb;
+  --color-info: #1a1a1a;
   --color-info-foreground: #ffffff;
 
-  /* Surface hierarchy — light mode equivalents */
-  --color-surface-0: #ffffff;
-  --color-surface-1: #fafafa;
+  /* Surface hierarchy — warm off-whites */
+  --color-surface-0: #faf8f5;
+  --color-surface-1: #f5f2ed;
   --color-surface-2: #ffffff;
-  --color-surface-3: #f5f5f5;
-  --color-surface-raised: #f0f0f0;
+  --color-surface-3: #f0ede8;
+  --color-surface-raised: #ebe8e3;
 
-  /* Border states — light mode equivalents */
-  --color-border-subtle: #e5e5e5;
-  --color-border-hover: #d4d4d4;
-  --color-border-active: #2563eb;
+  /* Border states — warm neutrals */
+  --color-border-subtle: #e8e4de;
+  --color-border-hover: #d8d4ce;
+  --color-border-active: #1a1a1a;
 }
 
 :root {
@@ -63,16 +63,18 @@
   --radius-lg: 0.5rem; /* 8px - cards, panels */
   --radius-xl: 0.625rem; /* 10px - large cards */
 
-  /* Custom Light Mode Brand Colors (Parchment Theme) */
+  /* Custom Light Mode Brand Colors */
   --color-parchment-bg: #f9f6f1;
-  --color-parchment-border: #ddd4c7;
-  --color-parchment-text: #2b1f14;
-  --color-parchment-accent: #c0a77d;
-  --color-brand-primary: #2b1f14;
-  --color-brand-accent: #4b2e2b;
-  --color-brand-highlight: #c0a77d;
-  --color-brand-link: #2e3659;
-  --color-pattern: #e7e5e4;
+  --color-parchment-border: #e0dbd4;
+  --color-parchment-text: #1a1a1a;
+  --color-parchment-accent: #1a1a1a;
+  --color-brand-primary: #1a1a1a;
+  --color-brand-accent: #1a1a1a;
+  --color-brand-highlight: #f5a623;
+  --color-brand-link: #1a1a1a;
+  --color-pattern: #e8e4de;
+  --color-cta-bg: #fdf8e8;
+  --color-cta-border: #f0e6c4;
 
   /* Model picker premium effects (light mode) */
   --shadow-metallic-light: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 3px rgba(0, 0, 0, 0.08);
@@ -186,9 +188,9 @@
   }
 }
 
-/* OpenWhispr Brand Typography */
+/* ScottySpeaks Brand Typography */
 .brand-heading {
-  font-family: var(--font-family-sans);
+  font-family: Georgia, "Times New Roman", serif;
   font-weight: 600;
   letter-spacing: -0.02em;
 }
@@ -199,7 +201,7 @@
 }
 
 .brand-script {
-  font-family: var(--font-family-sans);
+  font-family: Georgia, "Times New Roman", serif;
   font-style: italic;
 }
 
@@ -579,137 +581,6 @@ a:hover {
   }
 }
 
-/* ---- Referral Modal v2 ---- */
-
-/* Animated mesh gradient — slow-drifting color blobs */
-.referral-mesh-bg {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.referral-mesh-bg::before,
-.referral-mesh-bg::after {
-  content: "";
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  animation: mesh-drift 25s ease-in-out infinite alternate;
-}
-
-.referral-mesh-bg::before {
-  width: 300px;
-  height: 300px;
-  background: oklch(0.65 0.2 260);
-  opacity: 0.04;
-  top: -80px;
-  right: -60px;
-}
-
-.referral-mesh-bg::after {
-  width: 250px;
-  height: 250px;
-  background: oklch(0.6 0.18 180);
-  opacity: 0.04;
-  bottom: -60px;
-  left: -40px;
-  animation-delay: -12s;
-  animation-direction: alternate-reverse;
-}
-
-@keyframes mesh-drift {
-  0% {
-    transform: translate(0, 0) scale(1);
-  }
-  33% {
-    transform: translate(30px, -20px) scale(1.05);
-  }
-  66% {
-    transform: translate(-20px, 15px) scale(0.95);
-  }
-  100% {
-    transform: translate(10px, -10px) scale(1.02);
-  }
-}
-
-/* 3D perspective-tilt card */
-.tilt-card {
-  --tilt-x: 0deg;
-  --tilt-y: 0deg;
-  --highlight-x: 50%;
-  --highlight-y: 50%;
-  --highlight-opacity: 0;
-  transform-style: preserve-3d;
-  transform: perspective(800px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
-  transition: transform 0.6s cubic-bezier(0.03, 0.98, 0.52, 0.99);
-  position: relative;
-  isolation: isolate;
-  will-change: transform;
-}
-
-.tilt-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(
-    circle at var(--highlight-x) var(--highlight-y),
-    oklch(1 0 0 / 0.07),
-    transparent 60%
-  );
-  opacity: var(--highlight-opacity);
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.tilt-card::after {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: conic-gradient(
-    from 180deg at 50% 50%,
-    oklch(0.65 0.2 260 / 0.2),
-    oklch(0.55 0.2 320 / 0.1),
-    oklch(0.6 0.18 180 / 0.15),
-    oklch(0.55 0.2 100 / 0.1),
-    oklch(0.65 0.2 260 / 0.2)
-  );
-  z-index: -1;
-  opacity: 0;
-  transition: opacity 0.4s ease;
-}
-
-.tilt-card:hover::after {
-  opacity: 1;
-}
-
-/* Stat gauge — accent bottom bar */
-.stat-gauge {
-  position: relative;
-  overflow: hidden;
-}
-
-.stat-gauge::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: oklch(0.65 0.2 260 / 0.4);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.3s;
-}
-
-.stat-gauge[data-active="true"]::after {
-  transform: scaleX(1);
-}
-
 /* Spectrogram playback scan line — synced to audio */
 @keyframes spectrogram-play {
   0% {
@@ -729,28 +600,7 @@ a:hover {
   animation: spectrogram-play linear both;
 }
 
-/* Reduced motion: disable all referral effects */
 @media (prefers-reduced-motion: reduce) {
-  .referral-mesh-bg::before,
-  .referral-mesh-bg::after {
-    animation: none;
-  }
-
-  .tilt-card {
-    transform: none !important;
-    transition: none;
-  }
-
-  .tilt-card::before,
-  .tilt-card::after {
-    display: none;
-  }
-
-  .stat-gauge::after {
-    transition: none;
-    transform: scaleX(1);
-  }
-
   .spectrogram-play {
     animation: none;
     opacity: 0;

@@ -36,6 +36,15 @@ function isModifierOnlyHotkey(hotkey) {
   return hotkey.split("+").every((part) => MODIFIER_NAMES.has(part.toLowerCase()));
 }
 
+function isMouseButtonHotkey(hotkey) {
+  return /^MouseButton:\d+$/.test(hotkey);
+}
+
+function getMouseButtonNumber(hotkey) {
+  const match = hotkey.match(/^MouseButton:(\d+)$/);
+  return match ? parseInt(match[1], 10) : null;
+}
+
 function isGlobeLikeHotkey(hotkey) {
   return hotkey === "GLOBE" || hotkey === "Fn";
 }
@@ -134,6 +143,7 @@ class HotkeyManager {
       hotkey === this.currentHotkey &&
       !isGlobeLikeHotkey(hotkey) &&
       !isRightSideModifier(hotkey) &&
+      !isMouseButtonHotkey(hotkey) &&
       !isModifierOnlyHotkey(hotkey) &&
       globalShortcut.isRegistered(checkAccelerator)
     ) {
@@ -150,6 +160,7 @@ class HotkeyManager {
       this.currentHotkey &&
       !isGlobeLikeHotkey(this.currentHotkey) &&
       !isRightSideModifier(this.currentHotkey) &&
+      !isMouseButtonHotkey(this.currentHotkey) &&
       !isModifierOnlyHotkey(this.currentHotkey)
     ) {
       const prevAccelerator = normalizeToAccelerator(this.currentHotkey);
@@ -174,6 +185,22 @@ class HotkeyManager {
         }
         this.currentHotkey = hotkey;
         debugLogger.log(`[HotkeyManager] GLOBE/Fn key "${hotkey}" set successfully`);
+        return { success: true, hotkey };
+      }
+
+      // Mouse buttons are handled by the native Swift listener, not globalShortcut
+      if (isMouseButtonHotkey(hotkey)) {
+        if (process.platform !== "darwin") {
+          debugLogger.log("[HotkeyManager] Mouse button hotkey rejected - currently macOS only");
+          return {
+            success: false,
+            error: "Mouse button hotkeys are currently only supported on macOS.",
+          };
+        }
+        this.currentHotkey = hotkey;
+        debugLogger.log(
+          `[HotkeyManager] Mouse button "${hotkey}" set - using native listener`
+        );
         return { success: true, hotkey };
       }
 
@@ -247,6 +274,7 @@ class HotkeyManager {
       !previousHotkey ||
       isGlobeLikeHotkey(previousHotkey) ||
       isRightSideModifier(previousHotkey) ||
+      isMouseButtonHotkey(previousHotkey) ||
       isModifierOnlyHotkey(previousHotkey)
     ) {
       return;
@@ -556,5 +584,7 @@ class HotkeyManager {
 
 module.exports = HotkeyManager;
 module.exports.isGlobeLikeHotkey = isGlobeLikeHotkey;
+module.exports.isMouseButtonHotkey = isMouseButtonHotkey;
+module.exports.getMouseButtonNumber = getMouseButtonNumber;
 module.exports.isModifierOnlyHotkey = isModifierOnlyHotkey;
 module.exports.isRightSideModifier = isRightSideModifier;

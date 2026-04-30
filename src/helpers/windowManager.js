@@ -1,4 +1,5 @@
 const { app, screen, BrowserWindow, shell, dialog } = require("electron");
+const { spawn } = require("child_process");
 const debugLogger = require("./debugLogger");
 const HotkeyManager = require("./hotkeyManager");
 const { isGlobeLikeHotkey } = HotkeyManager;
@@ -26,7 +27,7 @@ class WindowManager {
     this.loadErrorShown = false;
     this.macCompoundPushState = null;
     this.winPushState = null;
-    this._cachedActivationMode = "tap";
+    this._cachedActivationMode = "push";
     this._floatingIconAutoHide = false;
 
     app.on("before-quit", () => {
@@ -168,6 +169,11 @@ class WindowManager {
         !isGlobeLikeHotkey(currentHotkey) &&
         currentHotkey.includes("+")
       ) {
+        // Ignore key-repeat events while PTT is already active
+        if (this.macCompoundPushState?.active) {
+          return;
+        }
+        debugLogger.debug("[PTT] Compound push-to-talk triggered", { hotkey: currentHotkey }, "ptt");
         this.startMacCompoundPushToTalk(currentHotkey);
         return;
       }
@@ -197,6 +203,7 @@ class WindowManager {
     }
 
     const requiredModifiers = this.getMacRequiredModifiers(hotkey);
+    debugLogger.debug("[PTT] Required modifiers", { modifiers: [...requiredModifiers] }, "ptt");
     if (requiredModifiers.size === 0) {
       return;
     }
@@ -223,6 +230,7 @@ class WindowManager {
       safetyTimeoutId,
     };
 
+    // Start recording after hold threshold
     setTimeout(() => {
       if (!this.macCompoundPushState || this.macCompoundPushState.downTime !== downTime) {
         return;
@@ -230,12 +238,114 @@ class WindowManager {
 
       if (!this.macCompoundPushState.isRecording) {
         this.macCompoundPushState.isRecording = true;
+        debugLogger.debug("[PTT] Hold threshold met — starting recording", undefined, "ptt");
         this.sendStartDictation();
       }
     }, MIN_HOLD_DURATION_MS);
+
+    // Detect key release by polling macOS modifier state via CGEventSourceFlagsState.
+    // This uses Python3 ctypes to read the system modifier flags directly — no
+    // Accessibility permission or native binary required.
+    this._startModifierPoll(requiredModifiers);
+  }
+
+  _getModifierMask(requiredModifiers) {
+    const FLAG_MAP = {
+      control: 0x40000,   // kCGEventFlagMaskControl
+      command: 0x100000,  // kCGEventFlagMaskCommand
+      option:  0x80000,   // kCGEventFlagMaskAlternate
+      shift:   0x20000,   // kCGEventFlagMaskShift
+    };
+    let mask = 0;
+    for (const mod of requiredModifiers) {
+      if (FLAG_MAP[mod]) mask |= FLAG_MAP[mod];
+    }
+    return mask;
+  }
+
+  _startModifierPoll(requiredModifiers) {
+    const mask = this._getModifierMask(requiredModifiers);
+    if (mask === 0) return;
+
+    const pyScript = [
+      "import ctypes, time, sys",
+      "cg = ctypes.cdll.LoadLibrary('/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics')",
+      "cg.CGEventSourceFlagsState.restype = ctypes.c_uint64",
+      "cg.CGEventSourceFlagsState.argtypes = [ctypes.c_int32]",
+      `mask = ${mask}`,
+      // Wait briefly for the initial keypress to register, then poll until released
+      "time.sleep(0.2)",
+      "while True:",
+      "    flags = cg.CGEventSourceFlagsState(0)",
+      "    if not (flags & mask):",
+      "        sys.stdout.write('RELEASED\\n')",
+      "        sys.stdout.flush()",
+      "        break",
+      "    time.sleep(0.08)",
+    ].join("\n");
+
+    debugLogger.debug("[PTT] Starting modifier poll", { mask: `0x${mask.toString(16)}` }, "ptt");
+
+    const poller = spawn("python3", ["-u", "-c", pyScript], {
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+
+    this.macCompoundPushState.modifierPoller = poller;
+
+    poller.stdout.on("data", (data) => {
+      if (data.toString().includes("RELEASED")) {
+        debugLogger.debug("[PTT] Modifier poll: keys released", undefined, "ptt");
+        this._stopCompoundPushFromPoll();
+      }
+    });
+
+    poller.on("error", (err) => {
+      debugLogger.warn("[PTT] Modifier poller failed to start", { error: err.message }, "ptt");
+      // If python3 isn't available, recording will run until safety timeout
+      // or until the native binary MODIFIER_UP event fires
+    });
+
+    poller.on("exit", (code) => {
+      if (code !== 0 && code !== null) {
+        debugLogger.warn("[PTT] Modifier poller exited with code", { code }, "ptt");
+      }
+    });
+  }
+
+  _stopCompoundPushFromPoll() {
+    if (!this.macCompoundPushState?.active) {
+      return;
+    }
+
+    if (this.macCompoundPushState.safetyTimeoutId) {
+      clearTimeout(this.macCompoundPushState.safetyTimeoutId);
+    }
+    this._killModifierPoller();
+
+    const wasRecording = this.macCompoundPushState.isRecording;
+    this.macCompoundPushState = null;
+
+    if (wasRecording) {
+      debugLogger.debug("[PTT] Stopping recording (modifier poll)", undefined, "ptt");
+      this.sendStopDictation();
+    } else {
+      this.hideDictationPanel();
+    }
+  }
+
+  _killModifierPoller() {
+    if (this.macCompoundPushState?.modifierPoller) {
+      try {
+        this.macCompoundPushState.modifierPoller.kill();
+      } catch {
+        // ignore
+      }
+      this.macCompoundPushState.modifierPoller = null;
+    }
   }
 
   handleMacPushModifierUp(modifier) {
+    debugLogger.debug("[PTT] Modifier up received", { modifier, pttActive: !!this.macCompoundPushState?.active }, "ptt");
     if (!this.macCompoundPushState?.active) {
       return;
     }
@@ -247,11 +357,13 @@ class WindowManager {
     if (this.macCompoundPushState.safetyTimeoutId) {
       clearTimeout(this.macCompoundPushState.safetyTimeoutId);
     }
+    this._killModifierPoller();
 
     const wasRecording = this.macCompoundPushState.isRecording;
     this.macCompoundPushState = null;
 
     if (wasRecording) {
+      debugLogger.debug("[PTT] Modifier released — stopping recording", { modifier }, "ptt");
       this.sendStopDictation();
     } else {
       this.hideDictationPanel();
@@ -266,6 +378,7 @@ class WindowManager {
     if (this.macCompoundPushState.safetyTimeoutId) {
       clearTimeout(this.macCompoundPushState.safetyTimeoutId);
     }
+    this._killModifierPoller();
 
     const wasRecording = this.macCompoundPushState.isRecording;
     this.macCompoundPushState = null;

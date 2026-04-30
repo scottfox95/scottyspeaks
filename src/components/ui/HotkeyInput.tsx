@@ -454,6 +454,7 @@ export function HotkeyInput({
     };
   }, [isCapturing, isMac, finalizeCapture]);
 
+
   const displayValue = formatHotkeyLabel(value);
   const isGlobe = isGlobeLikeHotkey(value);
   const hotkeyParts = value?.includes("+") ? displayValue.split("+") : [];
