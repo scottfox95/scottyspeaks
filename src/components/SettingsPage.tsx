@@ -1,8 +1,10 @@
+import { useSettingsStore } from "../stores/settingsStore";
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
+import { ProviderTabs } from "./ui/ProviderTabs";
 import {
   RefreshCw,
   Download,
@@ -50,6 +52,8 @@ import { getValidationMessage } from "../utils/hotkeyValidator";
 import { getPlatform, getCachedPlatform } from "../utils/platform";
 import { getDefaultHotkey, formatHotkeyLabel } from "../utils/hotkeys";
 import { ActivationModeSelector } from "./ui/ActivationModeSelector";
+import PedalSettings from "./PedalSettings";
+import DiagnosticsPanel from "./DiagnosticsPanel";
 import { Toggle } from "./ui/toggle";
 import DeveloperSection from "./DeveloperSection";
 import LanguageSelector from "./ui/LanguageSelector";
@@ -376,6 +380,45 @@ function TranscriptionSection({
   );
 }
 
+export function DictationCleanupControls() {
+  const { t } = useTranslation();
+  const cleanup = useSettingsStore();
+  return (
+    <>
+      {(
+        [
+          "dictationExact",
+          "dictationRemoveFillers",
+          "dictationResolveCorrections",
+          "dictationPreserveTechnical",
+        ] as const
+      ).map((key) => (
+        <SettingsPanelRow key={key}>
+          <SettingsRow
+            label={t(`dictationCleanup.${key}.label`)}
+            description={t(`dictationCleanup.${key}.description`)}
+          >
+            <Toggle
+              ariaLabel={t(`dictationCleanup.${key}.label`)}
+              checked={cleanup[key]}
+              disabled={key !== "dictationExact" && cleanup.dictationExact}
+              onChange={(value) => {
+                const setters = {
+                  dictationExact: cleanup.setDictationExact,
+                  dictationRemoveFillers: cleanup.setDictationRemoveFillers,
+                  dictationResolveCorrections: cleanup.setDictationResolveCorrections,
+                  dictationPreserveTechnical: cleanup.setDictationPreserveTechnical,
+                };
+                setters[key](value);
+              }}
+            />
+          </SettingsRow>
+        </SettingsPanelRow>
+      ))}
+    </>
+  );
+}
+
 interface AiModelsSectionProps {
   isSignedIn: boolean;
   cloudReasoningMode: string;
@@ -447,12 +490,14 @@ function AiModelsSection({
       <SettingsPanel>
         <SettingsPanelRow>
           <SettingsRow
-            label={t("settingsPage.aiModels.enableTextCleanup")}
-            description={t("settingsPage.aiModels.enableTextCleanupDescription")}
+            label={t("dictationCleanup.aiRefinement.label")}
+            description={t("dictationCleanup.aiRefinement.description")}
           >
             <Toggle checked={useReasoningModel} onChange={setUseReasoningModel} />
           </SettingsRow>
         </SettingsPanelRow>
+
+        <DictationCleanupControls />
       </SettingsPanel>
 
       {useReasoningModel && (
@@ -627,7 +672,9 @@ function MouseButtonSetting() {
       setIsCapturing(false);
       window.electronAPI?.setMouseButton?.(button);
     });
-    return () => { dispose?.(); };
+    return () => {
+      dispose?.();
+    };
   }, [isCapturing]);
 
   const isEnabled = buttonNumber >= 0;
@@ -637,7 +684,8 @@ function MouseButtonSetting() {
     3: "Mouse Button 4",
     4: "Mouse Button 5",
   };
-  const label = BUTTON_LABELS[buttonNumber] || (isEnabled ? `Mouse Button ${buttonNumber + 1}` : "");
+  const label =
+    BUTTON_LABELS[buttonNumber] || (isEnabled ? `Mouse Button ${buttonNumber + 1}` : "");
 
   if (!loaded) return null;
 
@@ -683,7 +731,8 @@ function MouseButtonSetting() {
         </div>
       </div>
       <p className="text-xs text-muted-foreground/60">
-        Works alongside your keyboard hotkey. Supports hold-to-speak, tap, and double-tap hands-free.
+        Works alongside your keyboard hotkey. Supports hold-to-speak, tap, and double-tap
+        hands-free.
       </p>
     </div>
   );
@@ -1921,6 +1970,21 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
                 </SettingsPanel>
               </div>
             )}
+
+            {/* Stream Deck Pedal */}
+            <div>
+              <SectionHeader
+                title={t("settings.pedal.sectionTitle", { defaultValue: "Foot Pedal" })}
+                description={t("settings.pedal.sectionDescription", {
+                  defaultValue: "Elgato Stream Deck Pedal — three switches, three ways to talk.",
+                })}
+              />
+              <SettingsPanel>
+                <SettingsPanelRow>
+                  <PedalSettings />
+                </SettingsPanelRow>
+              </SettingsPanel>
+            </div>
           </div>
         );
 
@@ -2546,6 +2610,22 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
       case "system":
         return (
           <div className="space-y-6">
+            {/* Diagnostics */}
+            <div>
+              <SectionHeader
+                title={t("settingsPage.diagnostics.title", { defaultValue: "Diagnostics" })}
+                description={t("settingsPage.diagnostics.description", {
+                  defaultValue:
+                    "Check why dictation is slow or unformatted on this Mac, then copy the report.",
+                })}
+              />
+              <SettingsPanel>
+                <SettingsPanelRow>
+                  <DiagnosticsPanel />
+                </SettingsPanelRow>
+              </SettingsPanel>
+            </div>
+
             {/* Software Updates */}
             <div>
               <SectionHeader title={t("settingsPage.general.updates.title")} />

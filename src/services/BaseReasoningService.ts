@@ -6,6 +6,11 @@ export interface ReasoningConfig {
   temperature?: number;
   contextSize?: number;
   systemPrompt?: string;
+  provider?: string;
+  baseUrl?: string;
+  dictionary?: string[];
+  language?: string;
+  locale?: string;
 }
 
 export abstract class BaseReasoningService {

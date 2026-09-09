@@ -1,3 +1,4 @@
+import CaptureReplay from "./captures/CaptureReplay";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
@@ -59,6 +60,7 @@ export default function HistoryView({
   return (
     <div className="px-4 pt-4 pb-6">
       <div className="max-w-3xl mx-auto">
+        <CaptureReplay />
         {showCloudMigrationBanner && (
           <div className="mb-3 relative rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10 p-3">
             <button

@@ -1,5 +1,6 @@
-const { app, globalShortcut, BrowserWindow, dialog, ipcMain, session, systemPreferences } = require("electron");
+const { app, globalShortcut, BrowserWindow, dialog, ipcMain, session, systemPreferences, protocol } = require("electron");
 const path = require("path");
+protocol.registerSchemesAsPrivileged([{ scheme: "ss2-audio", privileges: { standard: true, secure: true, stream: true, supportFetchAPI: true } }]);
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
@@ -39,6 +40,7 @@ const TrayManager = require("./src/helpers/tray");
 const IPCHandlers = require("./src/helpers/ipcHandlers");
 const UpdateManager = require("./src/updater");
 const GlobeKeyManager = require("./src/helpers/globeKeyManager");
+const PedalManager = require("./src/helpers/pedalManager");
 const DevServerManager = require("./src/helpers/devServerManager");
 const TextEditMonitor = require("./src/helpers/textEditMonitor");
 const { i18nMain, changeLanguage } = require("./src/helpers/i18nMain");
@@ -56,6 +58,7 @@ let trayManager = null;
 let updateManager = null;
 let globeKeyManager = null;
 let textEditMonitor = null;
+let pedalManager = null;
 let ipcHandlers = null;
 let globeKeyAlertShown = false;
 
@@ -97,11 +100,40 @@ function initializeCoreManagers() {
   hotkeyManager = windowManager.hotkeyManager;
   databaseManager = new DatabaseManager();
   clipboardManager = new ClipboardManager();
+  const recordingTargets = new (require("./src/helpers/recordingTarget").RecordingTargetManager)({
+    binary: process.platform === "darwin" ? clipboardManager._resolveNativeBinary(
+      "macos-recording-target", "darwin", "recordingTargetChecked", "recordingTargetPath"
+    ) : null,
+  });
+  clipboardManager.recordingTargets = recordingTargets;
+  require("./src/helpers/recordingTargetHandlers").registerRecordingTargetHandlers({
+    ipcMain, app, windowManager, manager: recordingTargets,
+  });
   whisperManager = new WhisperManager();
   parakeetManager = new ParakeetManager();
   updateManager = new UpdateManager();
   textEditMonitor = new TextEditMonitor();
   windowManager.textEditMonitor = textEditMonitor;
+
+  const speechHandlers = require("./src/helpers/speechHandlers");
+  const localSpeech = speechHandlers.createLocalSpeech(app);
+  speechHandlers.registerSpeechHandlers({ app, ipcMain, windowManager, manager: localSpeech });
+
+  const audioEvidence = new (require("./src/helpers/audioEvidence").AudioEvidence)();
+  protocol.handle("ss2-audio", (request) => audioEvidence.handle(request));
+  const meetings = require("./src/helpers/meetingHandlers").registerMeetingHandlers({
+    app, ipcMain, dialog, shell: require("electron").shell,
+    safeStorage: require("electron").safeStorage, systemPreferences,
+    whisperManager, parakeetManager, databaseManager, windowManager, audioEvidence, localSpeech,
+  });
+  require("./src/helpers/callAgentHandlers").registerCallAgentHandlers({
+    app, ipcMain, windowManager, meetingStore: meetings.store, localSpeech,
+  });
+  const captures = require("./src/helpers/captureHandlers").registerCaptureHandlers({
+    app, ipcMain, windowManager, audioEvidence, whisperManager, parakeetManager,
+    readCloudKey: meetings.readCloudKey,
+  });
+  databaseManager.captureStore = captures.store;
 
   // IPC handlers must be registered before window content loads
   ipcHandlers = new IPCHandlers({
@@ -116,6 +148,7 @@ function initializeCoreManagers() {
     textEditMonitor,
     whisperCudaManager: null,
     getTrayManager: () => trayManager,
+    getPedalManager: () => pedalManager,
   });
 }
 
@@ -129,6 +162,19 @@ function initializeDeferredManagers() {
     if (globeKeyAlertShown) {
       return;
     }
+
+    // "Failed to create event tap" without Accessibility permission is
+    // expected, not an error worth a scary dialog — the permissions UX
+    // (onboarding / paste toast) already guides the user there.
+    const missingAccessibility =
+      process.platform === "darwin" && !systemPreferences.isTrustedAccessibilityClient(false);
+    if (missingAccessibility) {
+      debugLogger?.debug("[Globe] listener unavailable until Accessibility is granted", {
+        error: error?.message,
+      });
+      return;
+    }
+
     globeKeyAlertShown = true;
 
     const detailLines = [
@@ -153,10 +199,16 @@ function initializeDeferredManagers() {
 
 // Main application startup
 async function startApp() {
-  // Request microphone permission on macOS (must be done from main process)
+  // Request microphone permission on macOS (must be done from main process).
+  // Deliberately NOT awaited: the system dialog would otherwise block the
+  // entire app boot (no windows) until the user answers it.
   if (process.platform === "darwin") {
-    const micAccess = await systemPreferences.askForMediaAccess("microphone");
-    console.log("[ScottySpeaks] Microphone access:", micAccess ? "granted" : "denied");
+    systemPreferences
+      .askForMediaAccess("microphone")
+      .then((micAccess) => {
+        console.log("[ScottySpeaks] Microphone access:", micAccess ? "granted" : "denied");
+      })
+      .catch(() => {});
   }
 
   // Phase 1: Core managers + IPC handlers before windows
@@ -210,12 +262,97 @@ async function startApp() {
     debugLogger.debug("Parakeet startup init error (non-fatal)", { error: err.message });
   });
 
-  if (process.env.REASONING_PROVIDER === "local" && process.env.LOCAL_REASONING_MODEL) {
+  {
+    // Pre-warm the local polish model so the first dictation doesn't pay the
+    // model-load cost. Explicit env config wins; otherwise warm the default
+    // polish model if its file is on disk.
     const modelManager = require("./src/helpers/modelManagerBridge").default;
-    modelManager.prewarmServer(process.env.LOCAL_REASONING_MODEL).catch((err) => {
-      debugLogger.debug("llama-server pre-warm error (non-fatal)", { error: err.message });
-    });
+    const CLOUD_REASONING_PROVIDERS = [
+      "openai",
+      "anthropic",
+      "gemini",
+      "groq",
+      "custom",
+      "openwhispr",
+    ];
+    const usingCloudReasoning = CLOUD_REASONING_PROVIDERS.includes(
+      process.env.REASONING_PROVIDER || ""
+    );
+    let prewarmModel = null;
+    if (!usingCloudReasoning && process.env.LOCAL_REASONING_MODEL) {
+      prewarmModel = process.env.LOCAL_REASONING_MODEL;
+    } else if (!usingCloudReasoning) {
+      const path = require("path");
+      const fs = require("fs");
+      const os = require("os");
+      const defaultModelFile = path.join(
+        os.homedir(),
+        ".cache",
+        "scottyspeaks",
+        "models",
+        "Qwen3-4B-Instruct-2507-Q4_K_M.gguf"
+      );
+      if (fs.existsSync(defaultModelFile)) {
+        prewarmModel = "qwen3-4b-instruct-2507-q4_k_m";
+      }
+    }
+    if (prewarmModel) {
+      // Delay so the 2.5GB model load doesn't compete with first paint;
+      // dictations before the prewarm finishes just wait on the same start.
+      setTimeout(() => {
+        modelManager.prewarmServer(prewarmModel).catch((err) => {
+          debugLogger.debug("llama-server pre-warm error (non-fatal)", { error: err.message });
+        });
+      }, 8000);
+    }
   }
+
+  // Stream Deck Pedal — works alongside the keyboard hotkey
+  pedalManager = new PedalManager();
+  pedalManager.init(app.getPath("userData"));
+
+  let pedalHoldRecording = false;
+  let pedalCommandRecording = false;
+
+  const broadcastPedalStatus = () => {
+    const status = pedalManager.getStatus();
+    for (const win of [windowManager.mainWindow, windowManager.controlPanelWindow]) {
+      if (isLiveWindow(win)) {
+        win.webContents.send("pedal-status-changed", status);
+      }
+    }
+  };
+  pedalManager.on("connected", broadcastPedalStatus);
+  pedalManager.on("disconnected", broadcastPedalStatus);
+
+  pedalManager.on("pedal-action", ({ action, phase }) => {
+    if (!isLiveWindow(windowManager.mainWindow)) return;
+    if (phase === "down" && textEditMonitor) textEditMonitor.captureTargetPid();
+
+    if (action === "toggle") {
+      if (phase !== "down") return;
+      windowManager.showDictationPanel();
+      windowManager.mainWindow.webContents.send("toggle-dictation");
+    } else if (action === "hold") {
+      if (phase === "down") {
+        pedalHoldRecording = true;
+        windowManager.showDictationPanel();
+        windowManager.sendStartDictation();
+      } else if (pedalHoldRecording) {
+        pedalHoldRecording = false;
+        windowManager.sendStopDictation();
+      }
+    } else if (action === "command") {
+      if (phase === "down") {
+        pedalCommandRecording = true;
+        windowManager.showDictationPanel();
+        windowManager.mainWindow.webContents.send("start-command-dictation");
+      } else if (pedalCommandRecording) {
+        pedalCommandRecording = false;
+        windowManager.sendStopDictation();
+      }
+    }
+  });
 
   trayManager.setWindows(windowManager.mainWindow, windowManager.controlPanelWindow);
   trayManager.setWindowManager(windowManager);
@@ -686,6 +823,9 @@ if (gotSingleInstanceLock) {
     }
     if (globeKeyManager) {
       globeKeyManager.stop();
+    }
+    if (pedalManager) {
+      pedalManager.destroy();
     }
     if (ipcHandlers) {
       ipcHandlers._cleanupTextEditMonitor();

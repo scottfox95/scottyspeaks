@@ -398,7 +398,7 @@ class ReasoningService extends BaseReasoningService {
     config: ReasoningConfig = {}
   ): Promise<string> {
     let trimmedModel = model?.trim?.() || "";
-    const provider = getModelProvider(trimmedModel);
+    const provider = config.provider || getModelProvider(trimmedModel);
 
     if (!trimmedModel && provider !== "openwhispr") {
       throw new Error("No reasoning model selected");
@@ -476,7 +476,7 @@ class ReasoningService extends BaseReasoningService {
     agentName: string | null = null,
     config: ReasoningConfig = {}
   ): Promise<string> {
-    const reasoningProvider = getSettings().reasoningProvider || "";
+    const reasoningProvider = config.provider || getSettings().reasoningProvider || "";
     const isCustomProvider = reasoningProvider === "custom";
 
     logger.logReasoning("OPENAI_START", {
@@ -510,7 +510,7 @@ class ReasoningService extends BaseReasoningService {
 
       const isOlderModel = model && (model.startsWith("gpt-4") || model.startsWith("gpt-3"));
 
-      const openAiBase = this.getConfiguredOpenAIBase();
+      const openAiBase = config.provider ? (isCustomProvider ? normalizeBaseUrl(config.baseUrl || "") : API_ENDPOINTS.OPENAI_BASE) : this.getConfiguredOpenAIBase();
       const endpointCandidates = this.getOpenAIEndpointCandidates(openAiBase);
       const isCustomEndpoint = openAiBase !== API_ENDPOINTS.OPENAI_BASE;
 
@@ -1033,15 +1033,15 @@ class ReasoningService extends BaseReasoningService {
     this.isProcessing = true;
 
     try {
-      const customDictionary = this.getCustomDictionary();
-      const language = this.getPreferredLanguage();
-      const locale = this.getUiLanguage();
+      const customDictionary = config.dictionary || this.getCustomDictionary();
+      const language = config.language || this.getPreferredLanguage();
+      const locale = config.locale || this.getUiLanguage();
 
       const result = await withSessionRefresh(async () => {
         const res = await (window as any).electronAPI.cloudReason(text, {
           agentName,
           customDictionary,
-          customPrompt: this.getCustomPrompt(),
+          customPrompt: config.systemPrompt ? undefined : this.getCustomPrompt(),
           systemPrompt: config.systemPrompt,
           language,
           locale,

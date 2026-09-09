@@ -281,8 +281,36 @@ export default function StyleView() {
                 />
               </div>
 
+              <div>
+                <label className="text-xs font-medium text-foreground mb-1.5 block">
+                  AI style instructions
+                </label>
+                <textarea
+                  value={rules.instructions || ""}
+                  onChange={(e) =>
+                    setRules({ ...rules, instructions: e.target.value || undefined })
+                  }
+                  placeholder='Tell the polish engine how to write, e.g. "Short punchy sentences. Never use em dashes. Sign off emails with just my first name."'
+                  rows={3}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Used by the AI polish pass when this profile is active. The toggles below only
+                  apply when AI polish is off.
+                </p>
+              </div>
+
+              <ToggleRow
+                label="AI polish"
+                description="Rewrite dictation with the local AI (lists, punctuation, filler removal)"
+                checked={rules.aiPolish !== false}
+                onChange={(v) => setRules({ ...rules, aiPolish: v ? undefined : false })}
+              />
+
               <div className="space-y-3">
-                <label className="text-xs font-medium text-foreground block">Rules</label>
+                <label className="text-xs font-medium text-foreground block">
+                  Fallback rules (when AI polish is off)
+                </label>
 
                 <ToggleRow
                   label="Remove filler words"

@@ -147,6 +147,11 @@ class LlamaServerManager {
       String(options.contextSize || 4096),
       "--threads",
       String(options.threads || 4),
+      // Keep model output in message.content — without this, llama-server's
+      // reasoning parser routes some models' entire output (e.g. Qwen3
+      // Instruct 2507) into reasoning_content, which reads back as empty.
+      "--reasoning-format",
+      "none",
     ];
 
     if (process.platform === "darwin") {

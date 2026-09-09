@@ -1,3 +1,4 @@
+import { ReadAloud } from "../speech/ReadAloud";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Download, Loader2, FileText, Sparkles, AlignLeft, Radio } from "lucide-react";
@@ -616,7 +617,7 @@ export default function NoteEditor({
   const noteDate = formatNoteDate(note.created_at);
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div data-speech-source className="flex flex-col h-full min-h-0">
       <div className="px-5 pt-4 pb-0">
         <div
           ref={titleRef}
@@ -729,6 +730,7 @@ export default function NoteEditor({
         </div>
       </div>
 
+      <ReadAloud text={viewMode === "enhanced" && enhancement ? enhancement.content : note.content} label={t("speech.notes")} />
       <div className="flex-1 relative min-h-0">
         <div className="h-full overflow-y-auto">
           {viewMode === "enhanced" && enhancement ? (

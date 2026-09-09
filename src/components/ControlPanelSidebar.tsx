@@ -1,10 +1,25 @@
-import React from "react";
-import { Home, NotebookPen, BookOpen, Scissors, Paintbrush, Settings, HelpCircle } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import {
+  Home,
+  NotebookPen,
+  BookOpen,
+  Scissors,
+  Paintbrush,
+  Settings,
+  HelpCircle,
+  Headphones,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "./lib/utils";
 import SupportDropdown from "./ui/SupportDropdown";
 
-export type ControlPanelView = "home" | "personal-notes" | "dictionary" | "snippets" | "style";
+export type ControlPanelView =
+  | "home"
+  | "personal-notes"
+  | "meetings"
+  | "dictionary"
+  | "snippets"
+  | "style";
 
 interface ControlPanelSidebarProps {
   activeView: ControlPanelView;
@@ -20,6 +35,23 @@ export default function ControlPanelSidebar({
   updateAction,
 }: ControlPanelSidebarProps) {
   const { t } = useTranslation();
+  const [callRecording, setCallRecording] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    const refresh = () =>
+      window.electronAPI.meetings
+        ?.captureStatus()
+        .then((result) => {
+          if (mounted && result.success) setCallRecording(!!result.data.id);
+        })
+        .catch(() => {});
+    refresh();
+    const timer = setInterval(refresh, 1500);
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+    };
+  }, []);
 
   const navItems: {
     id: ControlPanelView;
@@ -30,19 +62,22 @@ export default function ControlPanelSidebar({
     { id: "dictionary", label: t("sidebar.dictionary"), icon: BookOpen },
     { id: "snippets", label: "Snippets", icon: Scissors },
     { id: "style", label: "Style", icon: Paintbrush },
+    { id: "meetings", label: t("meetings.title"), icon: Headphones },
     { id: "personal-notes", label: t("sidebar.notes"), icon: NotebookPen },
   ];
 
   return (
     <div className="w-48 shrink-0 border-r border-border/15 dark:border-white/6 flex flex-col bg-surface-1/60 dark:bg-surface-1">
-      <div
-        className="w-full h-10 shrink-0"
-        style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
-      />
+      <div className="h-4 shrink-0" aria-hidden="true" />
 
       {/* App title */}
-      <div className="px-3 pb-4">
-        <span className="text-sm font-semibold text-foreground tracking-tight" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>ScottySpeaks</span>
+      <div className="select-none px-3 pb-4">
+        <span
+          className="text-sm font-semibold text-foreground tracking-tight"
+          style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+        >
+          SS2
+        </span>
       </div>
 
       <nav className="flex flex-col gap-0.5 px-2 pb-2">
@@ -89,6 +124,17 @@ export default function ControlPanelSidebar({
         })}
       </nav>
 
+      {callRecording && (
+        <button
+          type="button"
+          onClick={() => onViewChange("meetings")}
+          className="mx-2 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-left text-xs text-foreground"
+          aria-live="polite"
+        >
+          <span className="size-2 shrink-0 rounded-full bg-destructive" />
+          {t("meetings.recordingBadge")}
+        </button>
+      )}
       <div className="flex-1" />
 
       <div className="px-2 pb-2 space-y-0.5">

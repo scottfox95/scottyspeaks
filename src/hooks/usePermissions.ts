@@ -1,3 +1,4 @@
+import { openRecordingMicrophone } from "../helpers/recordingActivity";
 import { useState, useCallback, useEffect } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
@@ -26,13 +27,7 @@ export interface UsePermissionsProps {
   showAlertDialog: (dialog: { title: string; description?: string }) => void;
 }
 
-const stopTracks = (stream?: MediaStream) => {
-  try {
-    stream?.getTracks?.().forEach((track) => track.stop());
-  } catch {
-    // ignore track cleanup errors
-  }
-};
+
 
 const getPlatformSettingsPath = (t: TFunction): string => {
   if (typeof navigator !== "undefined") {
@@ -198,8 +193,8 @@ export const usePermissions = (
         }
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stopTracks(stream);
+      const microphone = await openRecordingMicrophone({ audio: true });
+      await microphone.release();
       setMicPermissionGranted(true);
       setMicPermissionError(null);
     } catch (err) {
@@ -263,7 +258,7 @@ export const usePermissions = (
     // On macOS, actually test the accessibility permission
     if (platform === "darwin") {
       try {
-        await window.electronAPI.pasteText(t("hooks.permissions.accessibilityTestText"));
+        if (!(await window.electronAPI.checkAccessibilityPermission())) throw new Error("Accessibility not granted");
         setAccessibilityPermissionGranted(true);
       } catch (err) {
         console.error("Accessibility permission test failed:", err);

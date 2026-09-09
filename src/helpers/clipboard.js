@@ -445,6 +445,12 @@ class ClipboardManager {
   }
 
   async pasteText(text, options = {}) {
+    if (process.platform === "darwin") {
+      const result = this.recordingTargets
+        ? await this.recordingTargets.paste(options.targetToken, options.webContents?.id, text)
+        : { success: false, reason: "helper-unavailable" };
+      return { ...result, manualCopy: !result.success };
+    }
     const startTime = Date.now();
     const platform = process.platform;
     let method = "unknown";
@@ -1429,7 +1435,10 @@ class ClipboardManager {
       expiresAt: Date.now() + ACCESSIBILITY_CHECK_TTL_MS,
     };
 
-    if (!allowed) {
+    if (!allowed && !this._accessibilityDialogShown) {
+      // Only interrupt with the blocking dialog once per app session; after
+      // that the renderer's soft "press Cmd+V" toast carries the message.
+      this._accessibilityDialogShown = true;
       this.showAccessibilityDialog("not allowed assistive access");
     }
 
@@ -1536,6 +1545,66 @@ Would you like to open System Settings now?`;
     if (process.platform !== "darwin") return;
     this.checkAccessibilityPermissions().catch(() => {});
     this.resolveFastPasteBinary();
+  }
+
+  /** Runs a binary with args, resolving with its exit code (null on failure). */
+  _runBinary(binary, args, timeoutMs = 4000) {
+    return new Promise((resolve) => {
+      const proc = spawn(binary, args);
+      let done = false;
+      const timeoutId = setTimeout(() => {
+        done = true;
+        killProcess(proc, "SIGKILL");
+        resolve(null);
+      }, timeoutMs);
+      proc.on("close", (code) => {
+        if (done) return;
+        clearTimeout(timeoutId);
+        resolve(code);
+      });
+      proc.on("error", () => {
+        if (done) return;
+        clearTimeout(timeoutId);
+        resolve(null);
+      });
+    });
+  }
+
+  /** Runs an osascript snippet, resolving with its exit code. */
+  _runOsascript(script, timeoutMs = 4000) {
+    return new Promise((resolve) => {
+      const proc = spawn("osascript", ["-e", script]);
+      let done = false;
+      const timeoutId = setTimeout(() => {
+        done = true;
+        killProcess(proc, "SIGKILL");
+        resolve(null);
+      }, timeoutMs);
+      proc.on("close", (code) => {
+        if (done) return;
+        clearTimeout(timeoutId);
+        resolve(code);
+      });
+      proc.on("error", () => {
+        if (done) return;
+        clearTimeout(timeoutId);
+        resolve(null);
+      });
+    });
+  }
+
+  // Replace only a verified previous paste in the recording's original field.
+  // Mismatches retain the result for explicit manual Copy; never append blindly.
+  async replaceLastPaste(newText, expectedText, options = {}) {
+    if (process.platform !== "darwin" || !this.recordingTargets)
+      return { success: false, replaced: false, manualCopy: true, reason: "helper-unavailable" };
+    const result = await this.recordingTargets.paste(options.targetToken, options.webContents?.id, newText, expectedText);
+    return { ...result, replaced: result.success, manualCopy: !result.success };
+  }
+
+  // Reading the explicitly selected AX text avoids modifying the clipboard at all.
+  async captureSelection(token, owner) {
+    return this.recordingTargets?.selection(token, owner) || { text: null, error: "helper-unavailable" };
   }
 
   async readClipboard() {

@@ -322,6 +322,18 @@
       "promptTemplate": "<|im_start|>system\n{system}<|im_end|>\n<|im_start|>user\n{user}<|im_end|>\n<|im_start|>assistant\n",
       "models": [
         {
+          "id": "qwen3-4b-instruct-2507-q4_k_m",
+          "name": "Qwen3 4B Instruct 2507",
+          "size": "2.5GB",
+          "sizeBytes": 2497281120,
+          "description": "Fast instruction-tuned model — best speed/quality for dictation polish",
+          "fileName": "Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+          "quantization": "q4_k_m",
+          "contextLength": 8192,
+          "hfRepo": "unsloth/Qwen3-4B-Instruct-2507-GGUF",
+          "recommended": true
+        },
+        {
           "id": "qwen3-8b-q4_k_m",
           "name": "Qwen3 8B",
           "size": "5.0GB",
@@ -331,8 +343,8 @@
           "quantization": "q4_k_m",
           "contextLength": 131072,
           "hfRepo": "Qwen/Qwen3-8B-GGUF",
-          "recommended": true,
-          "descriptionKey": "models.descriptions.local.qwen_qwen3_8b_q4_k_m"
+          "descriptionKey": "models.descriptions.local.qwen_qwen3_8b_q4_k_m",
+          "recommended": false
         },
         {
           "id": "qwen3-8b-q5_k_m",
@@ -344,148 +356,80 @@
           "quantization": "q5_k_m",
           "contextLength": 131072,
           "hfRepo": "Qwen/Qwen3-8B-GGUF",
-          "descriptionKey": "models.descriptions.local.qwen_qwen3_8b_q5_k_m"
+          "descriptionKey": "models.descriptions.local.qwen_qwen3_8b_q5_k_m",
+          "recommended": false
         },
         {
           "id": "qwen3-4b-q4_k_m",
           "name": "Qwen3 4B",
           "size": "2.5GB",
           "sizeBytes": 2684354560,
-          "description": "Compact Qwen3 with reasoning capabilities",
+          "description": "Thinking model — reasons before answering, slower for dictation",
           "fileName": "Qwen3-4B-Q4_K_M.gguf",
           "quantization": "q4_k_m",
           "contextLength": 131072,
           "hfRepo": "Qwen/Qwen3-4B-GGUF",
-          "descriptionKey": "models.descriptions.local.qwen_qwen3_4b_q4_k_m"
+          "descriptionKey": "models.descriptions.local.qwen_qwen3_4b_q4_k_m",
+          "recommended": false
         },
         {
           "id": "qwen3-1.7b-q8_0",
           "name": "Qwen3 1.7B",
           "size": "1.8GB",
           "sizeBytes": 1965555712,
-          "description": "Small but capable Qwen3 model",
+          "description": "Thinking model — reasons before answering, slower for dictation",
           "fileName": "Qwen3-1.7B-Q8_0.gguf",
           "quantization": "q8_0",
           "contextLength": 131072,
           "hfRepo": "Qwen/Qwen3-1.7B-GGUF",
-          "descriptionKey": "models.descriptions.local.qwen_qwen3_1_7b_q8_0"
+          "descriptionKey": "models.descriptions.local.qwen_qwen3_1_7b_q8_0",
+          "recommended": false
         },
         {
           "id": "qwen3-0.6b-q8_0",
           "name": "Qwen3 0.6B",
           "size": "0.6GB",
           "sizeBytes": 686817280,
-          "description": "Tiny Qwen3 for edge devices",
+          "description": "Thinking model — reasons before answering, slower for dictation",
           "fileName": "Qwen3-0.6B-Q8_0.gguf",
           "quantization": "q8_0",
           "contextLength": 131072,
           "hfRepo": "Qwen/Qwen3-0.6B-GGUF",
-          "descriptionKey": "models.descriptions.local.qwen_qwen3_0_6b_q8_0"
+          "descriptionKey": "models.descriptions.local.qwen_qwen3_0_6b_q8_0",
+          "recommended": false
         },
         {
           "id": "qwen3-32b-q4_k_m",
           "name": "Qwen3 32B",
           "size": "19.8GB",
           "sizeBytes": 21260251955,
-          "description": "Most powerful local Qwen3 with deep reasoning",
+          "description": "Thinking model — reasons before answering, slower for dictation",
           "fileName": "Qwen3-32B-Q4_K_M.gguf",
           "quantization": "q4_k_m",
           "contextLength": 131072,
           "hfRepo": "Qwen/Qwen3-32B-GGUF",
-          "descriptionKey": "models.descriptions.local.qwen_qwen3_32b_q4_k_m"
-        },
-        {
-          "id": "qwen2.5-0.5b-instruct-q5_k_m",
-          "name": "Qwen2.5 0.5B",
-          "size": "0.5GB",
-          "sizeBytes": 548405248,
-          "description": "Smallest model, fast but limited capabilities",
-          "fileName": "qwen2.5-0.5b-instruct-q5_k_m.gguf",
-          "quantization": "q5_k_m",
-          "contextLength": 32768,
-          "hfRepo": "Qwen/Qwen2.5-0.5B-Instruct-GGUF",
-          "descriptionKey": "models.descriptions.local.qwen_qwen2_5_0_5b_instruct_q5_k_m"
-        },
-        {
-          "id": "qwen2.5-1.5b-instruct-q5_k_m",
-          "name": "Qwen2.5 1.5B",
-          "size": "1.3GB",
-          "sizeBytes": 1395864371,
-          "description": "Small model, good for basic tasks",
-          "fileName": "qwen2.5-1.5b-instruct-q5_k_m.gguf",
-          "quantization": "q5_k_m",
-          "contextLength": 32768,
-          "hfRepo": "Qwen/Qwen2.5-1.5B-Instruct-GGUF",
-          "descriptionKey": "models.descriptions.local.qwen_qwen2_5_1_5b_instruct_q5_k_m"
-        },
-        {
-          "id": "qwen2.5-3b-instruct-q5_k_m",
-          "name": "Qwen2.5 3B",
-          "size": "2.4GB",
-          "sizeBytes": 2620055552,
-          "description": "Balanced model for general use",
-          "fileName": "qwen2.5-3b-instruct-q5_k_m.gguf",
-          "quantization": "q5_k_m",
-          "contextLength": 32768,
-          "hfRepo": "Qwen/Qwen2.5-3B-Instruct-GGUF",
-          "descriptionKey": "models.descriptions.local.qwen_qwen2_5_3b_instruct_q5_k_m"
-        },
-        {
-          "id": "qwen2.5-7b-instruct-q4_k_m",
-          "name": "Qwen2.5 7B",
-          "size": "4.7GB",
-          "sizeBytes": 5025128858,
-          "description": "Large model with high quality (Q4_K_M)",
-          "fileName": "Qwen2.5-7B-Instruct-Q4_K_M.gguf",
-          "quantization": "q4_k_m",
-          "contextLength": 128000,
-          "hfRepo": "bartowski/Qwen2.5-7B-Instruct-GGUF",
-          "descriptionKey": "models.descriptions.local.qwen_qwen2_5_7b_instruct_q4_k_m"
-        },
-        {
-          "id": "qwen2.5-7b-instruct-q5_k_m",
-          "name": "Qwen2.5 7B (Q5)",
-          "size": "5.4GB",
-          "sizeBytes": 5841530470,
-          "description": "Large model, high quality reasoning (Q5_K_M)",
-          "fileName": "Qwen2.5-7B-Instruct-Q5_K_M.gguf",
-          "quantization": "q5_k_m",
-          "contextLength": 128000,
-          "hfRepo": "bartowski/Qwen2.5-7B-Instruct-GGUF",
-          "descriptionKey": "models.descriptions.local.qwen_qwen2_5_7b_instruct_q5_k_m"
+          "descriptionKey": "models.descriptions.local.qwen_qwen3_32b_q4_k_m",
+          "recommended": false
         }
       ]
     },
     {
-      "id": "mistral",
-      "name": "Mistral AI",
+      "id": "granite",
+      "name": "Granite",
       "baseUrl": "https://huggingface.co",
-      "promptTemplate": "[INST] {system}\n\n{user} [/INST]",
+      "promptTemplate": "<|start_of_role|>system<|end_of_role|>{system}<|end_of_text|>\n<|start_of_role|>user<|end_of_role|>{user}<|end_of_text|>\n<|start_of_role|>assistant<|end_of_role|>",
       "models": [
         {
-          "id": "mistral-7b-instruct-v0.3-q4_k_m",
-          "name": "Mistral 7B Instruct v0.3",
-          "size": "4.4GB",
-          "sizeBytes": 4692635648,
-          "description": "Fast and efficient instruction model",
-          "fileName": "Mistral-7B-Instruct-v0.3-Q4_K_M.gguf",
+          "id": "granite-4.0-micro-q4_k_m",
+          "name": "Granite 4.0 Micro",
+          "size": "2.0GB",
+          "sizeBytes": 2099502528,
+          "description": "IBM · non-thinking, fastest local option (~0.9s), great for quick dictation",
+          "fileName": "granite-4.0-micro-Q4_K_M.gguf",
           "quantization": "q4_k_m",
-          "contextLength": 32768,
-          "hfRepo": "bartowski/Mistral-7B-Instruct-v0.3-GGUF",
-          "recommended": true,
-          "descriptionKey": "models.descriptions.local.mistral_mistral_7b_instruct_v0_3_q4_k_m"
-        },
-        {
-          "id": "mistral-7b-instruct-v0.3-q5_k_m",
-          "name": "Mistral 7B Instruct v0.3 (Q5)",
-          "size": "5.1GB",
-          "sizeBytes": 5519900672,
-          "description": "Higher quality instruction model",
-          "fileName": "Mistral-7B-Instruct-v0.3-Q5_K_M.gguf",
-          "quantization": "q5_k_m",
-          "contextLength": 32768,
-          "hfRepo": "bartowski/Mistral-7B-Instruct-v0.3-GGUF",
-          "descriptionKey": "models.descriptions.local.mistral_mistral_7b_instruct_v0_3_q5_k_m"
+          "contextLength": 8192,
+          "hfRepo": "ibm-granite/granite-4.0-micro-GGUF",
+          "recommended": false
         }
       ]
     },
@@ -505,7 +449,8 @@
           "quantization": "q4_k_m",
           "contextLength": 131072,
           "hfRepo": "bartowski/Llama-3.2-1B-Instruct-GGUF",
-          "descriptionKey": "models.descriptions.local.llama_llama_3_2_1b_instruct_q4_k_m"
+          "descriptionKey": "models.descriptions.local.llama_llama_3_2_1b_instruct_q4_k_m",
+          "recommended": false
         },
         {
           "id": "llama-3.2-3b-instruct-q4_k_m",
@@ -517,7 +462,7 @@
           "quantization": "q4_k_m",
           "contextLength": 131072,
           "hfRepo": "bartowski/Llama-3.2-3B-Instruct-GGUF",
-          "recommended": true,
+          "recommended": false,
           "descriptionKey": "models.descriptions.local.llama_llama_3_2_3b_instruct_q4_k_m"
         },
         {
@@ -530,7 +475,8 @@
           "quantization": "q4_k_m",
           "contextLength": 131072,
           "hfRepo": "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
-          "descriptionKey": "models.descriptions.local.llama_llama_3_1_8b_instruct_q4_k_m"
+          "descriptionKey": "models.descriptions.local.llama_llama_3_1_8b_instruct_q4_k_m",
+          "recommended": false
         }
       ]
     },
@@ -550,7 +496,7 @@
           "quantization": "mxfp4",
           "contextLength": 128000,
           "hfRepo": "ggml-org/gpt-oss-20b-GGUF",
-          "recommended": true,
+          "recommended": false,
           "descriptionKey": "models.descriptions.local.openai_oss_gpt_oss_20b_mxfp4"
         }
       ]
@@ -571,7 +517,7 @@
           "quantization": "q4_k_m",
           "contextLength": 131072,
           "hfRepo": "bartowski/google_gemma-3-4b-it-GGUF",
-          "recommended": true,
+          "recommended": false,
           "descriptionKey": "models.descriptions.local.gemma_gemma_3_4b_it_q4_k_m"
         },
         {

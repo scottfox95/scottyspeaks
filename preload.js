@@ -23,16 +23,96 @@ const registerListener = (channel, handlerFactory) => {
 };
 
 contextBridge.exposeInMainWorld("electronAPI", {
+  speech: {
+    status: () => ipcRenderer.invoke("speech:status"),
+    voices: () => ipcRenderer.invoke("speech:voices"),
+    configure: (patch) => ipcRenderer.invoke("speech:configure", patch),
+    speak: (args) => ipcRenderer.invoke("speech:speak", args),
+    stop: () => ipcRenderer.invoke("speech:stop"),
+    beginRecording: (kind) => ipcRenderer.invoke("speech:beginRecording", kind),
+    endRecording: (token) => ipcRenderer.invoke("speech:endRecording", token),
+    onChange: (callback) => { const listener = (_event, state) => callback(state); ipcRenderer.on("speech:change", listener); return () => ipcRenderer.removeListener("speech:change", listener); },
+  },
+  reserveLocalInference: () => ipcRenderer.invoke("local-inference-reserve"),
+  releaseLocalInference: (token) => ipcRenderer.invoke("local-inference-release", token),
+  getLocalInferenceStatus: () => ipcRenderer.invoke("local-inference-status"),
+  captures: Object.fromEntries(
+    ["create", "complete", "delete", "list", "get", "forHistory", "getConfig", "setConfig", "playback", "releasePlayback", "retry", "cancelRetry", "acceptAttempt", "saveFixture", "listFixtures", "deleteFixture"]
+      .map((name) => [name, (args) => ipcRenderer.invoke(`captures:${name}`, args)])
+  ),
+  callAgent: {
+    state: (args) => ipcRenderer.invoke("callAgent:state", args),
+    grant: (args) => ipcRenderer.invoke("callAgent:grant", args),
+    revoke: (args) => ipcRenderer.invoke("callAgent:revoke", args),
+    handoff: (args) => ipcRenderer.invoke("callAgent:handoff", args),
+    getDraft: (args) => ipcRenderer.invoke("callAgent:getDraft", args),
+    deleteDraft: (args) => ipcRenderer.invoke("callAgent:deleteDraft", args),
+    fileDraft: (args) => ipcRenderer.invoke("callAgent:fileDraft", args),
+  },
+  meetings: {
+    playback: (args) => ipcRenderer.invoke("meetings:playback", args),
+    releasePlayback: (args) => ipcRenderer.invoke("meetings:releasePlayback", args),
+    list: (args) => ipcRenderer.invoke("meetings:list", args),
+    create: (args) => ipcRenderer.invoke("meetings:create", args),
+    get: (args) => ipcRenderer.invoke("meetings:get", args),
+    save: (args) => ipcRenderer.invoke("meetings:save", args),
+    delete: (args) => ipcRenderer.invoke("meetings:delete", args),
+    folders: (args) => ipcRenderer.invoke("meetings:folders", args),
+    pinFolder: (args) => ipcRenderer.invoke("meetings:pinFolder", args),
+    unpinFolder: (args) => ipcRenderer.invoke("meetings:unpinFolder", args),
+    file: (args) => ipcRenderer.invoke("meetings:file", args),
+    reveal: (args) => ipcRenderer.invoke("meetings:reveal", args),
+    getConfig: (args) => ipcRenderer.invoke("meetings:getConfig", args),
+    setConfig: (args) => ipcRenderer.invoke("meetings:setConfig", args),
+    importTranscript: (args) => ipcRenderer.invoke("meetings:importTranscript", args),
+    importAudio: (args) => ipcRenderer.invoke("meetings:importAudio", args),
+    startCapture: (args) => ipcRenderer.invoke("meetings:startCapture", args),
+    stopCapture: (args) => ipcRenderer.invoke("meetings:stopCapture", args),
+    captureStatus: (args) => ipcRenderer.invoke("meetings:captureStatus", args),
+    transcribe: (args) => ipcRenderer.invoke("meetings:transcribe", args),
+    cancelTranscription: (args) => ipcRenderer.invoke("meetings:cancelTranscription", args),
+  },
+  captureRecordingTarget: () => ipcRenderer.invoke("recording-target:capture"),
+  releaseRecordingTarget: (token) => ipcRenderer.invoke("recording-target:release", token),
   pasteText: (text, options) => ipcRenderer.invoke("paste-text", text, options),
   hideWindow: () => ipcRenderer.invoke("hide-window"),
   showDictationPanel: () => ipcRenderer.invoke("show-dictation-panel"),
   onToggleDictation: registerListener("toggle-dictation", (callback) => () => callback()),
   onStartDictation: registerListener("start-dictation", (callback) => () => callback()),
   onStopDictation: registerListener("stop-dictation", (callback) => () => callback()),
-  onHandsFreeChanged: registerListener("hands-free-changed", (callback) => (_event, active) => callback(active)),
+  onHandsFreeChanged: registerListener(
+    "hands-free-changed",
+    (callback) => (_event, active) => callback(active)
+  ),
+
+  // Stream Deck Pedal
+  onStartCommandDictation: registerListener(
+    "start-command-dictation",
+    (callback) => () => callback()
+  ),
+  onPedalStatusChanged: registerListener(
+    "pedal-status-changed",
+    (callback) => (_event, status) => callback(status)
+  ),
+  pedalGetStatus: () => ipcRenderer.invoke("pedal-get-status"),
+  pedalSetConfig: (partial) => ipcRenderer.invoke("pedal-set-config", partial),
+  pedalQuitBlockingApp: () => ipcRenderer.invoke("pedal-quit-blocking-app"),
+  captureSelectedText: (token) => ipcRenderer.invoke("capture-selected-text", token),
+  replaceLastPaste: (newText, expectedText, options) =>
+    ipcRenderer.invoke("replace-last-paste", newText, expectedText, options),
+  getFrontmostApp: () => ipcRenderer.invoke("get-frontmost-app"),
+  runDiagnostics: () => ipcRenderer.invoke("run-diagnostics"),
+  getStyleExamples: (limit) => ipcRenderer.invoke("db-get-style-examples", limit),
+  addStyleExample: (beforeText, afterText, source) =>
+    ipcRenderer.invoke("db-add-style-example", beforeText, afterText, source),
 
   // Database functions
-  saveTranscription: (text) => ipcRenderer.invoke("db-save-transcription", text),
+  saveTranscription: (text, rawText) => ipcRenderer.invoke("db-save-transcription", text, rawText),
+  updateTranscription: (id, text) => ipcRenderer.invoke("db-update-transcription", id, text),
+  onTranscriptionUpdated: registerListener(
+    "transcription-updated",
+    (callback) => (_event, item) => callback(item)
+  ),
   getTranscriptions: (limit) => ipcRenderer.invoke("db-get-transcriptions", limit),
   clearTranscriptions: () => ipcRenderer.invoke("db-clear-transcriptions"),
   deleteTranscription: (id) => ipcRenderer.invoke("db-delete-transcription", id),
@@ -92,7 +172,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Snippets
   getSnippets: () => ipcRenderer.invoke("db-get-snippets"),
-  createSnippet: (keyword, expansion) => ipcRenderer.invoke("db-create-snippet", keyword, expansion),
+  createSnippet: (keyword, expansion) =>
+    ipcRenderer.invoke("db-create-snippet", keyword, expansion),
   updateSnippet: (id, updates) => ipcRenderer.invoke("db-update-snippet", id, updates),
   deleteSnippet: (id) => ipcRenderer.invoke("db-delete-snippet", id),
   findSnippet: (text) => ipcRenderer.invoke("db-find-snippet", text),
@@ -218,6 +299,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   deleteAllParakeetModels: () => ipcRenderer.invoke("delete-all-parakeet-models"),
   cancelParakeetDownload: () => ipcRenderer.invoke("cancel-parakeet-download"),
   getParakeetDiagnostics: () => ipcRenderer.invoke("get-parakeet-diagnostics"),
+  getParakeetEngineInfo: () => ipcRenderer.invoke("get-parakeet-engine-info"),
+  setParakeetEngine: (engine) => ipcRenderer.invoke("set-parakeet-engine", engine),
 
   // Parakeet server functions (faster repeated transcriptions)
   parakeetServerStart: (modelName) => ipcRenderer.invoke("parakeet-server-start", modelName),
@@ -260,6 +343,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onUpdateError: registerListener("update-error"),
 
   // Audio event listeners
+  onLocalTranscriptionStarted: registerListener("local-transcription-started"),
   onNoAudioDetected: registerListener("no-audio-detected"),
 
   // External link opener

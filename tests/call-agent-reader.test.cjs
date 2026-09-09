@@ -1,0 +1,32 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const os = require("node:os");
+const crypto = require("node:crypto");
+const { createCallReader } = require("../src/helpers/callAgentReader");
+test("agent reader only reads registered regular call files without modifying recording state", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ss2-agent-reader-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const id = crypto.randomUUID(),
+    other = crypto.randomUUID();
+  fs.writeFileSync(path.join(root, "index.json"), JSON.stringify({ ids: [id] }));
+  fs.mkdirSync(path.join(root, id));
+  const source = JSON.stringify({ id, status: "recording", title: "Synthetic" });
+  const file = path.join(root, id, "session.json");
+  fs.writeFileSync(file, source);
+  const read = createCallReader(root);
+  assert.equal(read(id).status, "recording");
+  assert.equal(fs.readFileSync(file, "utf8"), source);
+  assert.throws(() => read(other), /registered/);
+  assert.throws(() => read("../key"), /Invalid/);
+  fs.unlinkSync(file);
+  fs.symlinkSync(path.join(root, "index.json"), file);
+  assert.throws(() => read(id), /regular/);
+  fs.unlinkSync(file);
+  fs.writeFileSync(file, JSON.stringify({ id: other }));
+  assert.throws(() => read(id), /identity/);
+  fs.rmSync(path.join(root, id), { recursive: true });
+  fs.symlinkSync(root, path.join(root, id));
+  assert.throws(() => read(id), /directory/);
+});

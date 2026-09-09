@@ -7,6 +7,37 @@ export interface TranscriptionItem {
   created_at: string;
 }
 
+export interface UsageStats {
+  totalDays: number;
+  totalWords: number;
+  totalDictations: number;
+  averageWpm: number;
+}
+
+export interface SnippetItem {
+  id: number;
+  keyword: string;
+  expansion: string;
+  use_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StyleProfileItem {
+  id: number;
+  name: string;
+  rules: string;
+  is_active: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StyleExampleItem {
+  before: string;
+  after: string;
+  source: string;
+}
+
 export interface NoteItem {
   id: number;
   title: string;
@@ -262,8 +293,22 @@ export interface ReferralItem {
 declare global {
   interface Window {
     electronAPI: {
+      reserveLocalInference: () => Promise<string>;
+      releaseLocalInference: (token: string) => Promise<void>;
+      getLocalInferenceStatus: () => Promise<{
+        active: number;
+        activePriority: "foreground" | "background" | null;
+        queued: { foreground: number; background: number };
+        foregroundReservations: number;
+      }>;
+      speech: import("./speech").SpeechAPI;
+      callAgent: import("./callAgent").CallAgentAPI;
+      meetings: import("./meeting").MeetingAPI;
+      captures: import("./capture").CaptureAPI;
       // Basic window operations
-      pasteText: (text: string, options?: { fromStreaming?: boolean }) => Promise<void>;
+      captureRecordingTarget: () => Promise<{ available: boolean; token: string | null; reason?: string }>;
+      releaseRecordingTarget: (token: string) => Promise<void>;
+      pasteText: (text: string, options?: { fromStreaming?: boolean; targetToken?: string | null; exact?: boolean }) => Promise<{ success?: boolean; text: string; manualCopy?: boolean; reason?: string }>;
       hideWindow: () => Promise<void>;
       showDictationPanel: () => Promise<void>;
       onToggleDictation: (callback: () => void) => () => void;
@@ -283,6 +328,45 @@ declare global {
       getTranscriptions: (limit?: number) => Promise<TranscriptionItem[]>;
       clearTranscriptions: () => Promise<{ cleared: number; success: boolean }>;
       deleteTranscription: (id: number) => Promise<{ success: boolean }>;
+      recordUsage: (wordCount: number, durationSeconds: number) => Promise<{ success: boolean }>;
+      getUsageStats: () => Promise<UsageStats>;
+
+      // Snippet operations
+      getSnippets: () => Promise<SnippetItem[]>;
+      createSnippet: (
+        keyword: string,
+        expansion: string
+      ) => Promise<{ success: boolean; snippet?: SnippetItem; error?: string }>;
+      updateSnippet: (
+        id: number,
+        updates: { keyword?: string; expansion?: string }
+      ) => Promise<{ success: boolean; snippet?: SnippetItem; error?: string }>;
+      deleteSnippet: (id: number) => Promise<{ success: boolean; id?: number; error?: string }>;
+      findSnippet: (text: string) => Promise<SnippetItem | null>;
+
+      // Style profile operations
+      getStyleProfiles: () => Promise<StyleProfileItem[]>;
+      getActiveStyleProfile: () => Promise<StyleProfileItem | null>;
+      setActiveStyleProfile: (id: number | null) => Promise<{ success: boolean; error?: string }>;
+      createStyleProfile: (
+        name: string,
+        rules: import("../services/StyleProcessor").StyleRules
+      ) => Promise<{ success: boolean; id?: number; error?: string }>;
+      updateStyleProfile: (
+        id: number,
+        updates: {
+          name?: string;
+          rules?: import("../services/StyleProcessor").StyleRules;
+        }
+      ) => Promise<{ success: boolean; error?: string }>;
+      deleteStyleProfile: (id: number) => Promise<{ success: boolean; error?: string }>;
+      getStyleExamples: (limit?: number) => Promise<StyleExampleItem[]>;
+      addStyleExample: (
+        beforeText: string,
+        afterText: string,
+        source?: string
+      ) => Promise<{ id: number } | null>;
+      getFrontmostApp: () => Promise<{ name: string } | null>;
 
       // Dictionary operations
       getDictionary: () => Promise<string[]>;
@@ -409,6 +493,7 @@ declare global {
       checkPasteTools: () => Promise<PasteToolsResult>;
 
       // Audio
+      onLocalTranscriptionStarted: (callback: (event: any, data: { requestId: string }) => void) => () => void;
       onNoAudioDetected: (callback: (event: any, data?: any) => void) => () => void;
 
       // Whisper operations (whisper.cpp)
@@ -475,6 +560,16 @@ declare global {
         error?: string;
       }>;
       getParakeetDiagnostics: () => Promise<ParakeetDiagnosticsResult>;
+      getParakeetEngineInfo: () => Promise<{
+        engine: string;
+        coremlAvailable: boolean;
+        coremlModelDownloaded: boolean;
+      }>;
+      setParakeetEngine: (engine: string | null) => Promise<{
+        success: boolean;
+        engine?: string;
+        error?: string;
+      }>;
 
       // Local AI model management
       modelGetAll: () => Promise<any[]>;
