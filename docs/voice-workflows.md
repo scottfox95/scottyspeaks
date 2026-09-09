@@ -14,7 +14,7 @@ SS2 remembers the intended application and field when recording starts. If it ca
 
 ## Call audio and agents
 
-Play all audio, microphone or system audio, and click timestamps to seek across takes. Edited transcripts are clearly unaligned; original timed evidence stays separate. Local transcription distinguishes microphone/system sources, not every remote person. Optional cloud speaker labels need human review.
+Play or export all audio, microphone audio or system audio, and click timestamps to seek across takes. Edited transcripts are clearly unaligned; original timed evidence stays separate. Local transcription mixes synchronized tracks into one timeline to avoid duplicate text and does not identify every remote person. A confirmed retranscription uses the currently selected provider/model, retains the prior transcript on failure and replaces it only after success. Optional cloud speaker labels need human review.
 
 In a call’s Agents tab, explicitly share that call, copy the generated MCP configuration, and configure the client yourself. Keep SS2 open. Ready means the app’s private local bridge is listening; Last agent request reports authenticated access. No client configuration is edited automatically. Revoke permission in the same tab. Revocation blocks future access and stops that call’s agent speech, but cannot retract exported copies. Agent drafts remain separate until you review and explicitly file them. See [the agent guide](selected-call-agents.md).
 

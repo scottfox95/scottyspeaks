@@ -61,6 +61,7 @@ export default function MeetingsView() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Meeting | null>(null);
+  const [retranscribeTarget, setRetranscribeTarget] = useState<Meeting | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [editTranscript, setEditTranscript] = useState(false);
@@ -279,14 +280,14 @@ export default function MeetingsView() {
   const recording = !!capture.id;
   const thisRecording = meeting?.id === capture.id;
   const transcribing = meeting?.status === "transcribing" || meeting?.status === "queued";
-  const speakerEntries = useMemo(() => describeSpeakers(meeting || {}), [meeting?.segments]);
+  const speakerEntries = useMemo(() => describeSpeakers(meeting || {}), [meeting]);
   const defaultLabels = useMemo(
     () => speakerLabels({ segments: meeting?.segments }, t),
     [meeting?.segments, t]
   );
   const labels = useMemo(
     () => speakerLabels(meeting || {}, t),
-    [meeting?.segments, meeting?.speakers, t]
+    [meeting, t]
   );
   const transcriptText =
     meeting?.transcriptEdited || !meeting?.segments.length
@@ -294,6 +295,16 @@ export default function MeetingsView() {
       : meeting.segments
           .map((s) => `[${clock(s.start)}] ${labels.get(s.speaker)}: ${s.text}`)
           .join("\n\n");
+  const meetingError =
+    meeting?.lastErrorCode === "openrouterAuth"
+      ? t("meetings.openrouterAuthError", { status: meeting.lastErrorStatus })
+      : meeting?.lastErrorCode === "openrouterCredit"
+        ? t("meetings.openrouterCreditError")
+        : meeting?.lastErrorCode === "openrouterEmpty"
+          ? t("meetings.openrouterEmptyError")
+          : meeting?.lastErrorCode === "openrouterFailed"
+            ? t("meetings.openrouterFailedError", { status: meeting.lastErrorStatus })
+            : meeting?.lastError;
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground">
@@ -620,24 +631,24 @@ export default function MeetingsView() {
                     {meeting.audio.length > 0 && !thisRecording && (
                       <Button
                         size="sm"
-                        disabled={
-                          busy ||
-                          transcribing ||
-                          recording ||
-                          (!!meeting.transcript && !meeting.needsTranscription)
-                        }
-                        onClick={() =>
-                          act(async () => {
-                            await flush();
-                            adopt(await unwrap(api.transcribe({ id: meeting.id })));
-                          })
-                        }
+                        disabled={busy || transcribing || recording}
+                        onClick={() => {
+                          if (meeting.transcript || meeting.segments.length)
+                            setRetranscribeTarget(meeting);
+                          else
+                            void act(async () => {
+                              await flush();
+                              adopt(await unwrap(api.transcribe({ id: meeting.id })));
+                            });
+                        }}
                       >
                         {transcribing ? <Loader2 className="animate-spin" /> : <Headphones />}
                         {t(
-                          config?.provider === "openrouter"
-                            ? "meetings.transcribeCloud"
-                            : "meetings.transcribe"
+                          meeting.transcript || meeting.segments.length
+                            ? "meetings.transcribeAgain"
+                            : config?.provider === "openrouter"
+                              ? "meetings.transcribeCloud"
+                              : "meetings.transcribe"
                         )}
                       </Button>
                     )}
@@ -667,9 +678,9 @@ export default function MeetingsView() {
                         })}
                   </p>
                 )}
-                {meeting.lastError && (
+                {meetingError && (
                   <p role="alert" className="text-sm text-destructive">
-                    {meeting.lastError}
+                    {meetingError}
                   </p>
                 )}
               </div>
@@ -974,6 +985,46 @@ export default function MeetingsView() {
           </main>
         )}
       </div>
+      <Dialog
+        open={!!retranscribeTarget}
+        onOpenChange={(isOpen) => {
+          if (!isOpen && !busy) setRetranscribeTarget(null);
+        }}
+      >
+        <DialogContent
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            document.getElementById("cancel-retranscription")?.focus();
+          }}
+        >
+          <DialogTitle>{t("meetings.retranscribeTitle")}</DialogTitle>
+          <DialogDescription>{t("meetings.retranscribeDescription")}</DialogDescription>
+          <DialogFooter>
+            <Button
+              id="cancel-retranscription"
+              variant="outline"
+              disabled={busy}
+              onClick={() => setRetranscribeTarget(null)}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              disabled={busy}
+              onClick={() => {
+                const target = retranscribeTarget;
+                if (!target) return;
+                setRetranscribeTarget(null);
+                void act(async () => {
+                  await flush();
+                  adopt(await unwrap(api.transcribe({ id: target.id, force: true })));
+                });
+              }}
+            >
+              {t("meetings.replaceTranscript")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={!!deleteTarget}
         onOpenChange={(isOpen) => {

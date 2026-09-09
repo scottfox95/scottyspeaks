@@ -45,6 +45,8 @@ class MeetingRecorder {
       audio,
       needsTranscription: true,
       lastError: null,
+      lastErrorCode: null,
+      lastErrorStatus: null,
     });
     let resolveStart, rejectStart, resolveDone;
     const started = new Promise((resolve, reject) => {
@@ -84,6 +86,8 @@ class MeetingRecorder {
           recordedDuration:
             offset + (active.duration || Math.max(0, (Date.now() - active.startedAt) / 1000)),
           lastError: error,
+          lastErrorCode: null,
+          lastErrorStatus: null,
         });
       } finally {
         if (active.speechToken) this.speech.endRecording(active.speechToken, "native-call");

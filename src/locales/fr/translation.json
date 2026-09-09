@@ -1654,7 +1654,7 @@
     "transcript": "Transcription",
     "notesPlaceholder": "Vos idées, questions et suivis…\n\nMarkdown pris en charge. Les notes sont enregistrées pendant la saisie.",
     "speakerHelp": "Sélectionnez le nom d’un intervenant dans la transcription pour nommer cette voix.",
-    "localSpeakerHelp": "L’enregistrement local sépare votre microphone de l’audio de l’appel. Il n’identifie pas les différents intervenants distants. Les temps repèrent les parties audio, pas les mots individuels.",
+    "localSpeakerHelp": "La transcription locale combine le microphone et l’audio de l’appel sur une seule chronologie afin d’éviter le texte en double. La lecture et l’export audio permettent toujours de choisir chaque piste. Les intervenants distants ne sont pas identifiés individuellement.",
     "readTranscript": "Lire la transcription",
     "editTranscript": "Modifier la transcription",
     "editedTranscriptHelp": "Cette transcription a été modifiée. Le minutage original des mots est conservé dans les données source, mais n’est pas appliqué à votre texte réécrit.",
@@ -1700,7 +1700,17 @@
     "speakersTitle": "Intervenants ({{count}})",
     "renameHelp": "Identifiez une voix grâce à l’extrait ou en l’écoutant. Le nom s’applique à toutes les interventions de cette personne dans la transcription. Les voix des différentes parties audio restent séparées ; identifiez chacune à l’écoute.",
     "listenAt": "Écouter à {{time}}",
-    "listenSpeaker": "Écouter {{speaker}} à {{time}}"
+    "listenSpeaker": "Écouter {{speaker}} à {{time}}",
+    "exportAudio": "Exporter l’audio…",
+    "audioExported": "Audio enregistré.",
+    "transcribeAgain": "Transcrire à nouveau",
+    "retranscribeTitle": "Transcrire à nouveau cet appel ?",
+    "retranscribeDescription": "La transcription actuelle est conservée sauf si la nouvelle transcription réussit. Un nouvel essai réussi remplace la transcription et les noms des intervenants ; vos notes et l’audio enregistré restent inchangés. Le fournisseur et le modèle sélectionnés dans les réglages des notes d’appel sont utilisés.",
+    "replaceTranscript": "Remplacer la transcription",
+    "openrouterAuthError": "OpenRouter a refusé la clé API ({{status}}). Remplacez-la dans les réglages des notes d’appel, puis réessayez.",
+    "openrouterCreditError": "Votre compte OpenRouter doit être crédité avant de pouvoir transcrire cet appel.",
+    "openrouterEmptyError": "OpenRouter n’a renvoyé aucune transcription exploitable. Réessayez ou choisissez un modèle local.",
+    "openrouterFailedError": "La transcription OpenRouter a échoué ({{status}}). Vérifiez votre connexion et réessayez."
   },
   "replay": {
     "open": "Réécouter et corriger",

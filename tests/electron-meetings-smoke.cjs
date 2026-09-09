@@ -12,6 +12,28 @@ const html = path.join(root, "src/.meeting-smoke.html"),
   entry = path.join(root, "src/.meeting-smoke.tsx");
 let server, window;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+function wav(seconds = 1) {
+  const samples = seconds * 16000;
+  const buffer = Buffer.alloc(44 + samples * 2);
+  buffer.write("RIFF");
+  buffer.writeUInt32LE(buffer.length - 8, 4);
+  buffer.write("WAVEfmt ", 8);
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20);
+  buffer.writeUInt16LE(1, 22);
+  buffer.writeUInt32LE(16000, 24);
+  buffer.writeUInt32LE(32000, 28);
+  buffer.writeUInt16LE(2, 32);
+  buffer.writeUInt16LE(16, 34);
+  buffer.write("data", 36);
+  buffer.writeUInt32LE(samples * 2, 40);
+  for (let index = 0; index < samples; index++)
+    buffer.writeInt16LE(
+      Math.round(Math.sin((index * 2 * Math.PI * 440) / 16000) * 6000),
+      44 + index * 2
+    );
+  return buffer;
+}
 async function waitFor(check, label) {
   for (let n = 0; n < 160; n++) {
     if (await check()) return;
@@ -87,8 +109,11 @@ app.whenReady().then(async () => {
     const destination = path.join(temp, "Project");
     fs.mkdirSync(destination);
     const { registerMeetingHandlers } = require("../src/helpers/meetingHandlers");
+    const { AudioEvidence } = require("../src/helpers/audioEvidence");
     let cancelFolder = true;
     let folderDialogParent = null;
+    const exportedAudio = path.join(temp, "shared-call-audio.mp3");
+    let localTranscriptions = 0;
     const service = registerMeetingHandlers({
       app,
       ipcMain,
@@ -103,19 +128,24 @@ app.whenReady().then(async () => {
             filePaths: [isFolder ? destination : fixture],
           };
         },
+        showSaveDialog: async () => ({ canceled: false, filePath: exportedAudio }),
       },
       shell: { showItemInFolder() {} },
       databaseManager: { getDictionary: () => [] },
       windowManager: { controlPanelWindow: window },
       whisperManager: {
-        transcribeLocalWhisper: async () => ({ success: true, text: "Synthetic local transcript" }),
+        transcribeLocalWhisper: async () => ({
+          success: true,
+          text: `Synthetic retry ${++localTranscriptions}`,
+        }),
       },
       parakeetManager: {
         transcribeLocalParakeet: async () => ({
           success: true,
-          text: "Synthetic local transcript",
+          text: `Synthetic retry ${++localTranscriptions}`,
         }),
       },
+      audioEvidence: new AudioEvidence(),
     });
     const agents = require("../src/helpers/callAgentHandlers").registerCallAgentHandlers({
       app,
@@ -194,6 +224,56 @@ app.whenReady().then(async () => {
     );
     const imported = service.store.list()[0];
     assert.equal(service.store.get(imported.id).segments[0].start, 1.2);
+    fs.writeFileSync(path.join(service.store.directory(imported.id), "call.wav"), wav());
+    service.store.update(imported.id, {
+      audio: [{ file: "call.wav", source: "system", offset: 0 }],
+      status: "ready",
+    });
+    await waitFor(
+      () => js(`document.body.textContent.includes('Transcribe again')`),
+      "retranscribe control"
+    );
+    await waitFor(
+      () =>
+        js(
+          `[...document.querySelectorAll('button')].some(button=>button.textContent.trim()==='Export audio…'&&!button.disabled)`
+        ),
+      "prepared retained audio"
+    );
+    await click("Export audio…");
+    await waitFor(() => fs.existsSync(exportedAudio), "audio export");
+    assert.ok(fs.statSync(exportedAudio).size > 100);
+    await click("Transcribe again");
+    await waitFor(() => js("!!document.querySelector('[role=dialog]')"), "retry confirmation");
+    assert.equal(
+      await js(
+        "document.querySelector('[role=dialog]').textContent.includes('kept unless the new transcription succeeds')"
+      ),
+      true
+    );
+    await click("Cancel");
+    assert.equal(localTranscriptions, 0);
+    await click("Transcribe again");
+    await click("Replace transcript");
+    await waitFor(
+      () => service.store.get(imported.id).transcript === "Synthetic retry 1",
+      "forced retranscription"
+    );
+    service.store.update(imported.id, {
+      lastError: "internal provider error",
+      lastErrorCode: "openrouterAuth",
+      lastErrorStatus: 401,
+    });
+    await waitFor(
+      () => js(`document.body.textContent.includes('OpenRouter rejected the API key')`),
+      "localized provider error"
+    );
+    assert.equal(await js(`document.body.textContent.includes('internal provider error')`), false);
+    service.store.update(imported.id, {
+      lastError: null,
+      lastErrorCode: null,
+      lastErrorStatus: null,
+    });
     const rejected = await new Promise((resolve) => {
       const outsider = new BrowserWindow({
         show: false,
@@ -344,6 +424,9 @@ app.whenReady().then(async () => {
           "Markdown filing",
           "external edit conflict",
           "VTT speakers and timing",
+          "selected audio MP3 export",
+          "confirmed forced retranscription with cancel safeguard",
+          "localized provider errors",
           "unauthorized renderer rejected",
           "no horizontal overflow",
           "key save/reload confirmation and safe replacement cancellation",

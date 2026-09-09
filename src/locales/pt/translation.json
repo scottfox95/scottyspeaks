@@ -1654,7 +1654,7 @@
     "transcript": "Transcrição",
     "notesPlaceholder": "Os seus pensamentos, perguntas e acompanhamentos…\n\nMarkdown suportado. As notas são guardadas enquanto escreve.",
     "speakerHelp": "Selecione o nome de um participante na transcrição para dar um nome àquela voz.",
-    "localSpeakerHelp": "A gravação local separa o seu microfone do áudio da chamada. Não identifica participantes remotos individuais. Os tempos marcam partes do áudio, não palavras individuais.",
+    "localSpeakerHelp": "A transcrição local combina o microfone e o áudio da chamada numa única linha do tempo para evitar texto duplicado. A reprodução e a exportação de áudio ainda permitem escolher cada faixa. Os participantes remotos não são identificados individualmente.",
     "readTranscript": "Ler transcrição",
     "editTranscript": "Editar transcrição",
     "editedTranscriptHelp": "Esta transcrição foi editada. Os tempos originais das palavras são mantidos nos dados de origem, mas não são aplicados ao texto reescrito.",
@@ -1700,7 +1700,17 @@
     "speakersTitle": "Participantes ({{count}})",
     "renameHelp": "Identifique uma voz pelo trecho ou ouvindo o áudio. O nome se aplica a todas as falas desse participante nesta transcrição. Participantes de diferentes partes do áudio permanecem separados; identifique cada um ouvindo.",
     "listenAt": "Ouvir em {{time}}",
-    "listenSpeaker": "Ouvir {{speaker}} em {{time}}"
+    "listenSpeaker": "Ouvir {{speaker}} em {{time}}",
+    "exportAudio": "Exportar áudio…",
+    "audioExported": "Áudio salvo.",
+    "transcribeAgain": "Transcrever novamente",
+    "retranscribeTitle": "Transcrever esta chamada novamente?",
+    "retranscribeDescription": "A transcrição atual é mantida, a menos que a nova transcrição seja concluída com sucesso. Uma nova tentativa bem-sucedida substitui a transcrição e os nomes dos participantes; suas notas e o áudio salvo permanecem inalterados. A tentativa usa o provedor e o modelo selecionados nas configurações de notas de chamadas.",
+    "replaceTranscript": "Substituir transcrição",
+    "openrouterAuthError": "A OpenRouter rejeitou a chave da API ({{status}}). Substitua-a nas configurações de notas de chamadas e tente novamente.",
+    "openrouterCreditError": "A sua conta OpenRouter precisa de saldo antes de poder transcrever esta chamada.",
+    "openrouterEmptyError": "A OpenRouter não devolveu uma transcrição utilizável. Tente novamente ou escolha um modelo local.",
+    "openrouterFailedError": "A transcrição da OpenRouter falhou ({{status}}). Verifique a ligação e tente novamente."
   },
   "replay": {
     "open": "Reproduzir e corrigir",

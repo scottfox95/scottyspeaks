@@ -52,6 +52,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   meetings: {
     playback: (args) => ipcRenderer.invoke("meetings:playback", args),
     releasePlayback: (args) => ipcRenderer.invoke("meetings:releasePlayback", args),
+    exportAudio: (args) => ipcRenderer.invoke("meetings:exportAudio", args),
     list: (args) => ipcRenderer.invoke("meetings:list", args),
     create: (args) => ipcRenderer.invoke("meetings:create", args),
     get: (args) => ipcRenderer.invoke("meetings:get", args),

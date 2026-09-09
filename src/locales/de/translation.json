@@ -927,11 +927,7 @@
         "enterprise": {
           "name": "Enterprise",
           "price": "Individuell",
-          "features": [
-            "Cloud-Synchronisation",
-            "Team-Funktionen (demnächst)",
-            "SSO & Compliance"
-          ],
+          "features": ["Cloud-Synchronisation", "Team-Funktionen (demnächst)", "SSO & Compliance"],
           "cta": "Kontakt aufnehmen"
         },
         "currentPlan": "Aktueller Tarif"
@@ -1654,7 +1650,7 @@
     "transcript": "Transkript",
     "notesPlaceholder": "Deine Gedanken, Fragen und nächsten Schritte…\n\nMarkdown wird unterstützt. Notizen werden beim Schreiben gespeichert.",
     "speakerHelp": "Wähle einen Sprechernamen im Transkript aus, um dieser Stimme einen Namen zu geben.",
-    "localSpeakerHelp": "Bei lokaler Aufnahme werden dein Mikrofon und das Gesprächsaudio getrennt. Einzelne entfernte Sprecher werden nicht erkannt. Zeitangaben kennzeichnen Audioteile, nicht einzelne Wörter.",
+    "localSpeakerHelp": "Die lokale Transkription kombiniert Mikrofon und Anrufaudio in einer Zeitleiste, um doppelten Text zu vermeiden. Bei Wiedergabe und Audioexport kann weiterhin jede Spur gewählt werden. Einzelne entfernte Sprecher werden nicht erkannt.",
     "readTranscript": "Transkript lesen",
     "editTranscript": "Transkript bearbeiten",
     "editedTranscriptHelp": "Dieses Transkript wurde bearbeitet. Die ursprünglichen Wortzeitpunkte bleiben in den Quelldaten erhalten, werden aber nicht auf deinen überarbeiteten Text angewendet.",
@@ -1700,7 +1696,17 @@
     "speakersTitle": "Sprecher ({{count}})",
     "renameHelp": "Ordne eine Stimme anhand des Auszugs oder durch Anhören zu. Der Name gilt für alle Beiträge dieses Sprechers im Transkript. Sprecher aus verschiedenen Audioteilen bleiben getrennt; identifiziere sie durch Anhören.",
     "listenAt": "Bei {{time}} anhören",
-    "listenSpeaker": "{{speaker}} bei {{time}} anhören"
+    "listenSpeaker": "{{speaker}} bei {{time}} anhören",
+    "exportAudio": "Audio exportieren…",
+    "audioExported": "Audio gespeichert.",
+    "transcribeAgain": "Erneut transkribieren",
+    "retranscribeTitle": "Diesen Anruf erneut transkribieren?",
+    "retranscribeDescription": "Das aktuelle Transkript bleibt erhalten, sofern die neue Transkription nicht erfolgreich ist. Bei Erfolg werden Transkript und Sprechernamen ersetzt; Notizen und gespeichertes Audio bleiben unverändert. Verwendet werden der aktuell in den Anrufnotizen-Einstellungen ausgewählte Anbieter und das Modell.",
+    "replaceTranscript": "Transkript ersetzen",
+    "openrouterAuthError": "OpenRouter hat den API-Schlüssel abgelehnt ({{status}}). Ersetze ihn in den Anrufnotizen-Einstellungen und versuche es erneut.",
+    "openrouterCreditError": "Dein OpenRouter-Konto benötigt Guthaben, bevor dieser Anruf transkribiert werden kann.",
+    "openrouterEmptyError": "OpenRouter hat kein verwendbares Transkript zurückgegeben. Versuche es erneut oder wähle ein lokales Modell.",
+    "openrouterFailedError": "Die OpenRouter-Transkription ist fehlgeschlagen ({{status}}). Prüfe die Verbindung und versuche es erneut."
   },
   "replay": {
     "open": "Wiedergabe & Korrektur",

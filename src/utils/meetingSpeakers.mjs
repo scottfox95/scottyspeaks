@@ -8,7 +8,7 @@ export function describeSpeakers(meeting) {
       const kind =
         id === "microphone"
           ? "microphone"
-          : id === "system"
+          : id === "system" || id === "combined"
             ? "system"
             : !id || id === "audio"
               ? "unknown"

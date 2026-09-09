@@ -4,6 +4,12 @@ const { execFile } = require("child_process");
 const { promisify } = require("util");
 const run = promisify(execFile);
 const CHUNK_SECONDS = 120;
+function transcriptionError(message, code, status) {
+  const error = new Error(message);
+  error.code = code;
+  if (Number.isFinite(status)) error.status = status;
+  return error;
+}
 function normalizeTranscript(data, offset = 0, chunkId = "chunk", duration = CHUNK_SECONDS) {
   if (!data || typeof data.text !== "string")
     throw new Error("Provider returned an invalid transcript");
@@ -88,13 +94,41 @@ async function transcribeChunk({
     }),
   });
   if (!response.ok) {
-    const error = new Error(
-      `OpenRouter transcription failed (${response.status}). Check your key, credit, and connection.`
+    if (response.status === 401 || response.status === 403)
+      throw transcriptionError(
+        `OpenRouter rejected the API key (${response.status}).`,
+        "openrouterAuth",
+        response.status
+      );
+    if (response.status === 402)
+      throw transcriptionError(
+        "OpenRouter account needs credit (402).",
+        "openrouterCredit",
+        response.status
+      );
+    throw transcriptionError(
+      `OpenRouter transcription failed (${response.status}).`,
+      "openrouterFailed",
+      response.status
     );
-    error.status = response.status;
-    throw error;
   }
-  const result = normalizeTranscript(await response.json(), offset, chunkId, duration);
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    throw transcriptionError("OpenRouter returned no usable transcript.", "openrouterEmpty");
+  }
+  const segmentText = Array.isArray(data?.segments)
+    ? data.segments
+        .map((segment) => (typeof segment?.text === "string" ? segment.text.trim() : ""))
+        .filter(Boolean)
+        .join(" ")
+    : "";
+  const hasText = typeof data?.text === "string" && !!data.text.trim();
+  if (!hasText && !segmentText)
+    throw transcriptionError("OpenRouter returned no usable transcript.", "openrouterEmpty");
+  if (!hasText) data = { ...data, text: segmentText };
+  const result = normalizeTranscript(data, offset, chunkId, duration);
   if (result.text && !result.segments.length)
     result.segments = [{ text: result.text, start: offset, end: offset + duration, speaker: "" }];
   return result;
@@ -102,7 +136,7 @@ async function transcribeChunk({
 function ffmpegPath() {
   return require("ffmpeg-static").replace("app.asar/", "app.asar.unpacked/");
 }
-async function prepareChunks(inputs, directory, { mix = false, cloud = false } = {}) {
+async function prepareChunks(inputs, directory, { mix = false, cloud = false, source } = {}) {
   fs.mkdirSync(directory, { recursive: true });
   // A fresh work directory is supplied for each job; partial files are never reused.
   const args = ["-hide_banner", "-loglevel", "error", "-nostdin"];
@@ -110,7 +144,7 @@ async function prepareChunks(inputs, directory, { mix = false, cloud = false } =
   if (mix && inputs.length > 1)
     args.push(
       "-filter_complex",
-      `amix=inputs=${inputs.length}:duration=longest:dropout_transition=0:normalize=0`
+      `amix=inputs=${inputs.length}:duration=longest:dropout_transition=0:normalize=1`
     );
   args.push(
     "-vn",
@@ -138,7 +172,7 @@ async function prepareChunks(inputs, directory, { mix = false, cloud = false } =
       path: path.join(directory, name),
       offset: index * (cloud ? 3600 : CHUNK_SECONDS),
       format: cloud ? "mp3" : "wav",
-      source: inputs[0].source,
+      source: source || inputs[0].source,
     }));
 }
 async function audioDuration(file) {

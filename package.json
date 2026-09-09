@@ -1,6 +1,6 @@
 {
   "name": "scotty-speaks",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "ScottySpeaks - Local-first voice dictation for macOS",
   "main": "main.js",
   "private": true,

@@ -1,6 +1,8 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Download, Loader2 } from "lucide-react";
 import type { Meeting } from "../../types/meeting";
+import { Button } from "../ui/button";
 export interface MeetingAudioHandle {
   seek(seconds: number, source?: Source): void;
 }
@@ -16,6 +18,8 @@ export const MeetingAudioPlayer = forwardRef<
   const [source, setSource] = useState<Source>("all");
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exported, setExported] = useState("");
   const [error, setError] = useState("");
   const sources = [...new Set(meeting.audio.map((item) => item.source))].filter((value) =>
     ["microphone", "system", "audio"].includes(value)
@@ -50,6 +54,7 @@ export const MeetingAudioPlayer = forwardRef<
       issued = "";
     setUrl("");
     setError("");
+    setExported("");
     setLoading(false);
     if (!meeting.audio.length || recording) return;
     setLoading(true);
@@ -71,38 +76,62 @@ export const MeetingAudioPlayer = forwardRef<
       active = false;
       if (issued) void api.releasePlayback({ url: issued });
     };
-  }, [api, meeting.id, manifest, source, recording]);
+  }, [api, meeting.id, meeting.audio.length, manifest, source, recording]);
   if (!meeting.audio.length)
     return <p className="mb-4 text-xs text-muted-foreground">{t("replay.textOnly")}</p>;
   return (
     <div className="mb-5 space-y-2 rounded-lg border border-border p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs font-semibold">{t("replay.callAudio")}</span>
-        {sources.length > 1 && (
-          <label className="flex items-center gap-2 text-xs">
-            {t("replay.source")}
-            <select
-              aria-label={t("replay.source")}
-              className="h-8 rounded border border-border bg-background px-2"
-              value={source}
-              disabled={recording}
-              onChange={(e) => {
-                const audio = player.current;
-                pending.current = {
-                  time: audio?.currentTime ?? pending.current?.time ?? 0,
-                  play: false,
-                };
-                setSource(e.target.value as Source);
-              }}
-            >
-              {["all", ...sources].map((value) => (
-                <option key={value} value={value}>
-                  {t(`replay.sources.${value}`)}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {sources.length > 1 && (
+            <label className="flex items-center gap-2 text-xs">
+              {t("replay.source")}
+              <select
+                aria-label={t("replay.source")}
+                className="h-8 rounded border border-border bg-background px-2"
+                value={source}
+                disabled={recording || exporting}
+                onChange={(e) => {
+                  const audio = player.current;
+                  pending.current = {
+                    time: audio?.currentTime ?? pending.current?.time ?? 0,
+                    play: false,
+                  };
+                  setSource(e.target.value as Source);
+                }}
+              >
+                {["all", ...sources].map((value) => (
+                  <option key={value} value={value}>
+                    {t(`replay.sources.${value}`)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={recording || loading || exporting}
+            onClick={async () => {
+              setError("");
+              setExported("");
+              setExporting(true);
+              try {
+                const result = await api.exportAudio({ id: meeting.id, source });
+                if (!result.success) throw new Error("error" in result ? result.error : "");
+                if (result.data) setExported(t("meetings.audioExported"));
+              } catch (value) {
+                setError(value instanceof Error ? value.message : String(value));
+              } finally {
+                setExporting(false);
+              }
+            }}
+          >
+            {exporting ? <Loader2 className="animate-spin" /> : <Download />}
+            {t("meetings.exportAudio")}
+          </Button>
+        </div>
       </div>
       {recording ? (
         <p className="text-xs text-muted-foreground">{t("replay.stopToListen")}</p>
@@ -139,6 +168,11 @@ export const MeetingAudioPlayer = forwardRef<
       {error && (
         <p role="alert" className="text-xs text-destructive">
           {error}
+        </p>
+      )}
+      {exported && (
+        <p role="status" className="text-xs text-muted-foreground">
+          {exported}
         </p>
       )}
     </div>

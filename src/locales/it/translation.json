@@ -1654,7 +1654,7 @@
     "transcript": "Trascrizione",
     "notesPlaceholder": "Pensieri, domande e attività da seguire…\n\nMarkdown supportato. Le note vengono salvate mentre scrivi.",
     "speakerHelp": "Seleziona il nome di un partecipante nella trascrizione per assegnare un nome a quella voce.",
-    "localSpeakerHelp": "La registrazione locale separa il microfono dall’audio della chiamata. Non identifica i singoli partecipanti remoti. Gli orari indicano parti dell’audio, non singole parole.",
+    "localSpeakerHelp": "La trascrizione locale combina microfono e audio della chiamata in un’unica sequenza temporale per evitare testo duplicato. La riproduzione e l’esportazione audio consentono comunque di scegliere ogni traccia. I singoli partecipanti remoti non vengono identificati.",
     "readTranscript": "Leggi trascrizione",
     "editTranscript": "Modifica trascrizione",
     "editedTranscriptHelp": "Questa trascrizione è stata modificata. I tempi originali delle parole restano nei dati di origine, ma non vengono applicati al testo riscritto.",
@@ -1700,7 +1700,17 @@
     "speakersTitle": "Partecipanti ({{count}})",
     "renameHelp": "Identifica una voce dal brano o ascoltandola. Il nome si applica a tutti gli interventi di quella persona nella trascrizione. Le voci di parti audio diverse restano separate; identifica ciascuna ascoltandola.",
     "listenAt": "Ascolta a {{time}}",
-    "listenSpeaker": "Ascolta {{speaker}} a {{time}}"
+    "listenSpeaker": "Ascolta {{speaker}} a {{time}}",
+    "exportAudio": "Esporta audio…",
+    "audioExported": "Audio salvato.",
+    "transcribeAgain": "Trascrivi di nuovo",
+    "retranscribeTitle": "Trascrivere di nuovo questa chiamata?",
+    "retranscribeDescription": "La trascrizione attuale viene conservata a meno che la nuova trascrizione non riesca. Un nuovo tentativo riuscito sostituisce la trascrizione e i nomi dei partecipanti; le note e l’audio salvato restano invariati. Vengono usati il provider e il modello selezionati nelle impostazioni delle note chiamata.",
+    "replaceTranscript": "Sostituisci trascrizione",
+    "openrouterAuthError": "OpenRouter ha rifiutato la chiave API ({{status}}). Sostituiscila nelle impostazioni delle note chiamata e riprova.",
+    "openrouterCreditError": "Il tuo account OpenRouter deve avere credito prima di poter trascrivere questa chiamata.",
+    "openrouterEmptyError": "OpenRouter non ha restituito una trascrizione utilizzabile. Riprova o scegli un modello locale.",
+    "openrouterFailedError": "La trascrizione OpenRouter non è riuscita ({{status}}). Controlla la connessione e riprova."
   },
   "replay": {
     "open": "Riascolta e correggi",

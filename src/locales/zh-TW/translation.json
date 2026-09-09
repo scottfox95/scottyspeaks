@@ -947,11 +947,7 @@
         "enterprise": {
           "name": "企業版",
           "price": "自訂",
-          "features": [
-            "雲端同步",
-            "團隊功能（即將推出）",
-            "SSO 與合規"
-          ],
+          "features": ["雲端同步", "團隊功能（即將推出）", "SSO 與合規"],
           "cta": "聯絡我們"
         },
         "currentPlan": "目前方案"
@@ -1654,7 +1650,7 @@
     "transcript": "轉錄文字",
     "notesPlaceholder": "你的想法、問題和後續事項…\n\n支援 Markdown。輸入時會自動儲存筆記。",
     "speakerHelp": "選取逐字稿中的說話者名稱，為該聲音命名。",
-    "localSpeakerHelp": "本機錄音會將你的麥克風與通話音訊分開，但不會識別各個遠端說話者。時間標記表示音訊片段，而非個別詞語。",
+    "localSpeakerHelp": "本機轉錄會將麥克風和通話音訊合併到一條時間軸中，以避免重複文字。播放和音訊匯出仍可選擇個別音軌。不會識別各個遠端說話者。",
     "readTranscript": "閱讀轉錄文字",
     "editTranscript": "編輯轉錄文字",
     "editedTranscriptHelp": "此轉錄文字已編輯。原始詞語時間資訊仍保留在來源資料中，但不會套用到改寫後的文字。",
@@ -1700,7 +1696,17 @@
     "speakersTitle": "說話者（{{count}}）",
     "renameHelp": "透過文字片段或試聽辨識聲音。姓名將套用至此逐字稿中該說話者的所有發言。不同音訊部分的說話者保持獨立，請逐一試聽辨識。",
     "listenAt": "從 {{time}} 試聽",
-    "listenSpeaker": "從 {{time}} 試聽{{speaker}}"
+    "listenSpeaker": "從 {{time}} 試聽{{speaker}}",
+    "exportAudio": "匯出音訊…",
+    "audioExported": "音訊已儲存。",
+    "transcribeAgain": "重新轉錄",
+    "retranscribeTitle": "重新轉錄此通話？",
+    "retranscribeDescription": "除非新的轉錄成功，否則會保留目前的轉錄。成功後將取代轉錄和說話者姓名；您的筆記和已儲存音訊不會改變。重試將使用通話筆記設定中目前選擇的供應商和模型。",
+    "replaceTranscript": "取代轉錄",
+    "openrouterAuthError": "OpenRouter 拒絕了 API 金鑰（{{status}}）。請在通話筆記設定中更換金鑰，然後重試。",
+    "openrouterCreditError": "您的 OpenRouter 帳戶需要餘額才能轉錄此通話。",
+    "openrouterEmptyError": "OpenRouter 未傳回可用的轉錄。請重試或選擇本機模型。",
+    "openrouterFailedError": "OpenRouter 轉錄失敗（{{status}}）。請檢查連線後重試。"
   },
   "replay": {
     "open": "重播與修正",

@@ -927,11 +927,7 @@
         "enterprise": {
           "name": "Enterprise",
           "price": "Custom",
-          "features": [
-            "Cloud sync",
-            "Team features (coming soon)",
-            "SSO & compliance"
-          ],
+          "features": ["Cloud sync", "Team features (coming soon)", "SSO & compliance"],
           "cta": "Contact Us"
         },
         "currentPlan": "Current plan"
@@ -1654,7 +1650,7 @@
     "transcript": "Transcript",
     "notesPlaceholder": "Your thoughts, questions, and follow-ups…\n\nMarkdown supported. Notes save as you write.",
     "speakerHelp": "Select a speaker name in the transcript to name that voice.",
-    "localSpeakerHelp": "Local recording separates your microphone from call audio. It does not identify individual remote speakers. Times mark audio parts, not individual words.",
+    "localSpeakerHelp": "Local transcription combines microphone and call audio into one timeline to avoid duplicate text. Playback and audio export still let you choose either track. Individual remote speakers are not identified.",
     "readTranscript": "Read transcript",
     "editTranscript": "Edit transcript",
     "editedTranscriptHelp": "This transcript was edited. Original word timing is retained in the source data but is not applied to your rewritten text.",
@@ -1700,7 +1696,17 @@
     "speakersTitle": "Speakers ({{count}})",
     "renameHelp": "Name a voice using the excerpt or listen to it. A name applies to every occurrence of that speaker in this transcript. Speakers from different audio parts remain separate; identify each by listening.",
     "listenAt": "Listen at {{time}}",
-    "listenSpeaker": "Listen to {{speaker}} at {{time}}"
+    "listenSpeaker": "Listen to {{speaker}} at {{time}}",
+    "exportAudio": "Export audio…",
+    "audioExported": "Audio saved.",
+    "transcribeAgain": "Transcribe again",
+    "retranscribeTitle": "Transcribe this call again?",
+    "retranscribeDescription": "The current transcript is kept unless the new transcription succeeds. A successful retry replaces the transcript and speaker names; your notes and saved audio stay unchanged. The retry uses the provider and model currently selected in Call note settings.",
+    "replaceTranscript": "Replace transcript",
+    "openrouterAuthError": "OpenRouter rejected the API key ({{status}}). Replace it in Call note settings and try again.",
+    "openrouterCreditError": "Your OpenRouter account needs credit before it can transcribe this call.",
+    "openrouterEmptyError": "OpenRouter returned no usable transcript. Try again or choose a local model.",
+    "openrouterFailedError": "OpenRouter transcription failed ({{status}}). Check your connection and try again."
   },
   "replay": {
     "open": "Replay & repair",

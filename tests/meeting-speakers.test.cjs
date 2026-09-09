@@ -70,3 +70,11 @@ test("speaker samples retain exact timing and source identity, with distinct leg
   assert.equal(labels.get("audio"), "Speaker");
   assert.deepEqual(meeting.speakers, {});
 });
+test("a locally mixed track is displayed as call audio while retaining a distinct identity", () => {
+  const meeting = {
+    segments: [{ start: 0, end: 10, text: "Combined conversation", speaker: "combined" }],
+    speakers: { combined: "" },
+  };
+  assert.equal(describeSpeakers(meeting)[0].kind, "system");
+  assert.equal(speakerLabels(meeting).get("combined"), "Call audio");
+});

@@ -6,7 +6,7 @@ const crypto = require("crypto");
 const { MeetingStore, parseTranscript } = require("./meetingStore");
 const { MeetingRecorder } = require("./meetingRecorder");
 const { prepareChunks, transcribeChunk, wavInfo, audioDuration } = require("./meetingTranscriber");
-const TRANSCRIPTION_CACHE_VERSION = 2;
+const TRANSCRIPTION_CACHE_VERSION = 3;
 function isTransientCloudError(error) {
   const status = Number(error?.status);
   return (
@@ -38,11 +38,36 @@ function registerMeetingHandlers({
     : path.join(__dirname, "../../resources/bin", `meeting-recorder-${process.arch}`);
   const recorder = new MeetingRecorder(store, { binary, localSpeech });
   const keyPath = path.join(root, "openrouter-key.enc");
+  let keyLoaded = false;
+  let cachedKey = "";
+  let cachedKeyError = null;
   const jobs = new Map();
   const starting = new Set();
   const reading = new Set();
-  const readKey = () =>
-    fs.existsSync(keyPath) ? safeStorage.decryptString(fs.readFileSync(keyPath)) : "";
+  const readKey = () => {
+    if (keyLoaded) {
+      if (cachedKeyError) throw cachedKeyError;
+      return cachedKey;
+    }
+    keyLoaded = true;
+    try {
+      cachedKey = fs.existsSync(keyPath)
+        ? safeStorage.decryptString(fs.readFileSync(keyPath))
+        : "";
+      return cachedKey;
+    } catch (error) {
+      cachedKeyError =
+        error instanceof Error
+          ? error
+          : new Error(String(error || "Could not decrypt stored OpenRouter key"));
+      throw cachedKeyError;
+    }
+  };
+  const rememberKey = (value) => {
+    cachedKey = value;
+    cachedKeyError = null;
+    keyLoaded = true;
+  };
   const config = () => ({
     ...store.index.config,
     hasKey: fs.existsSync(keyPath),
@@ -57,7 +82,7 @@ function registerMeetingHandlers({
       : parakeetManager.transcribeLocalParakeet(audio, {
           model: settings.localModel || "parakeet-tdt-0.6b-v3",
         });
-  async function transcribe(id) {
+  async function transcribe(id, { force = false } = {}) {
     if (jobs.size) throw new Error("A call is already being transcribed");
     const original = store.get(id);
     if (recorder.status().id === id) throw new Error("Stop recording before transcription");
@@ -74,6 +99,8 @@ function registerMeetingHandlers({
     store.update(id, {
       status: "transcribing",
       lastError: null,
+      lastErrorCode: null,
+      lastErrorStatus: null,
       progress: { completed: 0, total: 0 },
     });
     // Background job keeps capture/navigation responsive; each completed request is checkpointed.
@@ -87,7 +114,7 @@ function registerMeetingHandlers({
           .digest("hex");
         const old = original.transcriptionCache;
         const cache =
-          old?.version === TRANSCRIPTION_CACHE_VERSION && old.signature === signature
+          !force && old?.version === TRANSCRIPTION_CACHE_VERSION && old.signature === signature
             ? old
             : { version: TRANSCRIPTION_CACHE_VERSION, signature, results: {} };
         let chunks = [];
@@ -119,16 +146,28 @@ function registerMeetingHandlers({
             index++;
           }
         } else {
-          let index = 0;
+          const groups = new Map();
           for (const entry of audio) {
+            const key = `${path.dirname(entry.file)}:${entry.offset || 0}`;
+            const group = groups.get(key) || [];
+            group.push(entry);
+            groups.set(key, group);
+          }
+          let index = 0;
+          for (const group of groups.values()) {
+            const source = group.length > 1 ? "combined" : group[0].source;
             const prepared = await prepareChunks(
-              [{ path: path.join(store.directory(id), entry.file), source: entry.source }],
-              path.join(work, String(index))
+              group.map((entry) => ({
+                path: path.join(store.directory(id), entry.file),
+                source: entry.source,
+              })),
+              path.join(work, String(index)),
+              { mix: group.length > 1, source }
             );
             chunks.push(
               ...prepared.map((c) => ({
                 ...c,
-                offset: c.offset + (entry.offset || 0),
+                offset: c.offset + (group[0].offset || 0),
                 key: `${index}:${c.offset}`,
               }))
             );
@@ -203,7 +242,7 @@ function registerMeetingHandlers({
         const speakers = {};
         for (const segment of segments)
           if (segment.speaker && !Object.hasOwn(speakers, segment.speaker))
-            speakers[segment.speaker] = current.speakers[segment.speaker] || "";
+            speakers[segment.speaker] = force ? "" : current.speakers[segment.speaker] || "";
         store.update(id, {
           status: "ready",
           provider: settings.provider,
@@ -211,18 +250,23 @@ function registerMeetingHandlers({
           segments,
           words,
           speakers,
-          transcript: current.transcriptEdited
-            ? current.transcript
-            : segments.map((s) => s.text).join("\n\n"),
-          transcriptEdited: !!current.transcriptEdited,
+          transcript:
+            !force && current.transcriptEdited
+              ? current.transcript
+              : segments.map((s) => s.text).join("\n\n"),
+          transcriptEdited: force ? false : !!current.transcriptEdited,
           needsTranscription: false,
           lastError: null,
+          lastErrorCode: null,
+          lastErrorStatus: null,
           progress: null,
         });
       } catch (error) {
         store.update(id, {
           status: "interrupted",
           lastError: String(error.message || error).slice(0, 600),
+          lastErrorCode: typeof error.code === "string" ? error.code : null,
+          lastErrorStatus: Number.isFinite(error.status) ? error.status : null,
           progress: null,
         });
       } finally {
@@ -274,8 +318,13 @@ function registerMeetingHandlers({
         if (apiKey.trim()) {
           if (!safeStorage.isEncryptionAvailable())
             throw new Error("macOS key encryption is unavailable");
-          fs.writeFileSync(keyPath, safeStorage.encryptString(apiKey.trim()), { mode: 0o600 });
-        } else if (fs.existsSync(keyPath)) fs.unlinkSync(keyPath);
+          const nextKey = apiKey.trim();
+          fs.writeFileSync(keyPath, safeStorage.encryptString(nextKey), { mode: 0o600 });
+          rememberKey(nextKey);
+        } else {
+          if (fs.existsSync(keyPath)) fs.unlinkSync(keyPath);
+          rememberKey("");
+        }
       }
       store.index.config = {
         ...store.index.config,
@@ -370,7 +419,34 @@ function registerMeetingHandlers({
       audioEvidence.revoke(url);
       return null;
     },
-    transcribe: ({ id }) => transcribe(id),
+    exportAudio: async ({ id, source = "all" }) => {
+      if (recorder.status().id === id) throw new Error("Stop recording before exporting audio");
+      const original = store.get(id);
+      const inputs = playbackInputs(original, source);
+      if (reading.has(id)) throw new Error("Audio is already being prepared");
+      reading.add(id);
+      try {
+        const file = await audioEvidence.prepare(store.directory(id), inputs);
+        const title =
+          (original.title || "Call audio")
+            .replace(/[<>:"/\\|?*\x00-\x1f]/g, "-")
+            .replace(/[. ]+$/g, "")
+            .slice(0, 100) || "Call audio";
+        const result = await dialog.showSaveDialog(windowManager.controlPanelWindow, {
+          defaultPath: path.join(app.getPath("downloads"), `${title}.mp3`),
+          filters: [{ name: "MP3 audio", extensions: ["mp3"] }],
+        });
+        if (result.canceled || !result.filePath) return null;
+        await fs.promises.copyFile(file, result.filePath);
+        return { path: result.filePath };
+      } finally {
+        reading.delete(id);
+      }
+    },
+    transcribe: ({ id, force = false }) => {
+      if (typeof force !== "boolean") throw new Error("Invalid transcription request");
+      return transcribe(id, { force });
+    },
     cancelTranscription: ({ id }) => {
       jobs.get(id)?.abort();
     },

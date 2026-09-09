@@ -20,6 +20,8 @@ export interface Meeting {
   audio: { file: string; source: string; offset: number }[];
   exportPath?: string;
   lastError?: string;
+  lastErrorCode?: string | null;
+  lastErrorStatus?: number | null;
   recordedDuration?: number;
   needsTranscription?: boolean;
   progress?: { completed: number; total: number };
@@ -48,6 +50,10 @@ export interface MeetingAPI {
     source?: "all" | "microphone" | "system" | "audio";
   }): Promise<MeetingResult<{ url: string; durationSeconds: number }>>;
   releasePlayback(args: { url: string }): Promise<MeetingResult<null>>;
+  exportAudio(args: {
+    id: string;
+    source?: "all" | "microphone" | "system" | "audio";
+  }): Promise<MeetingResult<{ path: string } | null>>;
   list(args?: unknown): Promise<MeetingResult<Meeting[]>>;
   create(args?: unknown): Promise<MeetingResult<Meeting>>;
   get(args: { id: string }): Promise<MeetingResult<Meeting>>;
@@ -75,6 +81,6 @@ export interface MeetingAPI {
   startCapture(args: { id: string }): Promise<MeetingResult<CaptureStatus>>;
   stopCapture(args: { id: string }): Promise<MeetingResult<Meeting>>;
   captureStatus(args?: unknown): Promise<MeetingResult<CaptureStatus>>;
-  transcribe(args: { id: string }): Promise<MeetingResult<Meeting>>;
+  transcribe(args: { id: string; force?: boolean }): Promise<MeetingResult<Meeting>>;
   cancelTranscription(args: { id: string }): Promise<MeetingResult<void>>;
 }

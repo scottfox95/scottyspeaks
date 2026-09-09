@@ -3,8 +3,10 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
+const crypto = require("node:crypto");
 const { EventEmitter } = require("node:events");
 const { registerMeetingHandlers } = require("../src/helpers/meetingHandlers");
+const { AudioEvidence } = require("../src/helpers/audioEvidence");
 function wav(seconds) {
   const samples = seconds * 16000;
   const b = Buffer.alloc(44 + samples * 2);
@@ -24,9 +26,10 @@ function wav(seconds) {
     b.writeInt16LE(Math.round(Math.sin((i * 2 * Math.PI * 440) / 16000) * 6000), 44 + i * 2);
   return b;
 }
-function setup(t, seconds = 1) {
+function setup(t, seconds = 1, options = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "ss-meeting-integration-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  options.beforeRegister?.(root);
   const app = new EventEmitter();
   app.getPath = () => root;
   const handlers = new Map();
@@ -35,24 +38,31 @@ function setup(t, seconds = 1) {
   const service = registerMeetingHandlers({
     app,
     ipcMain: { handle: (name, handler) => handlers.set(name, handler) },
-    dialog: {},
+    dialog: options.dialog || {},
     shell: {},
-    safeStorage: {
-      isEncryptionAvailable: () => true,
-      encryptString: (value) => Buffer.from(value),
-      decryptString: (value) => value.toString(),
-    },
+    safeStorage:
+      options.safeStorage ||
+      {
+        isEncryptionAvailable: () => true,
+        encryptString: (value) => Buffer.from(value),
+        decryptString: (value) => value.toString(),
+      },
     systemPreferences: {},
     whisperManager: {},
     parakeetManager: {
       transcribeLocalParakeet: async (audio) => {
         localCalls++;
         assert.equal(audio.toString("ascii", 0, 4), "RIFF");
-        return { success: true, text: "Synthetic local words" };
+        options.inspectLocalAudio?.(audio);
+        return {
+          success: true,
+          text: options.localText ? options.localText(localCalls) : "Synthetic local words",
+        };
       },
     },
     databaseManager: { getDictionary: () => ["Aravo"] },
     windowManager: { controlPanelWindow: { webContents: sender } },
+    audioEvidence: new AudioEvidence(),
   });
   const meeting = service.store.create();
   fs.writeFileSync(path.join(service.store.directory(meeting.id), "input.wav"), wav(seconds));
@@ -71,6 +81,78 @@ function setup(t, seconds = 1) {
     },
   };
 }
+
+test("stored OpenRouter key is decrypted only once per app launch", (t) => {
+  let decryptCalls = 0;
+  const a = setup(t, 1, {
+    beforeRegister: (root) => {
+      const notesRoot = path.join(root, "call-notes");
+      fs.mkdirSync(notesRoot, { recursive: true });
+      fs.writeFileSync(path.join(notesRoot, "openrouter-key.enc"), Buffer.from("stored-key"));
+    },
+    safeStorage: {
+      isEncryptionAvailable: () => true,
+      encryptString: (value) => Buffer.from(value),
+      decryptString: (value) => {
+        decryptCalls++;
+        return value.toString();
+      },
+    },
+  });
+
+  assert.equal(a.service.readCloudKey(), "stored-key");
+  assert.equal(a.service.readCloudKey(), "stored-key");
+  assert.equal(decryptCalls, 1);
+});
+
+test("failed OpenRouter key decryption is attempted only once per app launch", (t) => {
+  let decryptCalls = 0;
+  const a = setup(t, 1, {
+    beforeRegister: (root) => {
+      const notesRoot = path.join(root, "call-notes");
+      fs.mkdirSync(notesRoot, { recursive: true });
+      fs.writeFileSync(path.join(notesRoot, "openrouter-key.enc"), Buffer.from("stored-key"));
+    },
+    safeStorage: {
+      isEncryptionAvailable: () => true,
+      encryptString: (value) => Buffer.from(value),
+      decryptString: () => {
+        decryptCalls++;
+        throw new Error("Keychain access denied");
+      },
+    },
+  });
+
+  assert.throws(() => a.service.readCloudKey(), /Keychain access denied/);
+  assert.throws(() => a.service.readCloudKey(), /Keychain access denied/);
+  assert.equal(decryptCalls, 1);
+});
+
+test("replacing or removing an OpenRouter key updates the in-memory key", async (t) => {
+  let decryptCalls = 0;
+  const a = setup(t, 1, {
+    beforeRegister: (root) => {
+      const notesRoot = path.join(root, "call-notes");
+      fs.mkdirSync(notesRoot, { recursive: true });
+      fs.writeFileSync(path.join(notesRoot, "openrouter-key.enc"), Buffer.from("stored-key"));
+    },
+    safeStorage: {
+      isEncryptionAvailable: () => true,
+      encryptString: (value) => Buffer.from(value),
+      decryptString: (value) => {
+        decryptCalls++;
+        return value.toString();
+      },
+    },
+  });
+
+  assert.equal(a.service.readCloudKey(), "stored-key");
+  await a.invoke("setConfig", { apiKey: "replacement-key" });
+  assert.equal(a.service.readCloudKey(), "replacement-key");
+  await a.invoke("setConfig", { apiKey: "" });
+  assert.equal(a.service.readCloudKey(), "");
+  assert.equal(decryptCalls, 1);
+});
 async function finished(store, id) {
   for (let i = 0; i < 400; i++) {
     const item = store.get(id);
@@ -91,6 +173,105 @@ test("local meeting job prepares audio, persists transcript, and never contacts 
   assert.equal(result.status, "ready", result.lastError);
   assert.equal(result.transcript, "Synthetic local words");
   assert.equal(a.localCalls(), 1);
+});
+test("local meeting job mixes synchronized microphone and call audio into one transcript", async (t) => {
+  let mixedPeak = 0;
+  const a = setup(t, 1, {
+    inspectLocalAudio: (audio) => {
+      const data = audio.indexOf("data", 12, "ascii");
+      const start = data + 8;
+      for (let index = start; data >= 0 && index + 1 < audio.length; index += 2)
+        mixedPeak = Math.max(mixedPeak, Math.abs(audio.readInt16LE(index)));
+    },
+  });
+  const directory = a.service.store.directory(a.meeting.id);
+  fs.mkdirSync(path.join(directory, "take-one"));
+  fs.writeFileSync(path.join(directory, "take-one/microphone.wav"), wav(1));
+  fs.writeFileSync(path.join(directory, "take-one/system.wav"), wav(1));
+  a.service.store.update(a.meeting.id, {
+    audio: [
+      { file: "take-one/microphone.wav", source: "microphone", offset: 0 },
+      { file: "take-one/system.wav", source: "system", offset: 0 },
+    ],
+  });
+  await a.invoke("transcribe", { id: a.meeting.id });
+  const result = await finished(a.service.store, a.meeting.id);
+  assert.equal(result.status, "ready", result.lastError);
+  assert.equal(a.localCalls(), 1);
+  assert.equal(result.transcript, "Synthetic local words");
+  assert.deepEqual(
+    result.segments.map((segment) => segment.speaker),
+    ["combined"]
+  );
+  assert.ok(mixedPeak >= 5900 && mixedPeak <= 6100, `mixed peak ${mixedPeak}`);
+});
+test("forced retranscription bypasses cached results and replaces the generated transcript", async (t) => {
+  const a = setup(t, 1, { localText: (call) => `Local result ${call}` });
+  await a.invoke("transcribe", { id: a.meeting.id });
+  assert.equal((await finished(a.service.store, a.meeting.id)).transcript, "Local result 1");
+  await a.invoke("transcribe", { id: a.meeting.id, force: true });
+  const result = await finished(a.service.store, a.meeting.id);
+  assert.equal(a.localCalls(), 2);
+  assert.equal(result.transcript, "Local result 2");
+});
+test("confirmed retranscription replaces a manually edited transcript only after success", async (t) => {
+  const a = setup(t, 1, { localText: () => "Fresh machine transcript" });
+  a.service.store.save(a.meeting.id, { transcript: "Human edited transcript" }, 2);
+  await a.invoke("transcribe", { id: a.meeting.id, force: true });
+  const result = await finished(a.service.store, a.meeting.id);
+  assert.equal(result.transcript, "Fresh machine transcript");
+  assert.equal(result.transcriptEdited, false);
+});
+test("confirmed retranscription clears speaker names from the superseded transcript", async (t) => {
+  const a = setup(t);
+  await a.invoke("transcribe", { id: a.meeting.id });
+  const first = await finished(a.service.store, a.meeting.id);
+  a.service.store.save(a.meeting.id, { speakers: { system: "Old speaker name" } }, first.revision);
+  await a.invoke("transcribe", { id: a.meeting.id, force: true });
+  const result = await finished(a.service.store, a.meeting.id);
+  assert.deepEqual(result.speakers, { system: "" });
+});
+test("local transcription invalidates version 2 caches from the separate-track layout", async (t) => {
+  const a = setup(t, 1, { localText: (call) => `Local layout ${call}` });
+  await a.invoke("transcribe", { id: a.meeting.id });
+  const first = await finished(a.service.store, a.meeting.id);
+  a.service.store.update(a.meeting.id, {
+    status: "recorded",
+    transcript: "",
+    segments: [],
+    needsTranscription: true,
+    transcriptionCache: {
+      ...first.transcriptionCache,
+      version: 2,
+      results: {
+        "0:0": {
+          text: "Stale microphone-only words",
+          segments: [
+            { text: "Stale microphone-only words", start: 0, end: 1, speaker: "microphone" },
+          ],
+          words: [],
+        },
+      },
+    },
+  });
+  await a.invoke("transcribe", { id: a.meeting.id });
+  const result = await finished(a.service.store, a.meeting.id);
+  assert.equal(a.localCalls(), 2);
+  assert.equal(result.transcript, "Local layout 2");
+  assert.equal(result.transcriptionCache.version, 3);
+});
+test("audio export saves the selected retained track as a shareable MP3", async (t) => {
+  const destination = path.join(os.tmpdir(), `ss-export-${crypto.randomUUID()}.mp3`);
+  t.after(() => fs.rmSync(destination, { force: true }));
+  const a = setup(t, 1, {
+    dialog: {
+      showSaveDialog: async () => ({ canceled: false, filePath: destination }),
+    },
+  });
+  const result = await a.invoke("exportAudio", { id: a.meeting.id, source: "system" });
+  assert.equal(result.path, destination);
+  assert.ok(fs.statSync(destination).size > 100);
+  assert.equal(fs.readFileSync(destination).toString("ascii", 0, 3), "ID3");
 });
 test("cloud meeting job preserves structured speakers and keeps credentials out of readable state", async (t) => {
   const a = setup(t);
@@ -119,6 +300,70 @@ test("cloud meeting job preserves structured speakers and keeps credentials out 
   assert.equal(requests, 1);
   assert.equal(result.words[0].speaker, result.segments[0].speaker);
   assert.equal(JSON.stringify(result).includes("synthetic-key"), false);
+});
+for (const [status, message] of [
+  [401, /OpenRouter rejected the API key/i],
+  [402, /OpenRouter account needs credit/i],
+]) {
+  test(`cloud HTTP ${status} explains the account problem`, async (t) => {
+    const a = setup(t);
+    const original = global.fetch;
+    global.fetch = async () => ({ ok: false, status });
+    t.after(() => (global.fetch = original));
+    await a.invoke("setConfig", { provider: "openrouter", apiKey: "synthetic-key" });
+    await a.invoke("transcribe", { id: a.meeting.id });
+    const result = await finished(a.service.store, a.meeting.id);
+    assert.equal(result.status, "interrupted");
+    assert.match(result.lastError, message);
+    assert.equal(result.lastErrorCode, status === 401 ? "openrouterAuth" : "openrouterCredit");
+  });
+}
+test("an empty OpenRouter response explains that no usable transcript was returned", async (t) => {
+  const a = setup(t);
+  const original = global.fetch;
+  global.fetch = async () => ({ ok: true, json: async () => ({}) });
+  t.after(() => (global.fetch = original));
+  await a.invoke("setConfig", { provider: "openrouter", apiKey: "synthetic-key" });
+  await a.invoke("transcribe", { id: a.meeting.id });
+  const result = await finished(a.service.store, a.meeting.id);
+  assert.equal(result.status, "interrupted");
+  assert.match(result.lastError, /OpenRouter returned no usable transcript/i);
+  assert.equal(result.lastErrorCode, "openrouterEmpty");
+});
+test("a segments-only OpenRouter response reconstructs a usable transcript", async (t) => {
+  const a = setup(t);
+  const original = global.fetch;
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ({
+      segments: [{ start: 0, end: 0.8, text: "Transcript from segments", speaker: 0 }],
+    }),
+  });
+  t.after(() => (global.fetch = original));
+  await a.invoke("setConfig", { provider: "openrouter", apiKey: "synthetic-key" });
+  await a.invoke("transcribe", { id: a.meeting.id });
+  const result = await finished(a.service.store, a.meeting.id);
+  assert.equal(result.status, "ready", result.lastError);
+  assert.equal(result.transcript, "Transcript from segments");
+});
+test("a whitespace-only cloud retry fails without replacing the prior transcript", async (t) => {
+  const a = setup(t);
+  a.service.store.update(a.meeting.id, {
+    transcript: "Existing transcript",
+    segments: [{ text: "Existing transcript", start: 0, end: 1, speaker: "system" }],
+    speakers: { system: "Existing speaker" },
+    status: "ready",
+  });
+  const original = global.fetch;
+  global.fetch = async () => ({ ok: true, json: async () => ({ text: "   ", segments: [] }) });
+  t.after(() => (global.fetch = original));
+  await a.invoke("setConfig", { provider: "openrouter", apiKey: "synthetic-key" });
+  await a.invoke("transcribe", { id: a.meeting.id, force: true });
+  const result = await finished(a.service.store, a.meeting.id);
+  assert.equal(result.status, "interrupted");
+  assert.equal(result.transcript, "Existing transcript");
+  assert.deepEqual(result.speakers, { system: "Existing speaker" });
+  assert.equal(result.lastErrorCode, "openrouterEmpty");
 });
 test("retranscription discards legacy split cache and stale speaker identities", async (t) => {
   const a = setup(t);
@@ -153,7 +398,7 @@ test("retranscription discards legacy split cache and stale speaker identities",
   assert.equal(requests, 2);
   assert.equal(result.transcript, "Fresh words");
   assert.deepEqual(result.speakers, { "part-0-0:0": "" });
-  assert.equal(result.transcriptionCache.version, 2);
+  assert.equal(result.transcriptionCache.version, 3);
 });
 test("long cloud timeout retries the whole recording without inventing chunk speakers", async (t) => {
   const a = setup(t, 121);

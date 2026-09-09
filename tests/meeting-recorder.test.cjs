@@ -40,11 +40,18 @@ test("capture is exclusive and stop persists finalized audio", async (t) => {
 test("native failure rejects startup and preserves recoverable session", async (t) => {
   const { store, child, recorder } = setup(t);
   const a = store.create();
+  store.update(a.id, {
+    lastError: "Old provider failure",
+    lastErrorCode: "openrouterAuth",
+    lastErrorStatus: 401,
+  });
   const starting = recorder.start(a.id);
   child.stdout.write('{"event":"error","message":"Screen recording permission denied"}\n');
   child.emit("close", 1);
   await assert.rejects(starting, /permission denied/);
   assert.equal(store.get(a.id).status, "interrupted");
+  assert.equal(store.get(a.id).lastErrorCode, null);
+  assert.equal(store.get(a.id).lastErrorStatus, null);
   assert.equal(recorder.status().id, null);
 });
 

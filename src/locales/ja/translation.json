@@ -927,11 +927,7 @@
         "enterprise": {
           "name": "Enterprise",
           "price": "カスタム",
-          "features": [
-            "クラウド同期",
-            "チーム機能（近日公開）",
-            "SSO & コンプライアンス"
-          ],
+          "features": ["クラウド同期", "チーム機能（近日公開）", "SSO & コンプライアンス"],
           "cta": "お問い合わせ"
         },
         "currentPlan": "現在のプラン"
@@ -1654,7 +1650,7 @@
     "transcript": "文字起こし",
     "notesPlaceholder": "考え、質問、フォローアップ…\n\nMarkdownに対応しています。入力中にメモが保存されます。",
     "speakerHelp": "文字起こし内の話者名を選択して、その声に名前を付けてください。",
-    "localSpeakerHelp": "ローカル録音では、マイク音声と通話音声を分離します。個々のリモート話者は識別しません。時刻は音声パートを示し、個々の単語の位置ではありません。",
+    "localSpeakerHelp": "ローカル文字起こしでは、重複を防ぐためマイク音声と通話音声を1つの時間軸にまとめます。再生と音声の書き出しでは、引き続き各トラックを選択できます。個々のリモート話者は識別しません。",
     "readTranscript": "文字起こしを読む",
     "editTranscript": "文字起こしを編集",
     "editedTranscriptHelp": "この文字起こしは編集されています。元の単語のタイミングはソースデータに保持されますが、書き換えたテキストには適用されません。",
@@ -1700,7 +1696,17 @@
     "speakersTitle": "話者（{{count}}）",
     "renameHelp": "抜粋を読むか音声を聞いて話者を確認してください。名前はこの文字起こし内の同じ話者のすべての発言に適用されます。音声の異なる部分の話者は別々に扱われるため、それぞれ聞いて確認してください。",
     "listenAt": "{{time}} から聞く",
-    "listenSpeaker": "{{time}} から{{speaker}}の声を聞く"
+    "listenSpeaker": "{{time}} から{{speaker}}の声を聞く",
+    "exportAudio": "音声を書き出す…",
+    "audioExported": "音声を保存しました。",
+    "transcribeAgain": "もう一度文字起こし",
+    "retranscribeTitle": "この通話をもう一度文字起こししますか？",
+    "retranscribeDescription": "新しい文字起こしが成功するまでは、現在の文字起こしが保持されます。成功すると文字起こしと話者名が置き換わりますが、メモと保存済み音声は変更されません。通話メモ設定で現在選択されているプロバイダーとモデルを使用します。",
+    "replaceTranscript": "文字起こしを置き換える",
+    "openrouterAuthError": "OpenRouter が API キーを拒否しました（{{status}}）。通話メモ設定でキーを置き換えて、もう一度お試しください。",
+    "openrouterCreditError": "この通話を文字起こしするには、OpenRouter アカウントにクレジットが必要です。",
+    "openrouterEmptyError": "OpenRouter から使用できる文字起こしが返されませんでした。もう一度試すか、ローカルモデルを選択してください。",
+    "openrouterFailedError": "OpenRouter の文字起こしに失敗しました（{{status}}）。接続を確認して、もう一度お試しください。"
   },
   "replay": {
     "open": "再生と修正",
