@@ -30,6 +30,7 @@ function registerMeetingHandlers({
   windowManager,
   audioEvidence,
   localSpeech,
+  cloudFetch,
 }) {
   const root = path.join(app.getPath("userData"), "call-notes");
   const store = new MeetingStore(root);
@@ -90,6 +91,8 @@ function registerMeetingHandlers({
     const apiKey = settings.provider === "openrouter" ? readKey() : "";
     if (settings.provider === "openrouter" && !apiKey)
       throw new Error("Add your OpenRouter API key first");
+    if (settings.provider === "openrouter" && typeof cloudFetch !== "function")
+      throw new Error("Electron desktop network transport is unavailable");
     const audio = (original.audio || []).filter((a) =>
       fs.existsSync(path.join(store.directory(id), a.file))
     );
@@ -202,6 +205,7 @@ function registerMeetingHandlers({
                       duration: info.duration,
                       keywords,
                       signal: controller.signal,
+                      fetchImpl: cloudFetch,
                       localTranscribe: (audio) => {
                         store.update(id, { status: "queued" });
                         return inferenceScheduler.run(

@@ -63,6 +63,9 @@ function setup(t, seconds = 1, options = {}) {
     databaseManager: { getDictionary: () => ["Aravo"] },
     windowManager: { controlPanelWindow: { webContents: sender } },
     audioEvidence: new AudioEvidence(),
+    cloudFetch: Object.hasOwn(options, "cloudFetch")
+      ? options.cloudFetch
+      : (...args) => global.fetch(...args),
   });
   const meeting = service.store.create();
   fs.writeFileSync(path.join(service.store.directory(meeting.id), "input.wav"), wav(seconds));
@@ -300,6 +303,50 @@ test("cloud meeting job preserves structured speakers and keeps credentials out 
   assert.equal(requests, 1);
   assert.equal(result.words[0].speaker, result.segments[0].speaker);
   assert.equal(JSON.stringify(result).includes("synthetic-key"), false);
+});
+test("cloud meeting transcription uses the injected desktop network transport", async (t) => {
+  const original = global.fetch;
+  global.fetch = () => {
+    throw Error("Node fetch must not be used");
+  };
+  t.after(() => (global.fetch = original));
+  let requests = 0;
+  const a = setup(t, 1, {
+    cloudFetch: async (url, options) => {
+      requests++;
+      assert.equal(url, "https://openrouter.ai/api/v1/audio/transcriptions");
+      assert.equal(options.headers.Authorization, "Bearer synthetic-key");
+      return {
+        ok: true,
+        json: async () => ({
+          text: "Proxy-aware cloud words",
+          segments: [{ start: 0, end: 0.8, text: "Proxy-aware cloud words", speaker: 0 }],
+          words: [],
+        }),
+      };
+    },
+  });
+  await a.invoke("setConfig", { provider: "openrouter", apiKey: "synthetic-key" });
+  await a.invoke("transcribe", { id: a.meeting.id });
+  const result = await finished(a.service.store, a.meeting.id);
+  assert.equal(result.status, "ready", result.lastError);
+  assert.equal(result.transcript, "Proxy-aware cloud words");
+  assert.equal(requests, 1);
+});
+test("cloud meeting transcription fails closed when desktop networking is unavailable", async (t) => {
+  const original = global.fetch;
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ({ text: "Unsafe fallback", segments: [], words: [] }),
+  });
+  t.after(() => (global.fetch = original));
+  const a = setup(t, 1, { cloudFetch: null });
+  await a.invoke("setConfig", { provider: "openrouter", apiKey: "synthetic-key" });
+  await assert.rejects(
+    a.invoke("transcribe", { id: a.meeting.id }),
+    /desktop network transport is unavailable/i
+  );
+  assert.equal(a.service.store.get(a.meeting.id).status, "draft");
 });
 for (const [status, message] of [
   [401, /OpenRouter rejected the API key/i],

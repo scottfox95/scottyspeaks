@@ -1,4 +1,14 @@
-const { app, globalShortcut, BrowserWindow, dialog, ipcMain, session, systemPreferences, protocol } = require("electron");
+const {
+  app,
+  globalShortcut,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  net,
+  session,
+  systemPreferences,
+  protocol,
+} = require("electron");
 const path = require("path");
 protocol.registerSchemesAsPrivileged([{ scheme: "ss2-audio", privileges: { standard: true, secure: true, stream: true, supportFetchAPI: true } }]);
 require("dotenv").config({ path: path.join(__dirname, ".env") });
@@ -121,17 +131,24 @@ function initializeCoreManagers() {
 
   const audioEvidence = new (require("./src/helpers/audioEvidence").AudioEvidence)();
   protocol.handle("ss2-audio", (request) => audioEvidence.handle(request));
-  const meetings = require("./src/helpers/meetingHandlers").registerMeetingHandlers({
-    app, ipcMain, dialog, shell: require("electron").shell,
-    safeStorage: require("electron").safeStorage, systemPreferences,
-    whisperManager, parakeetManager, databaseManager, windowManager, audioEvidence, localSpeech,
-  });
+  const { meetings, captures } = require("./src/helpers/transcriptionHandlers")
+    .registerTranscriptionHandlers({
+      net,
+      app,
+      ipcMain,
+      dialog,
+      shell: require("electron").shell,
+      safeStorage: require("electron").safeStorage,
+      systemPreferences,
+      whisperManager,
+      parakeetManager,
+      databaseManager,
+      windowManager,
+      audioEvidence,
+      localSpeech,
+    });
   require("./src/helpers/callAgentHandlers").registerCallAgentHandlers({
     app, ipcMain, windowManager, meetingStore: meetings.store, localSpeech,
-  });
-  const captures = require("./src/helpers/captureHandlers").registerCaptureHandlers({
-    app, ipcMain, windowManager, audioEvidence, whisperManager, parakeetManager,
-    readCloudKey: meetings.readCloudKey,
   });
   databaseManager.captureStore = captures.store;
 

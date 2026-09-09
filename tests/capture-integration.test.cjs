@@ -24,6 +24,7 @@ function harness(t, managers = {}) {
       mainWindow: { webContents: overlay },
     },
     audioEvidence: media,
+    cloudFetch: (...args) => global.fetch(...args),
     ...managers,
   });
   t.after(() => {
@@ -284,6 +285,82 @@ test("synthetic local preview keeps original evidence and cancellation removes q
     fs.readdirSync(h.store.directory(data.id)).filter((name) => name.startsWith("retry-")),
     []
   );
+});
+test("cloud transcription retry uses the injected desktop network transport", async (t) => {
+  const { execFileSync } = require("node:child_process");
+  const original = global.fetch;
+  global.fetch = () => {
+    throw Error("Node fetch must not be used");
+  };
+  t.after(() => (global.fetch = original));
+  let requests = 0;
+  const h = harness(t, {
+    readCloudKey: () => "synthetic-key",
+    cloudFetch: async (url, options) => {
+      requests++;
+      assert.equal(url, "https://openrouter.ai/api/v1/audio/transcriptions");
+      assert.equal(options.headers.Authorization, "Bearer synthetic-key");
+      return {
+        ok: true,
+        json: async () => ({ text: "Proxy-aware retry", segments: [], words: [] }),
+      };
+    },
+  });
+  const wav = execFileSync(require("ffmpeg-static"), [
+    "-hide_banner",
+    "-loglevel",
+    "error",
+    "-f",
+    "lavfi",
+    "-i",
+    "sine=frequency=440:duration=0.2",
+    "-f",
+    "wav",
+    "pipe:1",
+  ]);
+  const { data } = await h.call("create", { ...creation(), audio: wav, mimeType: "audio/wav" });
+  await h.call("complete", { id: data.id, rawText: "original", finalText: "original" });
+  const retry = await h.call("retry", {
+    id: data.id,
+    provider: "openrouter",
+    model: "microsoft/mai-transcribe-2",
+    allowCloud: true,
+  });
+  assert.equal(retry.success, true, retry.error);
+  assert.equal(retry.data.rawText, "Proxy-aware retry");
+  assert.equal(requests, 1);
+});
+test("cloud transcription retry fails closed when desktop networking is unavailable", async (t) => {
+  const { execFileSync } = require("node:child_process");
+  const original = global.fetch;
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ({ text: "Unsafe fallback", segments: [], words: [] }),
+  });
+  t.after(() => (global.fetch = original));
+  const h = harness(t, { readCloudKey: () => "synthetic-key", cloudFetch: null });
+  const wav = execFileSync(require("ffmpeg-static"), [
+    "-hide_banner",
+    "-loglevel",
+    "error",
+    "-f",
+    "lavfi",
+    "-i",
+    "sine=frequency=440:duration=0.2",
+    "-f",
+    "wav",
+    "pipe:1",
+  ]);
+  const { data } = await h.call("create", { ...creation(), audio: wav, mimeType: "audio/wav" });
+  await h.call("complete", { id: data.id, rawText: "original", finalText: "original" });
+  const retry = await h.call("retry", {
+    id: data.id,
+    provider: "openrouter",
+    model: "microsoft/mai-transcribe-2",
+    allowCloud: true,
+  });
+  assert.equal(retry.success, false);
+  assert.match(retry.error, /desktop network transport is unavailable/i);
 });
 function deliveryCallback(audio, api, extras = {}) {
   const vm = require("node:vm");

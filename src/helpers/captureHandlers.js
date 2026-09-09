@@ -14,6 +14,7 @@ function registerCaptureHandlers({
   whisperManager,
   parakeetManager,
   readCloudKey = () => "",
+  cloudFetch,
 }) {
   const store = new CaptureStore(path.join(app.getPath("userData"), "dictation-captures"));
   store.prune();
@@ -119,6 +120,8 @@ function registerCaptureHandlers({
       const apiKey = provider === "openrouter" ? readCloudKey() : "";
       if (provider === "openrouter" && !apiKey)
         throw new Error("Add an OpenRouter API key in Call notes settings");
+      if (provider === "openrouter" && typeof cloudFetch !== "function")
+        throw new Error("Electron desktop network transport is unavailable");
       const controller = new AbortController();
       controller.stage = "preparing";
       jobs.set(id, controller);
@@ -141,6 +144,7 @@ function registerCaptureHandlers({
             duration,
             audioFormat: chunk.format,
             signal: controller.signal,
+            fetchImpl: cloudFetch,
             localTranscribe: (buffer) => {
               controller.stage = "queued";
               return inferenceScheduler.run(() => {
