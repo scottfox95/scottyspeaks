@@ -67,6 +67,26 @@ test("cloud request uses structured speech endpoint, diarization, and secret onl
   assert.equal(JSON.stringify(body).includes("test-key"), false);
   assert.equal(r.segments[0].text, "Hi");
 });
+test("cloud request caps Azure phrase hints at the provider limit without changing their order", async () => {
+  let body;
+  const keywords = Array.from({ length: 58 }, (_, index) => `dictionary-${index + 1}`);
+  await transcribeChunk({
+    provider: "openrouter",
+    audio: Buffer.from("audio"),
+    apiKey: "test-key",
+    keywords,
+    fetchImpl: async (_url, options) => {
+      body = JSON.parse(options.body);
+      return {
+        ok: true,
+        json: async () => ({ text: "Hi", segments: [] }),
+      };
+    },
+  });
+  assert.equal(body.provider.options.azure.phraseList.phrases.length, 50);
+  assert.equal(body.provider.options.azure.phraseList.phrases[0], "dictionary-1");
+  assert.equal(body.provider.options.azure.phraseList.phrases[49], "dictionary-50");
+});
 test("long recordings receive a duration-aware cloud request deadline", async (t) => {
   const originalTimeout = AbortSignal.timeout;
   const deadlines = [];
@@ -87,18 +107,53 @@ test("long recordings receive a duration-aware cloud request deadline", async (t
   });
   assert.deepEqual(deadlines, [222_000]);
 });
-test("cloud HTTP errors omit provider response bodies and credentials", async () => {
+test("cloud HTTP errors retain a sanitized provider message without credentials", async () => {
   await assert.rejects(
     transcribeChunk({
       provider: "openrouter",
       audio: Buffer.from("a"),
       apiKey: "secret",
-      fetchImpl: async () => ({ ok: false, status: 401, text: async () => "secret" }),
+      fetchImpl: async () => ({
+        ok: false,
+        status: 400,
+        text: async () =>
+          JSON.stringify({
+            error: { message: "Invalid phraseList: maximum 50 phrases; token secret" },
+            ignored: "provider-internal-data",
+          }),
+      }),
     }),
     (error) => {
-      assert.match(error.message, /401/);
-      assert.equal(error.status, 401);
+      assert.match(error.message, /400/);
+      assert.match(error.message, /Invalid phraseList: maximum 50 phrases/);
+      assert.equal(error.status, 400);
+      assert.equal(error.providerDetail, "Invalid phraseList: maximum 50 phrases; token [redacted]");
       assert.equal(error.message.includes("secret"), false);
+      assert.equal(error.message.includes("provider-internal-data"), false);
+      return true;
+    }
+  );
+});
+test("cloud diagnostics redact newline-wrapped encoded audio", async () => {
+  const encoded = Buffer.alloc(180, 7).toString("base64");
+  const wrapped = encoded.match(/.{1,76}/g).join("\n");
+  await assert.rejects(
+    transcribeChunk({
+      provider: "openrouter",
+      audio: Buffer.from("a"),
+      apiKey: "test-key",
+      fetchImpl: async () => ({
+        ok: false,
+        status: 400,
+        text: async () =>
+          JSON.stringify({ error: { message: `Invalid audio data:audio/mp3;base64,${wrapped}` } }),
+      }),
+    }),
+    (error) => {
+      assert.match(error.providerDetail, /Invalid audio/);
+      assert.match(error.providerDetail, /\[audio redacted\]/);
+      assert.equal(error.providerDetail.includes(encoded.slice(0, 40)), false);
+      assert.equal(error.providerDetail.includes("base64"), false);
       return true;
     }
   );

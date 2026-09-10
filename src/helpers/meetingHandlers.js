@@ -104,6 +104,7 @@ function registerMeetingHandlers({
       lastError: null,
       lastErrorCode: null,
       lastErrorStatus: null,
+      lastErrorDetail: null,
       progress: { completed: 0, total: 0 },
     });
     // Background job keeps capture/navigation responsive; each completed request is checkpointed.
@@ -263,6 +264,7 @@ function registerMeetingHandlers({
           lastError: null,
           lastErrorCode: null,
           lastErrorStatus: null,
+          lastErrorDetail: null,
           progress: null,
         });
       } catch (error) {
@@ -271,6 +273,8 @@ function registerMeetingHandlers({
           lastError: String(error.message || error).slice(0, 600),
           lastErrorCode: typeof error.code === "string" ? error.code : null,
           lastErrorStatus: Number.isFinite(error.status) ? error.status : null,
+          lastErrorDetail:
+            typeof error.providerDetail === "string" ? error.providerDetail.slice(0, 240) : null,
           progress: null,
         });
       } finally {

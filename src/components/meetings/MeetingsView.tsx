@@ -285,10 +285,7 @@ export default function MeetingsView() {
     () => speakerLabels({ segments: meeting?.segments }, t),
     [meeting?.segments, t]
   );
-  const labels = useMemo(
-    () => speakerLabels(meeting || {}, t),
-    [meeting, t]
-  );
+  const labels = useMemo(() => speakerLabels(meeting || {}, t), [meeting, t]);
   const transcriptText =
     meeting?.transcriptEdited || !meeting?.segments.length
       ? meeting?.transcript || ""
@@ -303,7 +300,7 @@ export default function MeetingsView() {
         : meeting?.lastErrorCode === "openrouterEmpty"
           ? t("meetings.openrouterEmptyError")
           : meeting?.lastErrorCode === "openrouterFailed"
-            ? t("meetings.openrouterFailedError", { status: meeting.lastErrorStatus })
+            ? `${t("meetings.openrouterFailedError", { status: meeting.lastErrorStatus })}${meeting.lastErrorDetail ? ` ${meeting.lastErrorDetail}` : ""}`
             : meeting?.lastError;
 
   return (

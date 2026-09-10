@@ -365,6 +365,23 @@ for (const [status, message] of [
     assert.equal(result.lastErrorCode, status === 401 ? "openrouterAuth" : "openrouterCredit");
   });
 }
+test("cloud provider diagnostics are retained in sanitized meeting state", async (t) => {
+  const a = setup(t);
+  const original = global.fetch;
+  global.fetch = async () => ({
+    ok: false,
+    status: 400,
+    text: async () =>
+      JSON.stringify({ error: { message: "Invalid phraseList: maximum 50 phrases" } }),
+  });
+  t.after(() => (global.fetch = original));
+  await a.invoke("setConfig", { provider: "openrouter", apiKey: "synthetic-key" });
+  await a.invoke("transcribe", { id: a.meeting.id });
+  const result = await finished(a.service.store, a.meeting.id);
+  assert.equal(result.status, "interrupted");
+  assert.equal(result.lastErrorDetail, "Invalid phraseList: maximum 50 phrases");
+  assert.equal(JSON.stringify(result).includes("synthetic-key"), false);
+});
 test("an empty OpenRouter response explains that no usable transcript was returned", async (t) => {
   const a = setup(t);
   const original = global.fetch;

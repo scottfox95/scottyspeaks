@@ -4,11 +4,45 @@ const { execFile } = require("child_process");
 const { promisify } = require("util");
 const run = promisify(execFile);
 const CHUNK_SECONDS = 120;
-function transcriptionError(message, code, status) {
+function transcriptionError(message, code, status, providerDetail) {
   const error = new Error(message);
   error.code = code;
   if (Number.isFinite(status)) error.status = status;
+  if (providerDetail) error.providerDetail = providerDetail;
   return error;
+}
+async function readProviderDetail(response, apiKey) {
+  if (typeof response?.text !== "function") return "";
+  let raw;
+  try {
+    raw = await response.text();
+  } catch {
+    return "";
+  }
+  if (typeof raw !== "string" || !raw.trim()) return "";
+  let detail = raw;
+  try {
+    const parsed = JSON.parse(raw);
+    detail =
+      parsed?.error?.message ??
+      parsed?.message ??
+      (typeof parsed?.error === "string" ? parsed.error : "");
+  } catch {}
+  if (typeof detail !== "string") return "";
+  if (apiKey) detail = detail.split(apiKey).join("[redacted]");
+  return detail
+    .replace(/Bearer\s+\S+/gi, "Bearer [redacted]")
+    .replace(/\b(?:sk-or-v1-|sk-)[A-Za-z0-9_-]{12,}\b/g, "[redacted]")
+    .replace(
+      /data:audio\/[a-z0-9.+-]+;base64,(?:[A-Za-z0-9+/=]{20,}[ \t\r\n]*){2,}[A-Za-z0-9+/=]{0,19}/gi,
+      "[audio redacted]"
+    )
+    .replace(/(?:[A-Za-z0-9+/=]{20,}[ \t\r\n]+){2,}[A-Za-z0-9+/=]{20,}/g, "[redacted]")
+    .replace(/[A-Za-z0-9+/=_-]{80,}/g, "[redacted]")
+    .replace(/[\u0000-\u001f\u007f]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 240);
 }
 function normalizeTranscript(data, offset = 0, chunkId = "chunk", duration = CHUNK_SECONDS) {
   if (!data || typeof data.text !== "string")
@@ -87,7 +121,7 @@ async function transcribeChunk({
         options: {
           azure: {
             diarization: { enabled: true },
-            ...(keywords.length ? { phraseList: { phrases: keywords.slice(0, 100) } } : {}),
+            ...(keywords.length ? { phraseList: { phrases: keywords.slice(0, 50) } } : {}),
           },
         },
       },
@@ -106,10 +140,12 @@ async function transcribeChunk({
         "openrouterCredit",
         response.status
       );
+    const providerDetail = await readProviderDetail(response, apiKey);
     throw transcriptionError(
-      `OpenRouter transcription failed (${response.status}).`,
+      `OpenRouter transcription failed (${response.status}).${providerDetail ? ` ${providerDetail}` : ""}`,
       "openrouterFailed",
-      response.status
+      response.status,
+      providerDetail
     );
   }
   let data;

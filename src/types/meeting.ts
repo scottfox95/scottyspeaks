@@ -22,6 +22,7 @@ export interface Meeting {
   lastError?: string;
   lastErrorCode?: string | null;
   lastErrorStatus?: number | null;
+  lastErrorDetail?: string | null;
   recordedDuration?: number;
   needsTranscription?: boolean;
   progress?: { completed: number; total: number };

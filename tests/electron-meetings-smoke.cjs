@@ -270,9 +270,20 @@ app.whenReady().then(async () => {
     );
     assert.equal(await js(`document.body.textContent.includes('internal provider error')`), false);
     service.store.update(imported.id, {
+      lastError: "OpenRouter transcription failed (400).",
+      lastErrorCode: "openrouterFailed",
+      lastErrorStatus: 400,
+      lastErrorDetail: "Invalid phraseList: maximum 50 phrases",
+    });
+    await waitFor(
+      () => js(`document.body.textContent.includes('Invalid phraseList: maximum 50 phrases')`),
+      "sanitized provider detail"
+    );
+    service.store.update(imported.id, {
       lastError: null,
       lastErrorCode: null,
       lastErrorStatus: null,
+      lastErrorDetail: null,
     });
     const rejected = await new Promise((resolve) => {
       const outsider = new BrowserWindow({
@@ -426,7 +437,7 @@ app.whenReady().then(async () => {
           "VTT speakers and timing",
           "selected audio MP3 export",
           "confirmed forced retranscription with cancel safeguard",
-          "localized provider errors",
+          "localized provider errors and sanitized diagnostic detail",
           "unauthorized renderer rejected",
           "no horizontal overflow",
           "key save/reload confirmation and safe replacement cancellation",
