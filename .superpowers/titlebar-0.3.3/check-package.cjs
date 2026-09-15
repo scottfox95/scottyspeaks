@@ -1,0 +1,12 @@
+const fs=require('fs'), path=require('path'), assert=require('assert/strict');
+const root=process.cwd(), app=path.join(root,'dist/mac-arm64/SS2.app/Contents/Resources/app.asar');
+assert.equal(require(path.join(app,'package.json')).version,'0.3.3');
+for(const file of ['main.js','preload.js','src/helpers/windowConfig.js','src/helpers/meetingStore.js','src/helpers/callAgentStore.js','src/utils/meetingSpeakers.mjs']) assert.deepEqual(fs.readFileSync(path.join(app,file)),fs.readFileSync(path.join(root,file)),file);
+const compare=(dir)=>{for(const entry of fs.readdirSync(path.join(root,dir),{withFileTypes:true})){const p=path.join(dir,entry.name); if(entry.isDirectory()) compare(p); else assert.deepEqual(fs.readFileSync(path.join(app,p)),fs.readFileSync(path.join(root,p)),p)}};
+compare('src/dist');
+const {speakerLabels}=require(path.join(app,'src/utils/meetingSpeakers.mjs'));
+const labels=speakerLabels({segments:[{speaker:'part-0-0:0',text:'First'},{speaker:'part-0-0:1',text:'Second'}]});
+assert.equal(labels.get('part-0-0:0'),'Speaker 1'); assert.equal(labels.get('part-0-0:1'),'Speaker 2');
+require(path.join(app,'src/helpers/meetingStore.js')); require(path.join(app,'src/helpers/callAgentStore.js'));
+const Database=require(path.join(app,'node_modules/better-sqlite3')); const db=new Database(':memory:'); assert.equal(db.prepare('SELECT 1 AS ok').get().ok,1); db.close();
+console.log(JSON.stringify({version:'0.3.3',packagedSourceMatches:true,rendererMatches:true,speakerHelperLoaded:true,sqliteRuntime:true,electron:process.versions.electron,node:process.versions.node}));

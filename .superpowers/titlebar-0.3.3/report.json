@@ -1,0 +1,17 @@
+{
+  "version": "0.3.3",
+  "nativeMacTitleBar": true,
+  "installedVisualInspection": true,
+  "installedVoiceSettingsClick": true,
+  "physicalDragAutomationVerified": false,
+  "typecheck": true,
+  "rendererBuild": true,
+  "fullControlPanelUI": true,
+  "speechUI": true,
+  "signedPackageMatches": true,
+  "sameSigningIdentity": true,
+  "verifiedBackupFiles": 682,
+  "persistentFilesUnchanged": 11,
+  "historyCountUnchanged": true,
+  "realCallDataMutated": false
+}
