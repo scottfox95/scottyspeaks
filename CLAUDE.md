@@ -1,3 +1,7 @@
+# ScottySpeaks Studio operating context
+
+This repository is **ScottySpeaks (SS2)**, Scott's customized OpenWhispr-derived desktop dictation application. On the Mac Studio, `/Users/scott/Projects/ScottySpeaks` is the short Moshi alias for this checkout. Do not declare the Studio migration accepted from builds or automated tests alone: `/Applications/SS2.app` must complete first-launch macOS Microphone and Accessibility permission prompts, record a real spoken phrase, and paste the resulting text into a disposable document. System-audio/call capture is a separate later acceptance step.
+
 # OpenWhispr Technical Reference for AI Assistants
 
 This document provides comprehensive technical details about the OpenWhispr project architecture for AI assistants working on the codebase.
