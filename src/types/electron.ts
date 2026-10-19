@@ -5,6 +5,24 @@ export interface TranscriptionItem {
   text: string;
   timestamp: string;
   created_at: string;
+  raw_text?: string | null;
+}
+
+export interface TranscriptionCursor {
+  timestamp: string;
+  id: number;
+}
+
+export interface TranscriptionQuery {
+  query?: string;
+  limit?: number;
+  cursor?: TranscriptionCursor | null;
+}
+
+export interface TranscriptionPage {
+  items: TranscriptionItem[];
+  hasMore: boolean;
+  nextCursor: TranscriptionCursor | null;
 }
 
 export interface UsageStats {
@@ -326,6 +344,7 @@ declare global {
       // Database operations
       saveTranscription: (text: string) => Promise<{ id: number; success: boolean }>;
       getTranscriptions: (limit?: number) => Promise<TranscriptionItem[]>;
+      queryTranscriptions: (options?: TranscriptionQuery) => Promise<TranscriptionPage>;
       clearTranscriptions: () => Promise<{ cleared: number; success: boolean }>;
       deleteTranscription: (id: number) => Promise<{ success: boolean }>;
       recordUsage: (wordCount: number, durationSeconds: number) => Promise<{ success: boolean }>;

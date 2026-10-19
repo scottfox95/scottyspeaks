@@ -927,7 +927,11 @@
         "enterprise": {
           "name": "Enterprise",
           "price": "カスタム",
-          "features": ["クラウド同期", "チーム機能（近日公開）", "SSO & コンプライアンス"],
+          "features": [
+            "クラウド同期",
+            "チーム機能（近日公開）",
+            "SSO & コンプライアンス"
+          ],
           "cta": "お問い合わせ"
         },
         "currentPlan": "現在のプラン"
@@ -1890,5 +1894,54 @@
     "notes": "ノート",
     "transcript": "文字起こし",
     "draft": "エージェントの下書き"
+  },
+  "historyHome": {
+    "welcome": "おかえりなさい、Scott",
+    "description": "話した内容を見つけて、中断したところから再開しましょう。",
+    "usage": "{{dictations}} 件の音声入力 · {{words}} 語",
+    "tools": "音声入力ツール",
+    "copyLatest": "最新の内容をコピー",
+    "searchLabel": "すべての音声入力を検索",
+    "searchPlaceholder": "すべての音声入力を検索…",
+    "searchHelp": "編集前の元の言葉を含む全履歴を検索します。⌘/Ctrl F で検索欄に移動。",
+    "clear": "クリア",
+    "loadError": "履歴を読み込めませんでした。保存済みの音声入力はこの Mac に残っています。",
+    "retry": "再試行",
+    "results": "検索結果",
+    "history": "音声入力の履歴",
+    "shown": "{{count}} 件を表示",
+    "noResults": "一致する音声入力がありません",
+    "tryAnother": "別の言葉を試すか、検索をクリアしてください。",
+    "loadMore": "以前の音声入力を読み込む"
+  },
+  "workspace": {
+    "workspace": "ワークスペース",
+    "personalize": "自分好みに",
+    "navigation": "メインナビゲーション",
+    "dictation": "音声入力",
+    "snippets": "定型文",
+    "style": "文章スタイル",
+    "callsSubtitle": "会話を録音して、大切な部分を残しましょう。",
+    "recordNew": "通話を録音",
+    "stopping": "停止中…",
+    "searchCalls": "通話とノートを検索",
+    "noCalls": "一致する通話がありません。別の語句を試してください。",
+    "markMoment": "この瞬間をマーク",
+    "actionItem": "アクション項目",
+    "useTemplate": "会議のアウトラインを使う",
+    "notesTemplate": "## 決定事項\n\n- \n\n## アクション項目\n\n- [ ] \n\n## 未解決の質問\n\n- ",
+    "notesPlaceholder": "この会話で大切なことは？\n\n決定事項、次のステップ、覚えておきたいことを記録しましょう。",
+    "addToNotes": "ノートに追加",
+    "saveFailed": "保存できませんでした。編集内容はここに残っています。再試行してください。",
+    "learnFailed": "編集内容は保存されましたが、スタイルの学習に失敗しました。",
+    "editDictation": "音声入力を編集",
+    "copyText": "テキストをコピー",
+    "saveAndLearn": "保存して学習",
+    "learned": "学習済み",
+    "editHint": "修正内容から文章調整エンジンがあなたのスタイルを学習します。"
+  },
+  "workspacePreview": {
+    "banner": "インタラクティブプレビュー · サンプルデータ · 録音はシミュレーションです",
+    "desktopOnly": "この機能はデスクトップアプリで利用できます。"
   }
 }

@@ -7,7 +7,7 @@ const crypto = require("node:crypto");
 const { EventEmitter } = require("node:events");
 const { registerMeetingHandlers } = require("../src/helpers/meetingHandlers");
 const { AudioEvidence } = require("../src/helpers/audioEvidence");
-function wav(seconds) {
+function wav(seconds, amplitudeAt = () => 6000) {
   const samples = seconds * 16000;
   const b = Buffer.alloc(44 + samples * 2);
   b.write("RIFF");
@@ -23,7 +23,10 @@ function wav(seconds) {
   b.write("data", 36);
   b.writeUInt32LE(samples * 2, 40);
   for (let i = 0; i < samples; i++)
-    b.writeInt16LE(Math.round(Math.sin((i * 2 * Math.PI * 440) / 16000) * 6000), 44 + i * 2);
+    b.writeInt16LE(
+      Math.round(Math.sin((i * 2 * Math.PI * 440) / 16000) * amplitudeAt(i / 16000)),
+      44 + i * 2
+    );
   return b;
 }
 function setup(t, seconds = 1, options = {}) {
@@ -50,19 +53,22 @@ function setup(t, seconds = 1, options = {}) {
     systemPreferences: {},
     whisperManager: {},
     parakeetManager: {
-      transcribeLocalParakeet: async (audio) => {
+      transcribeLocalParakeet: async (audio, request) => {
         localCalls++;
         assert.equal(audio.toString("ascii", 0, 4), "RIFF");
+        assert.equal(request.wordTimings, true);
         options.inspectLocalAudio?.(audio);
         return {
           success: true,
           text: options.localText ? options.localText(localCalls) : "Synthetic local words",
+          ...(options.localWords ? { words: options.localWords(localCalls) } : {}),
         };
       },
     },
     databaseManager: { getDictionary: () => ["Aravo"] },
     windowManager: { controlPanelWindow: { webContents: sender } },
     audioEvidence: new AudioEvidence(),
+    ...(options.callDiarizer ? { callDiarizer: options.callDiarizer } : {}),
     cloudFetch: Object.hasOwn(options, "cloudFetch")
       ? options.cloudFetch
       : (...args) => global.fetch(...args),
@@ -207,6 +213,131 @@ test("local meeting job mixes synchronized microphone and call audio into one tr
     ["combined"]
   );
   assert.ok(mixedPeak >= 5900 && mixedPeak <= 6100, `mixed peak ${mixedPeak}`);
+});
+// Fake diarizer output from [startSeconds, endSeconds, speaker] spans.
+function fakeDiarization(seconds, spans) {
+  const speakers = 8;
+  const frames = seconds * 100;
+  const probabilities = new Float32Array(frames * speakers);
+  for (const [start, end, speaker] of spans)
+    for (let frame = start * 100; frame < end * 100; frame++)
+      probabilities[frame * speakers + speaker] = 0.9;
+  return { probabilities, frames, speakers, frameSeconds: 0.01 };
+}
+function fakeDiarizer(result, calls = []) {
+  return {
+    calls,
+    isAvailable: () => true,
+    diarize: async (input, output, { signal }) => {
+      calls.push({ input, output });
+      assert.ok(signal instanceof AbortSignal);
+      const audio = fs.readFileSync(input);
+      assert.equal(audio.toString("ascii", 0, 4), "RIFF");
+      assert.equal(audio.readUInt32LE(24), 16000);
+      if (result instanceof Error) throw result;
+      return result;
+    },
+  };
+}
+const twoTurns = () => [
+  { word: "Hello", start: 0.2, end: 0.6 },
+  { word: "there.", start: 0.6, end: 1.2 },
+  { word: "Hi", start: 3.4, end: 3.8 },
+  { word: "back.", start: 3.8, end: 4.4 },
+];
+test("local job splits a timed transcript into diarized speaker paragraphs", async (t) => {
+  const diarizer = fakeDiarizer(
+    fakeDiarization(6, [
+      [0, 3, 2],
+      [3, 6, 5],
+    ])
+  );
+  const a = setup(t, 6, {
+    localText: () => "Hello there. Hi back.",
+    localWords: twoTurns,
+    callDiarizer: diarizer,
+  });
+  await a.invoke("transcribe", { id: a.meeting.id });
+  const result = await finished(a.service.store, a.meeting.id);
+  assert.equal(result.status, "ready", result.lastError);
+  assert.equal(diarizer.calls.length, 1);
+  assert.deepEqual(
+    result.segments.map((s) => [s.speaker, s.text]),
+    [
+      ["part-0:2", "Hello there."],
+      ["part-0:5", "Hi back."],
+    ]
+  );
+  assert.equal(result.transcript, "Hello there.\n\nHi back.");
+  assert.deepEqual(result.speakers, { "part-0:2": "", "part-0:5": "" });
+  assert.deepEqual(
+    result.words.map((w) => w.speaker),
+    ["part-0:2", "part-0:2", "part-0:5", "part-0:5"]
+  );
+});
+test("local job labels the speaker carried by the microphone track", async (t) => {
+  const diarizer = fakeDiarizer(
+    fakeDiarization(6, [
+      [0, 3, 0],
+      [3, 6, 1],
+    ])
+  );
+  const a = setup(t, 6, {
+    localText: () => "Hello there. Hi back.",
+    localWords: twoTurns,
+    callDiarizer: diarizer,
+  });
+  const directory = a.service.store.directory(a.meeting.id);
+  fs.mkdirSync(path.join(directory, "take-one"));
+  // The local talker fills the first half on the mic; the far side the second
+  // half on the call track, bleeding into the mic 26dB down.
+  fs.writeFileSync(
+    path.join(directory, "take-one/microphone.wav"),
+    wav(6, (time) => (time < 3 ? 6000 : 300))
+  );
+  fs.writeFileSync(
+    path.join(directory, "take-one/system.wav"),
+    wav(6, (time) => (time < 3 ? 0 : 6000))
+  );
+  a.service.store.update(a.meeting.id, {
+    audio: [
+      { file: "take-one/microphone.wav", source: "microphone", offset: 0 },
+      { file: "take-one/system.wav", source: "system", offset: 0 },
+    ],
+  });
+  await a.invoke("transcribe", { id: a.meeting.id });
+  const result = await finished(a.service.store, a.meeting.id);
+  assert.equal(result.status, "ready", result.lastError);
+  assert.deepEqual(
+    result.segments.map((s) => s.speaker),
+    ["microphone", "part-0:1"]
+  );
+});
+test("a failed diarization keeps the unattributed local transcript", async (t) => {
+  const diarizer = fakeDiarizer(new Error("model load failed"));
+  const a = setup(t, 6, {
+    localText: () => "Hello there. Hi back.",
+    localWords: twoTurns,
+    callDiarizer: diarizer,
+  });
+  await a.invoke("transcribe", { id: a.meeting.id });
+  const result = await finished(a.service.store, a.meeting.id);
+  assert.equal(result.status, "ready", result.lastError);
+  assert.equal(diarizer.calls.length, 1);
+  assert.equal(result.transcript, "Hello there. Hi back.");
+  assert.deepEqual(
+    result.segments.map((s) => s.speaker),
+    ["system"]
+  );
+});
+test("local engines without word timings skip diarization", async (t) => {
+  const diarizer = fakeDiarizer(fakeDiarization(1, [[0, 1, 0]]));
+  const a = setup(t, 1, { callDiarizer: diarizer });
+  await a.invoke("transcribe", { id: a.meeting.id });
+  const result = await finished(a.service.store, a.meeting.id);
+  assert.equal(result.status, "ready", result.lastError);
+  assert.equal(diarizer.calls.length, 0);
+  assert.equal(result.transcript, "Synthetic local words");
 });
 test("forced retranscription bypasses cached results and replaces the generated transcript", async (t) => {
   const a = setup(t, 1, { localText: (call) => `Local result ${call}` });

@@ -947,7 +947,11 @@
         "enterprise": {
           "name": "企业版",
           "price": "自定义",
-          "features": ["云端同步", "团队功能（即将推出）", "SSO 与合规"],
+          "features": [
+            "云端同步",
+            "团队功能（即将推出）",
+            "SSO 与合规"
+          ],
           "cta": "联系我们"
         },
         "currentPlan": "当前套餐"
@@ -1890,5 +1894,54 @@
     "notes": "笔记",
     "transcript": "转录文本",
     "draft": "代理草稿"
+  },
+  "historyHome": {
+    "welcome": "欢迎回来，Scott",
+    "description": "找到你说过的话，接着上次继续。",
+    "usage": "{{dictations}} 次听写 · {{words}} 个词",
+    "tools": "听写工具",
+    "copyLatest": "复制最新内容",
+    "searchLabel": "搜索全部听写",
+    "searchPlaceholder": "搜索全部听写…",
+    "searchHelp": "搜索完整历史，包括编辑前的原始内容。按 ⌘/Ctrl F 聚焦搜索框。",
+    "clear": "清除",
+    "loadError": "无法加载历史记录。已保存的听写仍在这台 Mac 上。",
+    "retry": "重试",
+    "results": "搜索结果",
+    "history": "你的听写",
+    "shown": "已显示 {{count}} 条",
+    "noResults": "没有匹配的听写",
+    "tryAnother": "尝试其他词语，或清除搜索。",
+    "loadMore": "加载更早的听写"
+  },
+  "workspace": {
+    "workspace": "工作区",
+    "personalize": "个性化设置",
+    "navigation": "主导航",
+    "dictation": "听写",
+    "snippets": "文本片段",
+    "style": "写作风格",
+    "callsSubtitle": "录下对话，留下有用的内容。",
+    "recordNew": "录制通话",
+    "stopping": "正在停止…",
+    "searchCalls": "搜索通话和笔记",
+    "noCalls": "没有匹配的通话，请换个词试试。",
+    "markMoment": "标记此刻",
+    "actionItem": "待办事项",
+    "useTemplate": "使用会议提纲",
+    "notesTemplate": "## 决定\n\n- \n\n## 待办事项\n\n- [ ] \n\n## 待解决的问题\n\n- ",
+    "notesPlaceholder": "这段对话中什么最重要？\n\n记录决定、下一步行动，以及任何想记住的内容。",
+    "addToNotes": "添加到笔记",
+    "saveFailed": "无法保存。你的修改仍在这里，请重试。",
+    "learnFailed": "修改已保存，但风格学习失败。",
+    "editDictation": "编辑听写",
+    "copyText": "复制文本",
+    "saveAndLearn": "保存并学习",
+    "learned": "已学习",
+    "editHint": "你的修改会教会润色引擎你的写作风格。"
+  },
+  "workspacePreview": {
+    "banner": "交互预览 · 示例数据 · 模拟录音",
+    "desktopOnly": "此功能可在桌面应用中使用。"
   }
 }

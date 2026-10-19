@@ -146,6 +146,7 @@ function initializeCoreManagers() {
       windowManager,
       audioEvidence,
       localSpeech,
+      callDiarizer: new (require("./src/helpers/callDiarizer").CallDiarizer)(),
     });
   require("./src/helpers/callAgentHandlers").registerCallAgentHandlers({
     app, ipcMain, windowManager, meetingStore: meetings.store, localSpeech,

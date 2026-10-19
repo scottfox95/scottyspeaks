@@ -95,10 +95,26 @@ async function transcribeChunk({
     if (!result?.success)
       throw new Error(result?.error || result?.message || "Local transcription failed");
     const text = result.text || "";
+    // Word timings (Parakeet on CoreML) let the job attribute words to diarized
+    // speakers; `timed` distinguishes "no words spoken" from "no timings".
+    const timed = Array.isArray(result.words);
     return {
       text,
       segments: text ? [{ text, start: offset, end: offset + duration, speaker: source }] : [],
-      words: [],
+      words: timed
+        ? result.words
+            .filter(
+              (w) =>
+                typeof w?.word === "string" && Number.isFinite(w.start) && Number.isFinite(w.end)
+            )
+            .map((w) => ({
+              word: w.word,
+              start: offset + w.start,
+              end: offset + Math.max(w.start, w.end),
+              speaker: source,
+            }))
+        : [],
+      ...(timed ? { timed: true } : {}),
     };
   }
   if (provider !== "openrouter") throw new Error("Unknown transcription provider");
@@ -177,11 +193,7 @@ async function prepareChunks(inputs, directory, { mix = false, cloud = false, so
   // A fresh work directory is supplied for each job; partial files are never reused.
   const args = ["-hide_banner", "-loglevel", "error", "-nostdin"];
   for (const input of inputs) args.push("-i", input.path);
-  if (mix && inputs.length > 1)
-    args.push(
-      "-filter_complex",
-      `amix=inputs=${inputs.length}:duration=longest:dropout_transition=0:normalize=1`
-    );
+  if (mix && inputs.length > 1) args.push("-filter_complex", mixFilter(inputs.length));
   args.push(
     "-vn",
     "-ac",
@@ -210,6 +222,26 @@ async function prepareChunks(inputs, directory, { mix = false, cloud = false, so
       format: cloud ? "mp3" : "wav",
       source: source || inputs[0].source,
     }));
+}
+function mixFilter(count) {
+  return `amix=inputs=${count}:duration=longest:dropout_transition=0:normalize=1`;
+}
+/// One 16kHz mono WAV of a whole synchronized group, mixed exactly like the
+/// transcription chunks, so diarization sees the same audio as the transcriber.
+async function prepareDiarizationAudio(inputs, file) {
+  const args = ["-hide_banner", "-loglevel", "error", "-nostdin", "-y"];
+  for (const input of inputs) args.push("-i", input.path);
+  if (inputs.length > 1) args.push("-filter_complex", mixFilter(inputs.length));
+  args.push("-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", file);
+  await run(ffmpegPath(), args, { timeout: 300000, maxBuffer: 512 * 1024 });
+  return file;
+}
+/// Raw 16kHz mono s16le of one track, for comparing microphone and call levels.
+async function prepareTrackPcm(input, file) {
+  const args = ["-hide_banner", "-loglevel", "error", "-nostdin", "-y", "-i", input];
+  args.push("-vn", "-ac", "1", "-ar", "16000", "-f", "s16le", "-c:a", "pcm_s16le", file);
+  await run(ffmpegPath(), args, { timeout: 300000, maxBuffer: 512 * 1024 });
+  return file;
 }
 async function audioDuration(file) {
   let stderr = "";
@@ -250,6 +282,8 @@ module.exports = {
   normalizeTranscript,
   transcribeChunk,
   prepareChunks,
+  prepareDiarizationAudio,
+  prepareTrackPcm,
   wavInfo,
   audioDuration,
   CHUNK_SECONDS,

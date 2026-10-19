@@ -28,6 +28,10 @@ class DatabaseManager {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);
+      this.db.exec(`
+        CREATE INDEX IF NOT EXISTS transcriptions_timestamp_id
+        ON transcriptions (timestamp DESC, id DESC)
+      `);
 
       this.db.exec(`
         CREATE TABLE IF NOT EXISTS custom_dictionary (
@@ -350,13 +354,63 @@ class DatabaseManager {
       if (!this.db) {
         throw new Error("Database not initialized");
       }
-      const stmt = this.db.prepare("SELECT * FROM transcriptions ORDER BY timestamp DESC LIMIT ?");
+      const stmt = this.db.prepare(
+        "SELECT * FROM transcriptions ORDER BY timestamp DESC, id DESC LIMIT ?"
+      );
       const transcriptions = stmt.all(limit);
       return transcriptions;
     } catch (error) {
       debugLogger.error("Error getting transcriptions", { error: error.message }, "database");
       throw error;
     }
+  }
+
+  queryTranscriptions(options = {}) {
+    if (!this.db) throw new Error("Database not initialized");
+    if (!options || typeof options !== "object" || Array.isArray(options)) {
+      throw new Error("Invalid history query");
+    }
+    const { query = "", limit = 50, cursor = null } = options;
+    if (typeof query !== "string" || query.length > 500) {
+      throw new Error("History search must be at most 500 characters");
+    }
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      throw new Error("History page size must be between 1 and 100");
+    }
+    const conditions = [];
+    const parameters = [];
+    const search = query.trim();
+    if (search) {
+      // Search literal text, including SQL LIKE metacharacters in dictated code.
+      const pattern = `%${search.replace(/[\\%_]/g, "\\$&")}%`;
+      conditions.push("(text LIKE ? ESCAPE '\\' OR raw_text LIKE ? ESCAPE '\\')");
+      parameters.push(pattern, pattern);
+    }
+    if (cursor !== null) {
+      if (
+        !cursor ||
+        typeof cursor.timestamp !== "string" ||
+        cursor.timestamp.length > 64 ||
+        !Number.isSafeInteger(cursor.id) ||
+        cursor.id < 1
+      ) {
+        throw new Error("Invalid history cursor");
+      }
+      conditions.push("(timestamp < ? OR (timestamp = ? AND id < ?))");
+      parameters.push(cursor.timestamp, cursor.timestamp, cursor.id);
+    }
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const rows = this.db
+      .prepare(`SELECT * FROM transcriptions ${where} ORDER BY timestamp DESC, id DESC LIMIT ?`)
+      .all(...parameters, limit + 1);
+    const hasMore = rows.length > limit;
+    const items = rows.slice(0, limit);
+    const last = items[items.length - 1];
+    return {
+      items,
+      hasMore,
+      nextCursor: hasMore && last ? { timestamp: last.timestamp, id: last.id } : null,
+    };
   }
 
   clearTranscriptions() {

@@ -115,6 +115,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     (callback) => (_event, item) => callback(item)
   ),
   getTranscriptions: (limit) => ipcRenderer.invoke("db-get-transcriptions", limit),
+  queryTranscriptions: (options) => ipcRenderer.invoke("db-query-transcriptions", options),
   clearTranscriptions: () => ipcRenderer.invoke("db-clear-transcriptions"),
   deleteTranscription: (id) => ipcRenderer.invoke("db-delete-transcription", id),
   // Dictionary functions

@@ -33,7 +33,14 @@ export default function ControlPanel() {
   const [aiCTADismissed, setAiCTADismissed] = useState(
     () => localStorage.getItem("aiCTADismissed") === "true"
   );
-  const [activeView, setActiveView] = useState<ControlPanelView>("home");
+  const [activeView, setActiveView] = useState<ControlPanelView>(() => {
+    const saved = localStorage.getItem("controlPanelView");
+    return ["home", "meetings", "personal-notes", "dictionary", "snippets", "style"].includes(
+      saved || ""
+    )
+      ? (saved as ControlPanelView)
+      : "home";
+  });
   const { hotkey } = useHotkey();
   const { toast } = useToast();
   useSettings(); // initialize settings provider
@@ -59,6 +66,29 @@ export default function ControlPanel() {
 
   useEffect(() => {
     loadTranscriptions();
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("controlPanelView", activeView);
+  }, [activeView]);
+
+  useEffect(() => {
+    const navigate = (event: KeyboardEvent) => {
+      if (
+        !(event.metaKey || event.ctrlKey) ||
+        event.altKey ||
+        event.shiftKey ||
+        document.querySelector('[role="dialog"]')
+      )
+        return;
+      const view = { "1": "home", "2": "meetings", "3": "personal-notes" }[event.key];
+      if (view) {
+        event.preventDefault();
+        setActiveView(view as ControlPanelView);
+      }
+    };
+    window.addEventListener("keydown", navigate);
+    return () => window.removeEventListener("keydown", navigate);
   }, []);
 
   useEffect(() => {

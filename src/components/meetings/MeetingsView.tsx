@@ -18,6 +18,10 @@ import {
   Headphones,
   X,
   CheckCircle2,
+  Clock3,
+  ListChecks,
+  Quote,
+  ChevronLeft,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from "../ui/dialog";
@@ -29,6 +33,7 @@ import { cn } from "../lib/utils";
 import { useSettingsStore } from "../../stores/settingsStore";
 import type {
   Meeting,
+  MeetingSummary,
   MeetingConfig,
   MeetingFolder,
   MeetingResult,
@@ -49,7 +54,7 @@ const clock = (seconds: number) => {
 export default function MeetingsView() {
   const { t, i18n } = useTranslation();
   const api = window.electronAPI.meetings;
-  const [list, setList] = useState<Meeting[]>([]);
+  const [list, setList] = useState<MeetingSummary[]>([]);
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [folders, setFolders] = useState<MeetingFolder[]>([]);
   const [destination, setDestination] = useState("");
@@ -60,12 +65,23 @@ export default function MeetingsView() {
   const [editingKey, setEditingKey] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const actionRunning = useRef(false);
   const [deleteTarget, setDeleteTarget] = useState<Meeting | null>(null);
   const [retranscribeTarget, setRetranscribeTarget] = useState<Meeting | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [editTranscript, setEditTranscript] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [query, setQuery] = useState("");
+  const queryRef = useRef(query);
+  queryRef.current = query;
+  const listGeneration = useRef(0);
+  const [tab, setTab] = useState("notes");
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [stopping, setStopping] = useState(false);
+  const stoppingRef = useRef(false);
+  const captureGeneration = useRef(0);
+  const notesEditor = useRef<HTMLTextAreaElement>(null);
   const audioPlayer = useRef<MeetingAudioHandle>(null);
   const current = useRef<Meeting | null>(null);
   const baseline = useRef<Meeting | null>(null);
@@ -82,8 +98,24 @@ export default function MeetingsView() {
     dirtyRef.current = false;
     setDirty(false);
     setEditTranscript(false);
+    setShowLibrary(false);
+    localStorage.setItem("lastCallId", m.id);
   }, []);
-  const refreshList = useCallback(async () => setList(await unwrap(api.list())), [api]);
+  const refreshList = useCallback(async () => {
+    const generation = ++listGeneration.current;
+    const query = queryRef.current;
+    const items = await unwrap(api.list({ query }));
+    if (generation === listGeneration.current && query === queryRef.current) setList(items);
+  }, [api]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void refreshList().catch((e) => setError(e.message));
+    }, 180);
+    return () => {
+      clearTimeout(timer);
+      listGeneration.current++;
+    };
+  }, [query, refreshList]);
   const flush = useCallback(async (): Promise<void> => {
     if (timer.current) clearTimeout(timer.current);
     if (pending.current) {
@@ -184,6 +216,8 @@ export default function MeetingsView() {
     [adopt, api, flush, t]
   );
   const act = async (fn: () => Promise<void>) => {
+    if (actionRunning.current) return;
+    actionRunning.current = true;
     setError("");
     setBusy(true);
     try {
@@ -191,6 +225,7 @@ export default function MeetingsView() {
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
+      actionRunning.current = false;
       setBusy(false);
     }
   };
@@ -203,12 +238,14 @@ export default function MeetingsView() {
       unwrap(api.captureStatus()),
     ])
       .then(async ([items, pins, cfg, cap]) => {
-        setList(items);
+        if (!queryRef.current) setList(items);
         setFolders(pins);
         setConfig(cfg);
         setCapture(cap);
         setDestination(pins[0]?.id || "");
-        if (items.length) await open(cap.id || items[0].id);
+        const previous = localStorage.getItem("lastCallId");
+        if (items.length)
+          await open(cap.id || items.find((item) => item.id === previous)?.id || items[0].id);
       })
       .catch((e) => setError(e.message))
       .finally(() => setBusy(false));
@@ -218,25 +255,62 @@ export default function MeetingsView() {
     };
   }, [api, flush, open]);
   useEffect(() => {
+    let disposed = false;
+    let polling = false;
     const poll = setInterval(() => {
-      setNow(Date.now());
-      unwrap(api.captureStatus())
-        .then(setCapture)
-        .catch(() => {});
-      const id = current.current?.id;
-      if (id && !dirtyRef.current && !pending.current)
-        unwrap(api.get({ id }))
+      if (document.hidden || polling) return;
+      polling = true;
+      const generation = captureGeneration.current;
+      const snapshot = current.current;
+      void Promise.all([
+        unwrap(api.captureStatus())
           .then((value) => {
-            if (current.current?.id === id && !dirtyRef.current && !pending.current) {
-              current.current = value;
-              baseline.current = value;
-              setMeeting(value);
-            }
+            if (!disposed && generation === captureGeneration.current)
+              setCapture((previous) =>
+                previous.id === value.id &&
+                previous.startedAt === value.startedAt &&
+                previous.stopping === value.stopping
+                  ? previous
+                  : value
+              );
           })
-          .catch((e) => setError(e.message));
+          .catch(() => {}),
+        snapshot && !dirtyRef.current && !pending.current
+          ? unwrap(api.get({ id: snapshot.id }))
+              .then((value) => {
+                // A poll issued before a save must never replace that newer save.
+                if (
+                  !disposed &&
+                  current.current === snapshot &&
+                  !dirtyRef.current &&
+                  !pending.current &&
+                  value.revision !== snapshot.revision
+                ) {
+                  current.current = value;
+                  baseline.current = value;
+                  setMeeting(value);
+                  void refreshList().catch(() => {});
+                }
+              })
+              .catch((e) => {
+                if (!disposed) setError(e.message);
+              })
+          : Promise.resolve(),
+      ]).finally(() => {
+        polling = false;
+      });
     }, 1500);
-    return () => clearInterval(poll);
-  }, [api]);
+    return () => {
+      disposed = true;
+      clearInterval(poll);
+    };
+  }, [api, refreshList]);
+  useEffect(() => {
+    if (!capture.id) return;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [capture.id]);
   const addFolder = async () => {
     const pin = await unwrap(api.pinFolder());
     if (pin) {
@@ -268,6 +342,65 @@ export default function MeetingsView() {
     await flush();
     adopt(await unwrap(api.create()));
     await refreshList();
+    setTab("notes");
+    setQuery("");
+  };
+  const recordNew = async () => {
+    await flush();
+    const next = await unwrap(api.create());
+    adopt(next);
+    setTab("notes");
+    setQuery("");
+    await refreshList();
+    captureGeneration.current++;
+    const status = await unwrap(api.startCapture({ id: next.id }));
+    captureGeneration.current++;
+    setCapture(status);
+  };
+  const stopCapture = async () => {
+    if (!capture.id || stoppingRef.current) return;
+    stoppingRef.current = true;
+    setStopping(true);
+    setError("");
+    captureGeneration.current++;
+    try {
+      // Independent of slow actions and failed autosaves: stopping comes first.
+      const stopped = await unwrap(api.stopCapture({ id: capture.id }));
+      captureGeneration.current++;
+      setCapture({ id: null });
+      try {
+        await flush();
+      } finally {
+        await refreshList();
+      }
+      const snapshot = current.current;
+      if (snapshot?.id === stopped.id) {
+        const latest = await unwrap(api.get({ id: stopped.id }));
+        if (current.current === snapshot && !dirtyRef.current && !pending.current) adopt(latest);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      stoppingRef.current = false;
+      setStopping(false);
+    }
+  };
+  const insertNote = (text: string) => {
+    const value = current.current;
+    if (!value) return;
+    const editor = notesEditor.current;
+    const position = tab === "notes" && editor ? editor.selectionStart : value.notes.length;
+    const prefix = position > 0 && value.notes[position - 1] !== "\n" ? "\n" : "";
+    const insertion = prefix + text;
+    edit({ notes: value.notes.slice(0, position) + insertion + value.notes.slice(position) });
+    setTab("notes");
+    requestAnimationFrame(() => {
+      notesEditor.current?.focus();
+      notesEditor.current?.setSelectionRange(
+        position + insertion.length,
+        position + insertion.length
+      );
+    });
   };
   const importFile = async (audio: boolean) => {
     await flush();
@@ -304,11 +437,13 @@ export default function MeetingsView() {
             : meeting?.lastError;
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
+    <div className="call-workspace flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-4 md:px-6">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">{t("meetings.title")}</h1>
-          <p className="mt-1 text-xs text-muted-foreground">{t("meetings.subtitle")}</p>
+          <h1 className="text-2xl font-semibold tracking-tight font-serif">
+            {t("meetings.title")}
+          </h1>
+          <p className="mt-1 text-xs text-muted-foreground">{t("workspace.callsSubtitle")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" disabled={busy} onClick={() => act(addFolder)}>
@@ -333,10 +468,20 @@ export default function MeetingsView() {
             <FileUp />
             {t("meetings.importTranscript")}
           </Button>
-          <Button size="sm" disabled={busy} onClick={() => act(create)}>
+          <Button size="sm" variant="outline" disabled={busy} onClick={() => act(create)}>
             <Plus />
             {t("meetings.new")}
           </Button>
+          {!recording && (
+            <Button
+              size="sm"
+              disabled={busy || !config?.captureAvailable}
+              onClick={() => act(recordNew)}
+            >
+              <Mic data-icon="inline-start" />
+              {t("workspace.recordNew")}
+            </Button>
+          )}
         </div>
       </header>
       {error && (
@@ -358,30 +503,25 @@ export default function MeetingsView() {
       {recording && (
         <div
           role="status"
-          className="flex items-center justify-between gap-3 border-b border-border bg-primary/5 px-6 py-3 text-sm"
+          className="flex items-center justify-between gap-3 border-b border-destructive/20 bg-destructive/5 px-4 py-3 text-sm md:px-6"
         >
           <span className="flex items-center gap-2">
             <span className="size-2 rounded-full bg-destructive" />
-            {t("meetings.recording")} · {clock((now - (capture.startedAt || now)) / 1000)}
+            <span>
+              {t("meetings.recording")}{" "}
+              <span className="font-mono tabular-nums">
+                {clock((now - (capture.startedAt || now)) / 1000)}
+              </span>
+            </span>
           </span>
           <Button
             size="sm"
-            variant="outline"
-            disabled={busy || capture.stopping}
-            onClick={() =>
-              act(async () => {
-                // Audio capture must stop even when a note cannot be saved.
-                const stopped = await unwrap(api.stopCapture({ id: capture.id! }));
-                setCapture({ id: null });
-                await flush();
-                if (current.current?.id === stopped.id)
-                  adopt(await unwrap(api.get({ id: stopped.id })));
-                await refreshList();
-              })
-            }
+            variant="destructive"
+            disabled={stopping || capture.stopping}
+            onClick={() => void stopCapture()}
           >
-            <Square />
-            {t("meetings.stop")}
+            {stopping ? <Loader2 className="animate-spin" /> : <Square />}
+            {stopping ? t("workspace.stopping") : t("meetings.stop")}
           </Button>
         </div>
       )}
@@ -512,7 +652,12 @@ export default function MeetingsView() {
         </section>
       )}
       <div className="flex min-h-0 flex-1">
-        <aside className="flex w-52 shrink-0 flex-col border-r border-border max-[850px]:w-40">
+        <aside
+          className={cn(
+            "flex w-60 shrink-0 flex-col border-r border-border bg-surface-1/40 max-[1100px]:w-48 max-[700px]:w-full",
+            meeting && !showLibrary && "max-[700px]:hidden"
+          )}
+        >
           <div className="flex items-center justify-between px-4 pb-2 pt-4">
             <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
               {t("meetings.recent")}
@@ -527,15 +672,32 @@ export default function MeetingsView() {
               <Headphones />
             </Button>
           </div>
+          <div className="px-3 pb-3">
+            <label className="sr-only" htmlFor="call-search">
+              {t("workspace.searchCalls")}
+            </label>
+            <Input
+              id="call-search"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t("workspace.searchCalls")}
+            />
+          </div>
           <div className="flex-1 overflow-y-auto p-2">
+            {list.length === 0 && query.trim() && (
+              <p className="px-3 py-6 text-sm text-muted-foreground">{t("workspace.noCalls")}</p>
+            )}
             {list.map((item) => (
               <button
+                data-call-list-item
                 key={item.id}
+                aria-current={meeting?.id === item.id ? "page" : undefined}
                 disabled={busy}
                 onClick={() => act(() => open(item.id))}
                 className={cn(
-                  "mb-1 flex w-full flex-col gap-1 rounded-md px-3 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  meeting?.id === item.id ? "bg-primary/8" : "hover:bg-muted"
+                  "press-tactile mb-1 flex w-full flex-col gap-2 rounded-lg px-3 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  meeting?.id === item.id ? "bg-card shadow-[var(--shadow-card)]" : "hover:bg-muted"
                 )}
               >
                 <span className="line-clamp-2 text-sm font-medium">
@@ -547,13 +709,19 @@ export default function MeetingsView() {
                     day: "numeric",
                   })}{" "}
                   · {t(`meetings.status.${item.status}`)}
+                  {!!item.recordedDuration && ` · ${clock(item.recordedDuration)}`}
                 </span>
+                {item.preview && (
+                  <span className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                    {item.preview.replace(/[#>*`]/g, "").trim()}
+                  </span>
+                )}
               </button>
             ))}
           </div>
         </aside>
         {!meeting ? (
-          <main className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
+          <main className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center max-[700px]:hidden">
             <NotebookEmpty />
             <h2 className="text-xl font-medium">{t("meetings.emptyTitle")}</h2>
             <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
@@ -570,7 +738,21 @@ export default function MeetingsView() {
             </Button>
           </main>
         ) : (
-          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <main
+            className={cn(
+              "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-card/40",
+              showLibrary && "max-[700px]:hidden"
+            )}
+          >
+            <Button
+              className="m-3 self-start min-[701px]:hidden"
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowLibrary(true)}
+            >
+              <ChevronLeft />
+              {t("meetings.recent")}
+            </Button>
             <div data-call-content className="min-h-0 flex-1 overflow-y-auto">
               <div className="flex flex-col gap-4 px-6 pb-4 pt-6">
                 <label className="sr-only" htmlFor="meeting-title">
@@ -598,26 +780,31 @@ export default function MeetingsView() {
                   <div className="flex flex-wrap gap-2">
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="ghost"
+                      aria-label={t("meetings.deleteCall")}
+                      title={t("meetings.deleteCall")}
                       disabled={
                         busy || thisRecording || transcribing || meeting.status === "recording"
                       }
                       onClick={() => setDeleteTarget(meeting)}
                     >
                       <Trash2 />
-                      {t("meetings.deleteCall")}
+                      <span className="sr-only">{t("meetings.deleteCall")}</span>
                     </Button>
                     {!recording && (
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="default"
                         disabled={
                           busy || transcribing || !!meeting.transcript || !config?.captureAvailable
                         }
                         onClick={() =>
                           act(async () => {
                             await flush();
-                            setCapture(await unwrap(api.startCapture({ id: meeting.id })));
+                            captureGeneration.current++;
+                            const status = await unwrap(api.startCapture({ id: meeting.id }));
+                            captureGeneration.current++;
+                            setCapture(status);
                           })
                         }
                       >
@@ -681,21 +868,60 @@ export default function MeetingsView() {
                   </p>
                 )}
               </div>
-              <Tabs defaultValue="notes" className="flex min-h-80 flex-col px-6">
+              <Tabs
+                value={tab}
+                onValueChange={setTab}
+                className="flex min-h-80 flex-col px-4 md:px-6"
+              >
                 <TabsList className="self-start">
                   <TabsTrigger value="notes">{t("meetings.notes")}</TabsTrigger>
                   <TabsTrigger value="transcript">{t("meetings.transcript")}</TabsTrigger>
                   <TabsTrigger value="agents">{t("callAgent.tab")}</TabsTrigger>
                 </TabsList>
                 <TabsContent data-speech-source value="notes" className="min-h-72 flex-1">
+                  <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-border pb-3">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busy || !thisRecording}
+                      onClick={() =>
+                        insertNote(
+                          `- [${clock((meeting.recordedDuration || 0) + (Date.now() - (capture.startedAt || Date.now())) / 1000)}] `
+                        )
+                      }
+                    >
+                      <Clock3 data-icon="inline-start" />
+                      {t("workspace.markMoment")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busy}
+                      onClick={() => insertNote("- [ ] ")}
+                    >
+                      <ListChecks data-icon="inline-start" />
+                      {t("workspace.actionItem")}
+                    </Button>
+                    {!meeting.notes.trim() && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => insertNote(t("workspace.notesTemplate"))}
+                      >
+                        {t("workspace.useTemplate")}
+                      </Button>
+                    )}
+                  </div>
                   <ReadAloud text={meeting.notes || ""} label={t("speech.notes")} />
                   <MarkdownTextarea
+                    textareaRef={notesEditor}
                     disabled={busy}
                     ariaLabel={t("meetings.notes")}
                     value={meeting.notes}
                     onChange={(e) => edit({ notes: e.target.value })}
-                    placeholder={t("meetings.notesPlaceholder")}
-                    className="min-h-72"
+                    placeholder={t("workspace.notesPlaceholder")}
+                    className="min-h-80 rounded-lg bg-card shadow-[var(--shadow-card)]"
                   />
                 </TabsContent>
                 <TabsContent data-speech-source value="transcript" className="flex-1 pb-5">
@@ -858,6 +1084,20 @@ export default function MeetingsView() {
                               <p className="whitespace-pre-wrap text-sm leading-relaxed">
                                 {segment.text}
                               </p>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={busy}
+                                className="mt-1"
+                                onClick={() =>
+                                  insertNote(
+                                    `> [${clock(segment.start)}] ${labels.get(segment.speaker)}: ${segment.text}\n\n`
+                                  )
+                                }
+                              >
+                                <Quote data-icon="inline-start" />
+                                {t("workspace.addToNotes")}
+                              </Button>
                             </div>
                           </div>
                         ))}

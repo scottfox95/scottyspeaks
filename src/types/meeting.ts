@@ -32,6 +32,18 @@ export interface MeetingFolder {
   name: string;
   path: string;
 }
+export interface MeetingSummary {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  status: string;
+  revision: number;
+  exportPath?: string;
+  provider: string;
+  recordedDuration?: number;
+  preview: string;
+}
 export interface MeetingConfig {
   provider: "local" | "openrouter";
   localEngine: "whisper" | "nvidia";
@@ -55,7 +67,7 @@ export interface MeetingAPI {
     id: string;
     source?: "all" | "microphone" | "system" | "audio";
   }): Promise<MeetingResult<{ path: string } | null>>;
-  list(args?: unknown): Promise<MeetingResult<Meeting[]>>;
+  list(args?: { query?: string }): Promise<MeetingResult<MeetingSummary[]>>;
   create(args?: unknown): Promise<MeetingResult<Meeting>>;
   get(args: { id: string }): Promise<MeetingResult<Meeting>>;
   save(args: {

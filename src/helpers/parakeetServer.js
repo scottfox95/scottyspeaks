@@ -182,8 +182,11 @@ class ParakeetServerManager {
     return { wavBuffer, filesToCleanup: [tempInputPath, tempWavPath] };
   }
 
+  /// `wordTimings` requests per-word timestamps, which only the CoreML backend
+  /// provides. Such requests (call transcription) are not latency-sensitive, so
+  /// they wait for CoreML instead of racing it against sherpa-onnx.
   async transcribe(audioBuffer, options = {}) {
-    const { modelName = "parakeet-tdt-0.6b-v3", language = "auto" } = options;
+    const { modelName = "parakeet-tdt-0.6b-v3", language = "auto", wordTimings = false } = options;
 
     const modelDir = path.join(this.getModelsDir(), modelName);
 
@@ -193,7 +196,7 @@ class ParakeetServerManager {
     // guessing which case we're in, give it a short budget and fall back to
     // sherpa-onnx for this one dictation if it doesn't come up in time.
     let coreml = this.isCoreml();
-    if (coreml && !this.coremlServer.ready && this._onnxCanServe(modelName)) {
+    if (coreml && !wordTimings && !this.coremlServer.ready && this._onnxCanServe(modelName)) {
       const startedInTime = await this._awaitCoremlReady(modelName);
       if (!startedInTime) {
         debugLogger.info("CoreML not ready within budget — serving via sherpa-onnx this request", {
@@ -232,13 +235,16 @@ class ParakeetServerManager {
       const rms = computeFloat32RMS(samples);
       debugLogger.debug("Parakeet audio analysis", { durationSeconds, rms });
       if (rms < SILENCE_RMS_THRESHOLD) {
-        return { text: "", elapsed: 0, language };
+        return { text: "", elapsed: 0, language, ...(coreml && wordTimings ? { words: [] } : {}) };
       }
 
       // FluidAudio windows long audio internally and merges on the overlap,
       // which is strictly better than the hard 15s cuts below.
       if (coreml) {
-        const result = await this.coremlServer.transcribe(samples, SAMPLE_RATE, { language });
+        const result = await this.coremlServer.transcribe(samples, SAMPLE_RATE, {
+          language,
+          timings: wordTimings,
+        });
         if (!result.text?.trim()) {
           debugLogger.warn("Parakeet (CoreML) returned empty text for non-silent audio", {
             durationSeconds,

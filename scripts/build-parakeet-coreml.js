@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
-// Builds the parakeet-coreml helper (SwiftPM package in resources/parakeet-coreml)
-// and installs it as resources/bin/parakeet-coreml-darwin-arm64.
+// Builds the SwiftPM package in resources/parakeet-coreml and installs its two
+// helpers: resources/bin/parakeet-coreml-darwin-arm64 (dictation transcription)
+// and resources/bin/call-diarizer-darwin-arm64 (call speaker diarization).
 //
 // Unlike the single-file swiftc helpers (fast-paste, globe-listener), this one
 // depends on the FluidAudio package, so it goes through `swift build`. The first
@@ -35,12 +36,15 @@ if (targetArch !== "arm64") {
 const projectRoot = path.resolve(__dirname, "..");
 const packageDir = path.join(projectRoot, "resources", "parakeet-coreml");
 const outputDir = path.join(projectRoot, "resources", "bin");
-const outputBinary = path.join(outputDir, "parakeet-coreml-darwin-arm64");
+const products = [
+  { name: "parakeet-coreml", output: path.join(outputDir, "parakeet-coreml-darwin-arm64") },
+  { name: "call-diarizer", output: path.join(outputDir, "call-diarizer-darwin-arm64") },
+];
 const hashFile = path.join(outputDir, ".parakeet-coreml.arm64.hash");
 
 const sourceFiles = [
   path.join(packageDir, "Package.swift"),
-  path.join(packageDir, "Sources", "parakeet-coreml", "main.swift"),
+  ...products.map((product) => path.join(packageDir, "Sources", product.name, "main.swift")),
 ];
 
 const CPU_TYPE_ARM64 = 0x0100000c;
@@ -89,7 +93,10 @@ ensureDir(outputDir);
 
 const currentHash = computeSourceHash();
 
-if (fs.existsSync(outputBinary) && verifyBinaryArch(outputBinary) && fs.existsSync(hashFile)) {
+if (
+  products.every((product) => fs.existsSync(product.output) && verifyBinaryArch(product.output)) &&
+  fs.existsSync(hashFile)
+) {
   try {
     if (fs.readFileSync(hashFile, "utf8").trim() === currentHash) {
       process.exit(0);
@@ -120,23 +127,25 @@ if (result.status !== 0) {
   process.exit(result.status ?? 1);
 }
 
-const builtBinary = path.join(packageDir, ".build", "release", "parakeet-coreml");
-if (!fs.existsSync(builtBinary)) {
-  console.error(`[parakeet-coreml] Expected build product missing at ${builtBinary}`);
-  process.exit(1);
-}
+for (const product of products) {
+  const builtBinary = path.join(packageDir, ".build", "release", product.name);
+  if (!fs.existsSync(builtBinary)) {
+    console.error(`[parakeet-coreml] Expected build product missing at ${builtBinary}`);
+    process.exit(1);
+  }
 
-fs.copyFileSync(builtBinary, outputBinary);
+  fs.copyFileSync(builtBinary, product.output);
 
-try {
-  fs.chmodSync(outputBinary, 0o755);
-} catch (error) {
-  console.warn(`[parakeet-coreml] Unable to set executable permissions: ${error.message}`);
-}
+  try {
+    fs.chmodSync(product.output, 0o755);
+  } catch (error) {
+    console.warn(`[parakeet-coreml] Unable to set executable permissions: ${error.message}`);
+  }
 
-if (!verifyBinaryArch(outputBinary)) {
-  console.error("[parakeet-coreml] FATAL: built binary is not arm64.");
-  process.exit(1);
+  if (!verifyBinaryArch(product.output)) {
+    console.error(`[parakeet-coreml] FATAL: built ${product.name} is not arm64.`);
+    process.exit(1);
+  }
 }
 
 try {
@@ -145,4 +154,4 @@ try {
   log(`Warning: could not save source hash: ${err.message}`);
 }
 
-log("Successfully built parakeet-coreml (arm64).");
+log("Successfully built parakeet-coreml and call-diarizer (arm64).");

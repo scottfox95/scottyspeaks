@@ -8,7 +8,7 @@ const buttonVariants = cva(
   [
     "inline-flex items-center justify-center gap-2 whitespace-nowrap",
     "rounded text-sm font-medium cursor-pointer select-none",
-    "transition-[background-color,border-color,color,transform] duration-200 ease-out",
+    "transition-[background-color,border-color,color,transform] duration-[var(--dur-fast)] ease-[var(--ease-smooth)]",
     "outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:ring-offset-1 focus-visible:ring-offset-background",
     "disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed",
     "[&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 shrink-0",
@@ -23,8 +23,8 @@ const buttonVariants = cva(
           "border border-primary/60",
           "shadow-sm",
           "hover:bg-primary/95 hover:shadow",
-          "active:bg-primary/85 active:scale-[0.985]",
-          "transition-[background-color,border-color,color,transform] duration-200 ease-out",
+          "active:bg-primary/85 active:scale-[0.98]",
+          "transition-[background-color,border-color,color,transform] duration-[var(--dur-fast)] ease-[var(--ease-smooth)]",
         ].join(" "),
 
         // Success — uses design tokens
@@ -54,9 +54,9 @@ const buttonVariants = cva(
           "border border-border/70",
           "shadow-sm",
           "hover:bg-muted hover:border-border-hover",
-          "active:scale-[0.985]",
+          "active:scale-[0.98]",
           "dark:bg-surface-raised/90 dark:border-border-hover dark:hover:bg-surface-raised",
-          "transition-[background-color,border-color,color,transform] duration-200 ease-out",
+          "transition-[background-color,border-color,color,transform] duration-[var(--dur-fast)] ease-[var(--ease-smooth)]",
         ].join(" "),
 
         // Secondary — uses design tokens
@@ -93,9 +93,9 @@ const buttonVariants = cva(
           "border border-border/60",
           "shadow-sm gap-2",
           "hover:bg-surface-2/90 hover:border-border-hover hover:shadow",
-          "active:scale-[0.985] active:shadow-sm",
+          "active:scale-[0.98] active:shadow-sm",
           "dark:bg-surface-raised/80 dark:border-border-hover dark:hover:bg-surface-raised/95",
-          "transition-[background-color,border-color,color,transform] duration-200 ease-out",
+          "transition-[background-color,border-color,color,transform] duration-[var(--dur-fast)] ease-[var(--ease-smooth)]",
         ].join(" "),
       },
       size: {

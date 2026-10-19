@@ -68,6 +68,7 @@
     "quality-check": "npm run format:check && npm run typecheck",
     "i18n:check": "node scripts/check-i18n.js",
     "preview": "cd src && vite preview",
+    "preview:workspace": "node scripts/preview-workspace.mjs",
     "clean": "node cleanup.js",
     "diagnose": "node scripts/diagnose.js",
     "publish": "node scripts/publish-update.js",
@@ -83,7 +84,9 @@
     "test:speech-ui": "electron tests/electron-speech-smoke.cjs",
     "test:speech-native": "node tests/local-speech-native.cjs",
     "test:target-native": "resources/bin/macos-recording-target --self-test",
-    "test:transcript-ui": "electron tests/electron-transcript-smoke.cjs"
+    "test:transcript-ui": "electron tests/electron-transcript-smoke.cjs",
+    "test:locales-ui": "electron tests/electron-locale-smoke.cjs",
+    "test:workspace-ui": "electron tests/electron-workspace-smoke.cjs"
   },
   "keywords": [
     "dictation",

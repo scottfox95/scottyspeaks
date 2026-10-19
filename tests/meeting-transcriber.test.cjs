@@ -38,6 +38,31 @@ test("local mode never calls the cloud transport", async () => {
   });
   assert.equal(r.segments[0].speaker, "microphone");
   assert.equal(r.segments[0].start, 30);
+  assert.deepEqual(r.words, []);
+  assert.equal(r.timed, undefined);
+});
+test("local word timings are offset into recording time and malformed words dropped", async () => {
+  const r = await transcribeChunk({
+    provider: "local",
+    audio: Buffer.from("audio"),
+    localTranscribe: async () => ({
+      success: true,
+      text: "Hi there",
+      words: [
+        { word: "Hi", start: 0.5, end: 0.8 },
+        { word: "bad", start: "x", end: 1 },
+        { word: "there", start: 1.0, end: 0.9 },
+      ],
+    }),
+    offset: 120,
+    source: "combined",
+    duration: 4,
+  });
+  assert.equal(r.timed, true);
+  assert.deepEqual(r.words, [
+    { word: "Hi", start: 120.5, end: 120.8, speaker: "combined" },
+    { word: "there", start: 121, end: 121, speaker: "combined" },
+  ]);
 });
 test("cloud request uses structured speech endpoint, diarization, and secret only in auth header", async () => {
   let request;

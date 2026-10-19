@@ -384,6 +384,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     try {
       const result = await window.electronAPI?.captureRecordingTarget?.();
       target.token = result?.token || null;
+      target.appName = typeof result?.appName === "string" ? result.appName : "";
       if (target.released && target.token) await window.electronAPI?.releaseRecordingTarget?.(target.token);
     } catch { target.token = null; }
   }
@@ -397,14 +398,17 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
   processingSettings(snapshot = this.captureSnapshot) { return snapshot?.settings || getSettings(); }
 
-  async snapshotCaptureSettings() {
+  async snapshotCaptureSettings(recordingTarget) {
     const settings = { ...getSettings(), customDictionary: [...(getSettings().customDictionary || [])] };
     const agentName = typeof localStorage !== "undefined" ? localStorage.getItem("agentName") : null;
     const model = getEffectiveReasoningModel();
     const provider = getModelProvider(model);
     const { refreshPolishContext, getPolishContext } = await import("../services/polish/polishContext");
-    await refreshPolishContext();
+    await refreshPolishContext({ appName: recordingTarget?.appName });
     const context = getPolishContext();
+    // A concurrent context refresh must not replace this recording's original
+    // destination with whichever application happens to be foreground now.
+    if (recordingTarget?.appName) context.appName = recordingTarget.appName;
     const cleanup = cleanupChoices(settings);
     // A Raw profile is an effective exact-wording override, recorded with the capture.
     if (context.aiPolishDisabled) cleanup.exact = true;
@@ -435,7 +439,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       this._recordingTarget = target;
       if (!recordingTarget) await this.captureRecordingTarget(target);
       if (this._cancelledRecordingAttempt === attempt) return false;
-      await this.snapshotCaptureSettings();
+      await this.snapshotCaptureSettings(target);
       if (this._cancelledRecordingAttempt === attempt) return false;
       if (this.processingSettings().useLocalWhisper) {
         const token = await window.electronAPI.reserveLocalInference();
@@ -487,6 +491,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           if (rms > this._peakRms) this._peakRms = rms;
         }, 100);
       } catch (e) {
+        this.cleanupSilenceDetection();
         logger.warn("Silence detection setup failed, skipping", { error: e.message }, "audio");
         this._peakRms = 1; // assume speech if detection fails
       }
@@ -503,14 +508,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       this.mediaRecorder.onstop = async () => {
         await microphone.release();
         if (this._batchMicrophone === microphone) this._batchMicrophone = null;
-        // Clean up silence detection
-        if (this._silenceInterval) {
-          clearInterval(this._silenceInterval);
-          this._silenceInterval = null;
-        }
-        this._silenceCtx?.close().catch(() => {});
-        this._silenceCtx = null;
-        this._silenceAnalyser = null;
+        this.cleanupSilenceDetection();
 
         this.isRecording = false;
         this.isProcessing = true;
@@ -544,6 +542,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       return true;
     } catch (error) {
       await this.releaseLocalInference();
+      // Releasing push-to-talk while the microphone is opening is a normal
+      // cancellation, not a microphone failure to show to the user.
+      if (this._cancelledRecordingAttempt === attempt) return false;
       let errorTitle = "Recording Error";
       let errorDescription = `Failed to access microphone: ${error.message}`;
 
@@ -567,12 +568,24 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       return false;
     } finally {
       if (!started) {
+        if (this._recordingStartAttempt === attempt) this.cleanupSilenceDetection();
         if (microphone) await microphone.release();
         if (this._batchMicrophone === microphone) this._batchMicrophone = null;
         this.releaseRecordingTarget(target);
       }
       if (this._recordingStartAttempt === attempt) this._recordingStartAttempt = null;
+      if (this._cancelledRecordingAttempt === attempt) this._cancelledRecordingAttempt = null;
     }
+  }
+
+  cleanupSilenceDetection() {
+    if (this._silenceInterval != null) {
+      clearInterval(this._silenceInterval);
+      this._silenceInterval = null;
+    }
+    this._silenceCtx?.close().catch(() => {});
+    this._silenceCtx = null;
+    this._silenceAnalyser = null;
   }
 
   stopRecording() {
@@ -580,15 +593,19 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       this.mediaRecorder.stop();
       return true;
     }
+    if (this._recordingStartAttempt) return this.cancelRecording();
     return false;
   }
 
   cancelRecording() {
+    const wasStarting = !!this._recordingStartAttempt;
     this.releaseRecordingTarget();
     this.releaseRecordingTarget(this._evidenceOperation?.target);
     if (this._evidenceOperation) this._evidenceOperation.cancelled = true;
     this._cancelledRecordingAttempt = this._recordingStartAttempt;
     this.releaseLocalInference();
+    this.cleanupSilenceDetection();
+    this._peakRms = null;
     if (this.mediaRecorder && this.mediaRecorder.state === "recording") {
       this.mediaRecorder.onstop = () => {
         this.isRecording = false;
@@ -609,7 +626,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
       return true;
     }
-    return false;
+    return wasStarting;
   }
 
   cancelProcessing() {
@@ -2158,6 +2175,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       isProcessing: this.isProcessing,
       isStreaming: this.isStreaming,
       isStreamingStartInProgress: this.streamingStartInProgress,
+      isRecordingStartInProgress: !!this._recordingStartAttempt,
     };
   }
 
@@ -2298,7 +2316,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       this._recordingTarget = target;
       await this.captureRecordingTarget(target);
       if (target.released || !this.streamingStartInProgress) return false;
-      await this.snapshotCaptureSettings();
+      await this.snapshotCaptureSettings(target);
       if (target.released || !this.streamingStartInProgress) return false;
 
       const t0 = performance.now();
@@ -2840,8 +2858,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       this.cleanupStreaming();
     }
     if (this.mediaRecorder?.state === "recording") {
-      this.stopRecording();
+      this.cancelRecording();
     }
+    this.cleanupSilenceDetection();
     if (this.persistentAudioContext && this.persistentAudioContext.state !== "closed") {
       this.persistentAudioContext.close().catch(() => {});
       this.persistentAudioContext = null;

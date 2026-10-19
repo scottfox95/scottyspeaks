@@ -70,22 +70,24 @@ export function getPolishContextBlocks(contextOverride?: PolishContext): string 
 }
 
 /** Fire-and-forget refresh; safe to call often (coalesces concurrent calls). */
-export function refreshPolishContext(): Promise<void> {
+export function refreshPolishContext(options: { appName?: string } = {}): Promise<void> {
   if (refreshInFlight) return refreshInFlight;
-  refreshInFlight = doRefresh().finally(() => {
+  refreshInFlight = doRefresh(options.appName).finally(() => {
     refreshInFlight = null;
   });
   return refreshInFlight;
 }
 
-async function doRefresh(): Promise<void> {
+async function doRefresh(appName?: string): Promise<void> {
   const api = (window as any).electronAPI;
   if (!api) return;
 
   try {
     const [profile, appInfo, examples] = await Promise.all([
       api.getActiveStyleProfile?.().catch(() => null),
-      api.getFrontmostApp?.().catch(() => null),
+      // Native target capture already identified the destination. Reuse it to
+      // avoid another process launch before the microphone can start.
+      appName ? { name: appName } : api.getFrontmostApp?.().catch(() => null),
       api.getStyleExamples?.(MAX_EXAMPLES).catch(() => []),
     ]);
 

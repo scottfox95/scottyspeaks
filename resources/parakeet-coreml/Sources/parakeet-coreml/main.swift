@@ -16,10 +16,14 @@ import FluidAudio
 //   {"type":"ready","loadMs":1234}
 //   {"type":"result","text":"...","ms":123,"confidence":0.94,"rtf":0.04}
 //   {"type":"error","message":"..."}
+// With `"timings":true` in the meta JSON, results also carry
+//   "words":[["word",startSeconds,endSeconds],...]
+// which call transcription uses to attribute words to diarized speakers.
 // Human-readable logs go to stderr so they never corrupt the protocol stream.
 
 struct RequestMeta: Decodable {
   let language: String?
+  let timings: Bool?
 }
 
 let stderrHandle = FileHandle.standardError
@@ -87,6 +91,34 @@ func float32Samples(from data: Data) -> [Float] {
   }
 }
 
+/// SentencePiece tokens that begin with whitespace start a new word; the rest
+/// continue the current one.
+func mergeTokensIntoWords(_ timings: [TokenTiming]) -> [[Any]] {
+  var words: [[Any]] = []
+  var current = ""
+  var start: TimeInterval?
+  var end: TimeInterval = 0
+  func flush() {
+    if !current.isEmpty, let start {
+      words.append([current, (start * 1000).rounded() / 1000, (end * 1000).rounded() / 1000])
+    }
+  }
+  for timing in timings {
+    let token = timing.token
+    if token.hasPrefix(" ") || token.hasPrefix("\n") || token.hasPrefix("\t") {
+      flush()
+      current = token.trimmingCharacters(in: .whitespacesAndNewlines)
+      start = timing.startTime
+    } else {
+      if start == nil { start = timing.startTime }
+      current += token
+    }
+    end = timing.endTime
+  }
+  flush()
+  return words
+}
+
 func argValue(_ name: String) -> String? {
   let args = CommandLine.arguments
   guard let index = args.firstIndex(of: name), index + 1 < args.count else { return nil }
@@ -152,12 +184,14 @@ while true {
     break
   }
 
-  let meta = (try? JSONDecoder().decode(RequestMeta.self, from: metaData)) ?? RequestMeta(language: nil)
+  let meta =
+    (try? JSONDecoder().decode(RequestMeta.self, from: metaData))
+    ?? RequestMeta(language: nil, timings: nil)
   let language = meta.language.flatMap { $0 == "auto" ? nil : Language(rawValue: $0) } ?? defaultLanguage
 
   let samples = float32Samples(from: audioData)
   if samples.isEmpty {
-    emit(["type": "result", "text": "", "ms": 0])
+    emit(["type": "result", "text": "", "ms": 0, "words": [] as [Any]])
     continue
   }
 
@@ -167,13 +201,17 @@ while true {
     let result = try await manager.transcribe(samples, decoderState: &state, language: language)
     let ms = Int(Date().timeIntervalSince(start) * 1000)
     let audioSeconds = Double(samples.count) / 16000.0
-    emit([
+    var reply: [String: Any] = [
       "type": "result",
       "text": result.text,
       "ms": ms,
       "confidence": result.confidence,
       "rtf": audioSeconds > 0 ? Double(ms) / 1000.0 / audioSeconds : 0,
-    ])
+    ]
+    if meta.timings == true {
+      reply["words"] = mergeTokensIntoWords(result.tokenTimings ?? [])
+    }
+    emit(reply)
   } catch {
     logLine("transcription failed: \(error)")
     emit(["type": "error", "message": "\(error)"])

@@ -406,6 +406,10 @@ class IPCHandlers {
       return this.databaseManager.getTranscriptions(limit);
     });
 
+    ipcMain.handle("db-query-transcriptions", async (event, options) => {
+      return this.databaseManager.queryTranscriptions(options);
+    });
+
     ipcMain.handle("db-clear-transcriptions", async (event) => {
       const result = this.databaseManager.clearTranscriptions();
       if (result?.success) {

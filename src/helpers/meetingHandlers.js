@@ -5,7 +5,21 @@ const path = require("path");
 const crypto = require("crypto");
 const { MeetingStore, parseTranscript } = require("./meetingStore");
 const { MeetingRecorder } = require("./meetingRecorder");
-const { prepareChunks, transcribeChunk, wavInfo, audioDuration } = require("./meetingTranscriber");
+const {
+  prepareChunks,
+  prepareDiarizationAudio,
+  prepareTrackPcm,
+  transcribeChunk,
+  wavInfo,
+  audioDuration,
+} = require("./meetingTranscriber");
+const {
+  attributeWords,
+  buildSegments,
+  frameLevels,
+  microphoneSpeaker,
+} = require("./meetingDiarization");
+const debugLogger = require("./debugLogger");
 const TRANSCRIPTION_CACHE_VERSION = 3;
 function isTransientCloudError(error) {
   const status = Number(error?.status);
@@ -31,6 +45,7 @@ function registerMeetingHandlers({
   audioEvidence,
   localSpeech,
   cloudFetch,
+  callDiarizer = null,
 }) {
   const root = path.join(app.getPath("userData"), "call-notes");
   const store = new MeetingStore(root);
@@ -82,7 +97,76 @@ function registerMeetingHandlers({
       ? whisperManager.transcribeLocalWhisper(audio, { model: settings.localModel || "base" })
       : parakeetManager.transcribeLocalParakeet(audio, {
           model: settings.localModel || "parakeet-tdt-0.6b-v3",
+          wordTimings: true,
         });
+  // Identifies the diarized speaker carried by the microphone track, when a
+  // group holds exactly one microphone and one call-audio track.
+  async function microphoneSpeakerFor(group, diarization, work) {
+    const microphone = group.inputs.find((input) => input.source === "microphone");
+    const system = group.inputs.find((input) => input.source === "system");
+    if (group.inputs.length !== 2 || !microphone || !system) return null;
+    const frameSamples = Math.round(16000 * diarization.frameSeconds);
+    const levels = [];
+    for (const [index, input] of [microphone, system].entries()) {
+      const file = path.join(work, `levels-${group.index}-${index}.pcm`);
+      await prepareTrackPcm(input.path, file);
+      levels.push(frameLevels(fs.readFileSync(file), frameSamples));
+      fs.rmSync(file, { force: true });
+    }
+    return microphoneSpeaker(diarization, levels[0], levels[1]);
+  }
+  // Splits each local recording group's transcript into speaker paragraphs.
+  // Diarization runs once per group so speaker numbers hold for the whole
+  // take. It is best-effort: when timings are missing (Whisper or the
+  // sherpa-onnx engine) or the diarizer fails, the unattributed transcript is
+  // kept. Cached chunk results stay raw; attribution is recomputed per job.
+  async function attributeSpeakers({ groups, chunks, results, work, signal }) {
+    if (!callDiarizer?.isAvailable()) return results;
+    const attributed = [...results];
+    for (const group of groups) {
+      const members = chunks.flatMap((chunk, index) => (chunk.group === group.index ? [index] : []));
+      if (!members.every((index) => results[index].timed || !results[index].text)) continue;
+      const words = members.flatMap((index) => results[index].words);
+      if (!words.length) continue;
+      try {
+        const audio = await prepareDiarizationAudio(
+          group.inputs,
+          path.join(work, `diarize-${group.index}.wav`)
+        );
+        const diarization = await inferenceScheduler.run(
+          () =>
+            callDiarizer.diarize(audio, path.join(work, `diarize-${group.index}.f32`), { signal }),
+          { priority: "background", signal }
+        );
+        const labels = attributeWords(words, diarization, group.offset);
+        const microphone = await microphoneSpeakerFor(group, diarization, work);
+        const labelled = words.map((word, index) => ({
+          ...word,
+          speaker:
+            labels[index] === null
+              ? group.source
+              : labels[index] === microphone
+                ? "microphone"
+                : `part-${group.index}:${labels[index]}`,
+        }));
+        const segments = buildSegments(labelled);
+        members.forEach((index, position) => {
+          attributed[index] = {
+            ...results[index],
+            segments: position ? [] : segments,
+            words: position ? [] : labelled,
+          };
+        });
+      } catch (error) {
+        if (signal.aborted) throw error;
+        debugLogger.warn("Call speaker diarization failed; keeping unattributed transcript", {
+          group: group.index,
+          error: error.message,
+        });
+      }
+    }
+    return attributed;
+  }
   async function transcribe(id, { force = false } = {}) {
     if (jobs.size) throw new Error("A call is already being transcribed");
     const original = store.get(id);
@@ -114,7 +198,15 @@ function registerMeetingHandlers({
         const keywords = databaseManager.getDictionary().filter((v) => typeof v === "string");
         const signature = crypto
           .createHash("sha256")
-          .update(JSON.stringify({ settings, audio, keywords }))
+          .update(
+            JSON.stringify({
+              settings,
+              audio,
+              keywords,
+              // Local results now carry word timings; older local caches lack them.
+              ...(settings.provider === "local" ? { wordTimings: true } : {}),
+            })
+          )
           .digest("hex");
         const old = original.transcriptionCache;
         const cache =
@@ -122,6 +214,7 @@ function registerMeetingHandlers({
             ? old
             : { version: TRANSCRIPTION_CACHE_VERSION, signature, results: {} };
         let chunks = [];
+        const localGroups = [];
         if (settings.provider === "openrouter") {
           const groups = new Map();
           for (const entry of audio) {
@@ -160,19 +253,21 @@ function registerMeetingHandlers({
           let index = 0;
           for (const group of groups.values()) {
             const source = group.length > 1 ? "combined" : group[0].source;
-            const prepared = await prepareChunks(
-              group.map((entry) => ({
-                path: path.join(store.directory(id), entry.file),
-                source: entry.source,
-              })),
-              path.join(work, String(index)),
-              { mix: group.length > 1, source }
-            );
+            const inputs = group.map((entry) => ({
+              path: path.join(store.directory(id), entry.file),
+              source: entry.source,
+            }));
+            const prepared = await prepareChunks(inputs, path.join(work, String(index)), {
+              mix: group.length > 1,
+              source,
+            });
+            localGroups.push({ index, inputs, source, offset: group[0].offset || 0 });
             chunks.push(
               ...prepared.map((c) => ({
                 ...c,
                 offset: c.offset + (group[0].offset || 0),
                 key: `${index}:${c.offset}`,
+                group: index,
               }))
             );
             index++;
@@ -240,7 +335,19 @@ function registerMeetingHandlers({
         }
         if (controller.signal.aborted)
           throw new Error("Transcription cancelled; saved audio is retained");
-        const results = chunks.map((c) => cache.results[c.key]);
+        const raw = chunks.map((c) => cache.results[c.key]);
+        const results =
+          settings.provider === "local"
+            ? await attributeSpeakers({
+                groups: localGroups,
+                chunks,
+                results: raw,
+                work,
+                signal: controller.signal,
+              })
+            : raw;
+        if (controller.signal.aborted)
+          throw new Error("Transcription cancelled; saved audio is retained");
         const segments = results.flatMap((r) => r.segments).sort((a, b) => a.start - b.start);
         const words = results.flatMap((r) => r.words).sort((a, b) => a.start - b.start);
         const current = store.get(id);
@@ -285,7 +392,7 @@ function registerMeetingHandlers({
     return store.get(id);
   }
   const methods = {
-    list: () => store.list(),
+    list: (args) => store.list(args),
     create: () => store.create(),
     get: ({ id }) => store.get(id),
     save: ({ id, patch, revision }) => store.save(id, patch, revision),

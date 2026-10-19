@@ -21,6 +21,19 @@ const REPO_FOLDER = "parakeet-tdt-0.6b-v3";
 const STARTUP_TIMEOUT_MS = 900000; // first run downloads ~470MB of CoreML models
 const TRANSCRIPTION_TIMEOUT_MS = 300000;
 
+// The helper sends words as compact [word, startSeconds, endSeconds] tuples.
+function parseWords(raw) {
+  return raw
+    .filter(
+      (entry) =>
+        Array.isArray(entry) &&
+        typeof entry[0] === "string" &&
+        Number.isFinite(entry[1]) &&
+        Number.isFinite(entry[2])
+    )
+    .map(([word, start, end]) => ({ word, start, end }));
+}
+
 class ParakeetCoremlServer {
   constructor() {
     this.process = null;
@@ -179,6 +192,7 @@ class ParakeetCoremlServer {
           elapsed: message.ms || 0,
           confidence: message.confidence,
           rtf: message.rtf,
+          ...(Array.isArray(message.words) ? { words: parseWords(message.words) } : {}),
         });
       }
     }
@@ -196,6 +210,7 @@ class ParakeetCoremlServer {
   /// `samplesBuffer` is raw little-endian float32 mono PCM. Unlike the
   /// sherpa-onnx path this needs no manual 15s segmentation — FluidAudio
   /// windows long audio internally and merges on the overlap.
+  /// `options.timings` adds per-word `{ word, start, end }` (seconds) to the result.
   transcribe(samplesBuffer, sampleRate = 16000, options = {}) {
     if (!this.ready || !this.process) {
       return Promise.reject(new Error("parakeet-coreml server is not running"));
@@ -215,7 +230,10 @@ class ParakeetCoremlServer {
 
       this.pending.push({ resolve, reject, timer });
 
-      const meta = Buffer.from(JSON.stringify({ language: options.language || "auto" }), "utf8");
+      const meta = Buffer.from(
+        JSON.stringify({ language: options.language || "auto", timings: options.timings === true }),
+        "utf8"
+      );
       const header = Buffer.alloc(8);
       header.writeUInt32LE(meta.length, 0);
       header.writeUInt32LE(samplesBuffer.length, 4);

@@ -2,22 +2,24 @@ import { SpeechProvider } from "./hooks/useSpeech";
 import React, { Suspense, useState, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import { I18nextProvider, useTranslation } from "react-i18next";
-import App from "./App.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
 import { ToastProvider } from "./components/ui/Toast.tsx";
 import { SettingsProvider } from "./hooks/useSettings";
 import { useTheme } from "./hooks/useTheme";
-import i18n from "./i18n";
+import i18n, { i18nReady } from "./i18n";
 import "./index.css";
 
 const controlPanelImport = () => import("./components/ControlPanel.tsx");
 const onboardingFlowImport = () => import("./components/OnboardingFlow.tsx");
+const dictationAppImport = () => import("./App.jsx");
 const ControlPanel = React.lazy(controlPanelImport);
 const OnboardingFlow = React.lazy(onboardingFlowImport);
+const App = React.lazy(dictationAppImport);
 
 let root = null;
 
-mountApp();
+// Wait for the saved language before the first frame; English is already local.
+void i18nReady.then(mountApp);
 
 function AppRouter() {
   useTheme();
@@ -36,6 +38,8 @@ function AppRouter() {
       if (!localStorage.getItem("onboardingCompleted")) {
         onboardingFlowImport().catch(() => {});
       }
+    } else {
+      dictationAppImport().catch(() => {});
     }
   }, [isControlPanel]);
 
@@ -79,7 +83,9 @@ function AppRouter() {
       <ControlPanel />
     </Suspense>
   ) : (
-    <App />
+    <Suspense fallback={<LoadingFallback />}>
+      <App />
+    </Suspense>
   );
 }
 
@@ -132,7 +138,9 @@ function mountApp() {
         <I18nextProvider i18n={i18n}>
           <SettingsProvider>
             <ToastProvider>
-              <SpeechProvider><AppRouter /></SpeechProvider>
+              <SpeechProvider>
+                <AppRouter />
+              </SpeechProvider>
             </ToastProvider>
           </SettingsProvider>
         </I18nextProvider>

@@ -240,7 +240,11 @@ class ParakeetManager {
 
     const startTime = Date.now();
     const language = options.language || "auto";
-    const result = await this.serverManager.transcribe(audioBuffer, { modelName: model, language });
+    const result = await this.serverManager.transcribe(audioBuffer, {
+      modelName: model,
+      language,
+      wordTimings: options.wordTimings === true,
+    });
     const elapsed = Date.now() - startTime;
 
     debugLogger.logSTTPipeline("transcribeLocalParakeet - completed", {
@@ -268,7 +272,7 @@ class ParakeetManager {
       return { success: false, message: "No audio detected" };
     }
 
-    return { success: true, text };
+    return { success: true, text, ...(Array.isArray(output.words) ? { words: output.words } : {}) };
   }
 
   async downloadParakeetModel(modelName, progressCallback = null) {

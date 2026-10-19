@@ -927,7 +927,11 @@
         "enterprise": {
           "name": "Enterprise",
           "price": "Individuell",
-          "features": ["Cloud-Synchronisation", "Team-Funktionen (demnächst)", "SSO & Compliance"],
+          "features": [
+            "Cloud-Synchronisation",
+            "Team-Funktionen (demnächst)",
+            "SSO & Compliance"
+          ],
           "cta": "Kontakt aufnehmen"
         },
         "currentPlan": "Aktueller Tarif"
@@ -1890,5 +1894,54 @@
     "notes": "Notizen",
     "transcript": "Transkript",
     "draft": "Agentenentwurf"
+  },
+  "historyHome": {
+    "welcome": "Willkommen zurück, Scott",
+    "description": "Finde, was du gesagt hast. Mach dort weiter, wo du aufgehört hast.",
+    "usage": "{{dictations}} Diktate · {{words}} Wörter",
+    "tools": "Diktierwerkzeuge",
+    "copyLatest": "Letztes kopieren",
+    "searchLabel": "Alle Diktate durchsuchen",
+    "searchPlaceholder": "Alle Diktate durchsuchen…",
+    "searchHelp": "Durchsucht den gesamten Verlauf, auch den ursprünglichen Wortlaut vor Änderungen. ⌘/Strg F zum Fokussieren.",
+    "clear": "Leeren",
+    "loadError": "Der Verlauf konnte nicht geladen werden. Deine gespeicherten Diktate sind weiterhin auf diesem Mac.",
+    "retry": "Erneut versuchen",
+    "results": "Suchergebnisse",
+    "history": "Deine Diktate",
+    "shown": "{{count}} angezeigt",
+    "noResults": "Keine passenden Diktate",
+    "tryAnother": "Versuche ein anderes Wort oder leere die Suche.",
+    "loadMore": "Ältere Diktate laden"
+  },
+  "workspace": {
+    "workspace": "Arbeitsbereich",
+    "personalize": "Für dich anpassen",
+    "navigation": "Hauptnavigation",
+    "dictation": "Diktat",
+    "snippets": "Textbausteine",
+    "style": "Schreibstil",
+    "callsSubtitle": "Gespräch aufzeichnen. Das Wichtige behalten.",
+    "recordNew": "Anruf aufnehmen",
+    "stopping": "Wird beendet…",
+    "searchCalls": "Anrufe und Notizen durchsuchen",
+    "noCalls": "Keine passenden Anrufe. Versuche einen anderen Suchbegriff.",
+    "markMoment": "Moment markieren",
+    "actionItem": "Aufgabe",
+    "useTemplate": "Besprechungsgliederung verwenden",
+    "notesTemplate": "## Entscheidungen\n\n- \n\n## Aufgaben\n\n- [ ] \n\n## Offene Fragen\n\n- ",
+    "notesPlaceholder": "Was ist an diesem Gespräch wichtig?\n\nEntscheidungen, nächste Schritte und alles, was du dir merken möchtest.",
+    "addToNotes": "Zu Notizen hinzufügen",
+    "saveFailed": "Speichern fehlgeschlagen. Deine Änderung ist noch da. Versuche es erneut.",
+    "learnFailed": "Deine Änderung wurde gespeichert, aber das Lernen deines Stils ist fehlgeschlagen.",
+    "editDictation": "Diktat bearbeiten",
+    "copyText": "Text kopieren",
+    "saveAndLearn": "Speichern und lernen",
+    "learned": "Gelernt",
+    "editHint": "Deine Korrektur zeigt der Textüberarbeitung deinen Stil."
+  },
+  "workspacePreview": {
+    "banner": "Interaktive Vorschau · Beispieldaten · Aufnahme wird simuliert",
+    "desktopOnly": "Diese Funktion ist in der Desktop-App verfügbar."
   }
 }

@@ -96,6 +96,7 @@
         "llama-server-*",
         "sherpa-onnx-*",
         "parakeet-coreml-*",
+        "call-diarizer-*",
         "linux-fast-paste",
         "linux-text-monitor",
         "windows-fast-paste.exe",

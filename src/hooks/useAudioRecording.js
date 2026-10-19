@@ -35,6 +35,9 @@ export const useAudioRecording = (toast, options = {}) => {
 
       if (didStart) {
         void playStartCue();
+      } else {
+        commandModeRef.current = false;
+        if (audioManagerRef.current) audioManagerRef.current.commandMode = false;
       }
 
       return didStart;
@@ -50,7 +53,13 @@ export const useAudioRecording = (toast, options = {}) => {
       if (!audioManagerRef.current) return false;
 
       const currentState = audioManagerRef.current.getState();
-      if (!currentState.isRecording && !currentState.isStreamingStartInProgress) return false;
+      if (
+        !currentState.isRecording &&
+        !currentState.isRecordingStartInProgress &&
+        !currentState.isStreamingStartInProgress
+      ) {
+        return false;
+      }
 
       if (currentState.isStreaming || currentState.isStreamingStartInProgress) {
         void playStopCue();
@@ -288,10 +297,14 @@ export const useAudioRecording = (toast, options = {}) => {
       if (!audioManagerRef.current) return;
       const currentState = audioManagerRef.current.getState();
 
-      if (!currentState.isRecording && !currentState.isProcessing) {
-        await performStartRecording();
-      } else if (currentState.isRecording) {
+      if (
+        currentState.isRecording ||
+        currentState.isRecordingStartInProgress ||
+        currentState.isStreamingStartInProgress
+      ) {
         await performStopRecording();
+      } else if (!currentState.isProcessing) {
+        await performStartRecording();
       }
     };
 
@@ -376,10 +389,16 @@ export const useAudioRecording = (toast, options = {}) => {
   };
 
   const toggleListening = async () => {
-    if (!isRecording && !isProcessing) {
-      await startRecording();
-    } else if (isRecording) {
+    const currentState = audioManagerRef.current?.getState();
+    if (!currentState) return;
+    if (
+      currentState.isRecording ||
+      currentState.isRecordingStartInProgress ||
+      currentState.isStreamingStartInProgress
+    ) {
       await stopRecording();
+    } else if (!currentState.isProcessing) {
+      await startRecording();
     }
   };
 

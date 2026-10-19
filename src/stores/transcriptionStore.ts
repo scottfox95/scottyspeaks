@@ -96,7 +96,8 @@ export function removeTranscription(id: number) {
   if (id == null) return;
   const { transcriptions } = useTranscriptionStore.getState();
   const next = transcriptions.filter((item) => item.id !== id);
-  if (next.length === transcriptions.length) return;
+  // Paginated/search views may contain an older item outside this recent cache.
+  // Publish the deletion even then so those views refresh their query.
   useTranscriptionStore.setState({ transcriptions: next });
 }
 

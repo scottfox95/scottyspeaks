@@ -116,10 +116,17 @@ class MeetingStore {
       fs.closeSync(fd);
     }
   }
-  list() {
+  list({ query = "" } = {}) {
+    if (typeof query !== "string" || query.length > 1000) throw new Error("Invalid call search");
+    const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     return this.index.ids
       .flatMap((id) => {
         try {
+          const item = this.get(id);
+          if (terms.length) {
+            const text = `${item.title || ""}\n${item.notes || ""}\n${item.transcript || ""}`.toLocaleLowerCase();
+            if (!terms.every((term) => text.includes(term))) return [];
+          }
           const {
             id: meetingId,
             title,
@@ -129,9 +136,11 @@ class MeetingStore {
             revision,
             exportPath,
             provider,
-          } = this.get(id);
+            recordedDuration,
+          } = item;
+          const preview = (item.notes?.trim() || item.transcript?.trim() || "").slice(0, 160);
           return [
-            { id: meetingId, title, createdAt, updatedAt, status, revision, exportPath, provider },
+            { id: meetingId, title, createdAt, updatedAt, status, revision, exportPath, provider, recordedDuration, preview },
           ];
         } catch {
           return [];

@@ -927,7 +927,11 @@
         "enterprise": {
           "name": "Enterprise",
           "price": "Custom",
-          "features": ["Cloud sync", "Team features (coming soon)", "SSO & compliance"],
+          "features": [
+            "Cloud sync",
+            "Team features (coming soon)",
+            "SSO & compliance"
+          ],
           "cta": "Contact Us"
         },
         "currentPlan": "Current plan"
@@ -1890,5 +1894,54 @@
     "notes": "Notes",
     "transcript": "Transcript",
     "draft": "Agent draft"
+  },
+  "historyHome": {
+    "welcome": "Welcome back, Scott",
+    "description": "Find what you said. Pick up where you left off.",
+    "usage": "{{dictations}} dictations · {{words}} words",
+    "tools": "Dictation tools",
+    "copyLatest": "Copy latest",
+    "searchLabel": "Search all dictations",
+    "searchPlaceholder": "Search all dictations…",
+    "searchHelp": "Searches your full history, including original words before edits. ⌘/Ctrl F to focus.",
+    "clear": "Clear",
+    "loadError": "Could not load your history. Your saved dictations are still on this Mac.",
+    "retry": "Try again",
+    "results": "Search results",
+    "history": "Your dictations",
+    "shown": "{{count}} shown",
+    "noResults": "No matching dictations",
+    "tryAnother": "Try a different word or clear the search.",
+    "loadMore": "Load older dictations"
+  },
+  "workspace": {
+    "workspace": "Workspace",
+    "personalize": "Make it yours",
+    "navigation": "Main navigation",
+    "dictation": "Dictation",
+    "snippets": "Snippets",
+    "style": "Writing style",
+    "callsSubtitle": "Record the conversation. Keep the useful parts.",
+    "recordNew": "Record a call",
+    "stopping": "Stopping…",
+    "searchCalls": "Search calls and notes",
+    "noCalls": "No matching calls. Try another phrase.",
+    "markMoment": "Mark moment",
+    "actionItem": "Action item",
+    "useTemplate": "Use meeting outline",
+    "notesTemplate": "## Decisions\n\n- \n\n## Action items\n\n- [ ] \n\n## Open questions\n\n- ",
+    "notesPlaceholder": "What matters from this conversation?\n\nDecisions, next steps, and anything you want to remember.",
+    "addToNotes": "Add to notes",
+    "saveFailed": "Could not save. Your edit is still here — try again.",
+    "learnFailed": "Your edit was saved, but style learning failed.",
+    "editDictation": "Edit dictation",
+    "copyText": "Copy text",
+    "saveAndLearn": "Save & learn",
+    "learned": "Learned",
+    "editHint": "Your correction teaches the polish engine your style."
+  },
+  "workspacePreview": {
+    "banner": "Interactive preview · Sample data · Recording is simulated",
+    "desktopOnly": "This feature is available in the desktop app."
   }
 }
