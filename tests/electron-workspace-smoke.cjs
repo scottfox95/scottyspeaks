@@ -33,16 +33,17 @@ async function clickExpression(expression, label) {
     () => js(`(()=>{const b=${expression};return !!b&&!b.disabled})()`),
     "enabled " + label
   );
-  const point = await js(
-    `(()=>{const b=${expression};b.scrollIntoView({block:'center'});const r=b.getBoundingClientRect();return {x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)}})()`
-  );
-  assert.equal(
-    await js(
-      `document.elementFromPoint(${point.x},${point.y})?.closest('button') === (${expression})`
-    ),
-    true,
-    "Unobscured " + label
-  );
+  // The previous click (e.g. opening a call) may still be flipping `busy`, which
+  // briefly disables every button (pointer-events: none) and would make a single
+  // hit-test sample fail. Measure and hit-test in one evaluation, and wait until
+  // the button is enabled and unobscured; a persistent overlay still times out.
+  let point = null;
+  await waitFor(async () => {
+    point = await js(
+      `(()=>{const b=${expression};if(!b||b.disabled)return null;b.scrollIntoView({block:'center'});const r=b.getBoundingClientRect();const p={x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)};return document.elementFromPoint(p.x,p.y)?.closest('button')===b?p:null})()`
+    );
+    return !!point;
+  }, "unobscured " + label);
   window.webContents.sendInputEvent({ type: "mouseDown", ...point, button: "left", clickCount: 1 });
   window.webContents.sendInputEvent({ type: "mouseUp", ...point, button: "left", clickCount: 1 });
 }
