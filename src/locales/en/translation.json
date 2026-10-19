@@ -4,7 +4,7 @@
       "sectionTitle": "Language",
       "sectionDescription": "Set interface and transcription languages independently",
       "uiLabel": "Interface language",
-      "uiDescription": "Choose the language used throughout OpenWhispr's interface",
+      "uiDescription": "Choose the language used throughout ScottySpeaks's interface",
       "transcriptionLabel": "Transcription language",
       "transcriptionDescription": "Choose the language you speak for more accurate transcription"
     }
@@ -15,12 +15,12 @@
       "hide": "Hide Dictation Panel"
     },
     "openControlPanel": "Open Control Panel",
-    "quit": "Quit OpenWhispr",
-    "tooltip": "OpenWhispr - Voice Dictation"
+    "quit": "Quit ScottySpeaks",
+    "tooltip": "ScottySpeaks - Voice Dictation"
   },
   "menu": {
-    "appLabel": "OpenWhispr",
-    "quit": "Quit OpenWhispr",
+    "appLabel": "ScottySpeaks",
+    "quit": "Quit ScottySpeaks",
     "speech": "Speech",
     "help": "Help",
     "learnMore": "Learn More",
@@ -37,8 +37,8 @@
       "message": "Failed to open the link in your browser:\n{{url}}\n\nError: {{error}}"
     },
     "loadFailure": {
-      "title": "OpenWhispr failed to load",
-      "message": "OpenWhispr could not load its UI.",
+      "title": "ScottySpeaks failed to load",
+      "message": "ScottySpeaks could not load its UI.",
       "detail": {
         "window": "Window: {{windowName}}",
         "error": "Error {{errorCode}}: {{errorDescription}}",
@@ -49,17 +49,17 @@
   },
   "startup": {
     "error": {
-      "title": "OpenWhispr Startup Error",
+      "title": "ScottySpeaks Startup Error",
       "message": "Failed to start the application:\n\n{{error}}\n\nPlease report this issue."
     },
     "globeHotkey": {
       "title": "Globe Hotkey Unavailable",
-      "message": "OpenWhispr could not activate the Globe key hotkey.",
+      "message": "ScottySpeaks could not activate the Globe key hotkey.",
       "details": {
         "unknown": "Unknown error occurred while starting the Globe listener.",
         "fallback": "The Globe key shortcut will remain disabled; existing keyboard shortcuts continue to work.",
         "devHint": "Run `npm run compile:globe` and rebuild the app to regenerate the listener binary.",
-        "reinstallHint": "Try reinstalling OpenWhispr or contact support if the issue persists."
+        "reinstallHint": "Try reinstalling ScottySpeaks or contact support if the issue persists."
       }
     }
   },
@@ -79,9 +79,9 @@
     "accessibility": "Accessibility settings are not available on this platform."
   },
   "titleBar": {
-    "quitTitle": "Quit OpenWhispr",
-    "quitConfirmTitle": "Quit OpenWhispr?",
-    "quitConfirmDescription": "This will close OpenWhispr and stop background processes.",
+    "quitTitle": "Quit ScottySpeaks",
+    "quitConfirmTitle": "Quit ScottySpeaks?",
+    "quitConfirmDescription": "This will close ScottySpeaks and stop background processes.",
     "quit": "Quit",
     "cancel": "Cancel"
   },
@@ -157,7 +157,7 @@
       "accessibilityTitle": "Accessibility",
       "accessibilityDescription": "To paste text into apps",
       "testAndGrant": "Test & Grant",
-      "requiredForApp": "Required for OpenWhispr to work",
+      "requiredForApp": "Required for ScottySpeaks to work",
       "microphoneRequired": "Microphone access required"
     },
     "transcription": {
@@ -185,7 +185,7 @@
       "problemTitle": "Update ran into a problem",
       "problemDescription": "We couldn't complete the update. Please try again later.",
       "installTitle": "Install Update",
-      "installDescription": "OpenWhispr will restart to apply the update. Any in-progress work will be saved.",
+      "installDescription": "ScottySpeaks will restart to apply the update. Any in-progress work will be saved.",
       "couldNotInstallTitle": "Couldn't install update",
       "couldNotInstallDescription": "Something went wrong. Please try again.",
       "couldNotDownloadTitle": "Couldn't download update",
@@ -281,7 +281,14 @@
     },
     "parakeet": {
       "multilingual": "25 languages",
-      "english": "English"
+      "english": "English",
+      "engine": {
+        "label": "Compute",
+        "neuralEngine": "Neural Engine",
+        "cpu": "CPU",
+        "description": "The Neural Engine runs the same model about 3x faster and starts up quicker. CPU is the fallback if anything looks wrong.",
+        "downloadPending": "downloading model…"
+      }
     },
     "apiKeyOptional": "API Key (Optional)",
     "getKey": "Get key ->",
@@ -378,7 +385,7 @@
       "micErrors": {
         "accessFailed": "Microphone access failed. Please try again.",
         "noMicrophones": "No microphones were detected. Connect or select a microphone in {{settingsPath}}.",
-        "permissionDenied": "Permission was denied. Open {{privacyPath}} and allow OpenWhispr.",
+        "permissionDenied": "Permission was denied. Open {{privacyPath}} and allow ScottySpeaks.",
         "couldNotStart": "Could not start the selected microphone. Choose an input device in {{settingsPath}}, then rerun the test.",
         "noActiveInput": "No active audio input was found. Pick a microphone in {{settingsPath}}.",
         "unknown": "Microphone access failed: {{error}}. Select a different input device and try again.",
@@ -407,8 +414,8 @@
         "accessibilityNeeded": "Please grant accessibility permissions in System Settings to enable automatic text pasting.",
         "windowsReady": "Windows does not require special permissions for automatic pasting. You're all set!",
         "linuxReadyWithMethod": "Automatic pasting is available using {{method}}. You are all set!",
-        "waylandClipboardMode": "Automatic pasting is not available on this Wayland session. OpenWhispr will copy text to your clipboard and you can paste with Ctrl+V.",
-        "optionalPasteTool": "For automatic pasting, install {{tool}}:\n\n{{installCmd}}{{waylandNote}}\n\nWithout this, you can still use OpenWhispr - text will be copied to your clipboard and you can paste with Ctrl+V."
+        "waylandClipboardMode": "Automatic pasting is not available on this Wayland session. ScottySpeaks will copy text to your clipboard and you can paste with Ctrl+V.",
+        "optionalPasteTool": "For automatic pasting, install {{tool}}:\n\n{{installCmd}}{{waylandNote}}\n\nWithout this, you can still use ScottySpeaks - text will be copied to your clipboard and you can paste with Ctrl+V."
       },
       "alerts": {
         "accessibilityNeeded": "Accessibility permissions needed! Please grant them in System Settings."
@@ -421,7 +428,7 @@
         "defaultPasteTool": "xdotool",
         "xdotoolXwayland": "xdotool (XWayland apps)"
       },
-      "accessibilityTestText": "OpenWhispr accessibility test",
+      "accessibilityTestText": "ScottySpeaks accessibility test",
       "warning": {
         "messages": {
           "macos": "Check Sound settings to select your input device",
@@ -491,7 +498,7 @@
       "continueWithGoogle": "Continue with Google"
     },
     "welcomeSubtitle": "Dictate anywhere using your voice",
-    "welcomeTitle": "Welcome to OpenWhispr",
+    "welcomeTitle": "Welcome to ScottySpeaks",
     "sessionExpired": "Session expired. Please restart the sign-up process."
   },
   "cleanupPrompt": "Cleanup",
@@ -697,10 +704,10 @@
     "recheckChecking": "Checking...",
     "title": "Automatic Pasting",
     "usingMethodPrefix": "Using",
-    "waylandClipboardDescription": "Automatic pasting isn't available on this Wayland session. OpenWhispr will copy text to your clipboard so you can paste manually with Ctrl+V.",
+    "waylandClipboardDescription": "Automatic pasting isn't available on this Wayland session. ScottySpeaks will copy text to your clipboard so you can paste manually with Ctrl+V.",
     "waylandClipboardTitle": "Clipboard Mode on Wayland",
     "windowsReady": "Windows supports automatic pasting out of the box. No setup required!",
-    "withoutToolPrefix": "Without this tool, OpenWhispr will copy text to your clipboard. You can then paste manually with Ctrl+V.",
+    "withoutToolPrefix": "Without this tool, ScottySpeaks will copy text to your clipboard. You can then paste manually with Ctrl+V.",
     "xwaylandAppsOnly": "automatic pasting works for XWayland apps only"
   },
   "promptStudio": {
@@ -920,7 +927,11 @@
         "enterprise": {
           "name": "Enterprise",
           "price": "Custom",
-          "features": ["Cloud sync", "Team features (coming soon)", "SSO & compliance"],
+          "features": [
+            "Cloud sync",
+            "Team features (coming soon)",
+            "SSO & compliance"
+          ],
           "cta": "Contact Us"
         },
         "currentPlan": "Current plan"
@@ -979,6 +990,13 @@
       "customSetupDescription": "Use your own provider and API key.",
       "description": "Clean up transcriptions, handle commands, and fix errors while preserving your tone.",
       "enableTextCleanup": "Enable text cleanup",
+      "polishStyle": {
+        "label": "Editing style",
+        "balanced": "Balanced",
+        "verbatim": "Verbatim",
+        "balancedDescription": "Removes filler, fixes grammar and adds paragraphs. Recommended.",
+        "verbatimDescription": "Keeps your exact words and filler. Only adds punctuation and capitalization."
+      },
       "enableTextCleanupDescription": "AI improves transcription quality",
       "openwhisprCloud": "OpenWhispr Cloud",
       "openwhisprCloudDescription": "Just works. No configuration needed.",
@@ -1049,7 +1067,7 @@
       "appearance": {
         "auto": "Auto",
         "dark": "Dark",
-        "description": "Control how OpenWhispr looks",
+        "description": "Control how ScottySpeaks looks",
         "light": "Light",
         "theme": "Theme",
         "themeDescription": "Choose light, dark, or match your system",
@@ -1078,7 +1096,7 @@
       },
       "startup": {
         "launchAtLogin": "Launch at login",
-        "launchAtLoginDescription": "Start OpenWhispr automatically when you log in",
+        "launchAtLoginDescription": "Start ScottySpeaks automatically when you log in",
         "title": "Startup"
       },
       "updates": {
@@ -1110,7 +1128,7 @@
           },
           "installUpdate": {
             "confirmText": "Install & Restart",
-            "description": "OpenWhispr will restart to apply the update.",
+            "description": "ScottySpeaks will restart to apply the update.",
             "title": "Install Update"
           },
           "noUpdates": {
@@ -1141,13 +1159,13 @@
     "permissions": {
       "accessibilityDescription": "Required for auto-paste to work after transcription",
       "accessibilityTitle": "Accessibility",
-      "description": "Test and manage system permissions required for OpenWhispr to function correctly",
+      "description": "Test and manage system permissions required for ScottySpeaks to function correctly",
       "microphoneDescription": "Required for voice recording and dictation",
       "microphoneTitle": "Microphone",
       "resetAccessibility": {
-        "description": "This will remove OpenWhispr from accessibility permissions. You'll need to re-grant access in System Settings > Privacy & Security > Accessibility.",
+        "description": "This will remove ScottySpeaks from accessibility permissions. You'll need to re-grant access in System Settings > Privacy & Security > Accessibility.",
         "label": "Reset accessibility permissions",
-        "rowDescription": "Fix issues after reinstalling or rebuilding the app by removing and re-adding OpenWhispr in System Settings",
+        "rowDescription": "Fix issues after reinstalling or rebuilding the app by removing and re-adding ScottySpeaks in System Settings",
         "title": "Reset Accessibility Permissions"
       },
       "test": "Test",
@@ -1162,7 +1180,7 @@
       "description": "Control what data leaves your device. Everything is off by default.",
       "title": "Privacy",
       "usageAnalytics": "Usage analytics",
-      "usageAnalyticsDescription": "Help us improve OpenWhispr by sharing anonymous performance metrics. We never send transcription content — only timing and error data."
+      "usageAnalyticsDescription": "Help us improve ScottySpeaks by sharing anonymous performance metrics. We never send transcription content — only timing and error data."
     },
     "prompts": {
       "description": "View, customize, and test the unified system prompt that powers text cleanup and instruction detection",
@@ -1171,7 +1189,7 @@
     "transcription": {
       "customSetup": "Custom Setup",
       "customSetupDescription": "Use your own provider and API key.",
-      "description": "Choose how OpenWhispr transcribes your voice",
+      "description": "Choose how ScottySpeaks transcribes your voice",
       "openwhisprCloud": "OpenWhispr Cloud",
       "openwhisprCloudDescription": "Just works. No configuration needed.",
       "title": "Speech to Text",
@@ -1336,7 +1354,7 @@
     },
     "tryAgain": "Try Again",
     "card": {
-      "brand": "OpenWhispr",
+      "brand": "ScottySpeaks",
       "signalId": "Signal ID",
       "audioSignature": "Your audio signature",
       "stop": "Stop",
@@ -1534,7 +1552,32 @@
     "howItWorks": "How it works",
     "howItWorksDetail": "Words are fed as context hints to the speech model, helping it recognize uncommon terms. For difficult words, try adding context like \"The word is Synty\" alongside the word itself.",
     "autoManaged": "Auto-managed — synced from agent name",
-    "inputHint": "Separate multiple words with commas. Add context phrases like \"The word is Synty\" for better recognition."
+    "inputHint": "Separate multiple words with commas. Add context phrases like \"The word is Synty\" for better recognition.",
+    "soundsLike": "Sounds like",
+    "soundsLikeHint": "What the recognizer hears for a word. Anything listed here is always replaced with the word, even when you mean it literally.",
+    "teachWord": "Teach it how you say {{word}}",
+    "removeAlias": "Stop fixing “{{alias}}”",
+    "teach": {
+      "title": "Teach it how you say “{{word}}”",
+      "intro": "Press the microphone, say just the word, then press stop. Do it about {{count}} times. Whatever it hears wrong will be fixed automatically from now on.",
+      "record": "Start recording",
+      "stop": "Stop recording",
+      "listening": "Listening…",
+      "processing": "Working out what it heard…",
+      "take": "Take {{number}}",
+      "takes": "Takes",
+      "heard": "Heard “{{heard}}” — will be fixed",
+      "heardCorrect": "Heard it right",
+      "heardNothing": "Heard nothing — try again a little louder",
+      "heardTooMuch": "Heard “{{heard}}” — say only the word",
+      "willFix": "Will be replaced with {{word}}",
+      "none": "Nothing yet. Record a take or type what it hears.",
+      "manualPlaceholder": "Or type what it hears: bravo, a rather",
+      "manualLabel": "Sounds-like words to add",
+      "add": "Add",
+      "hint": "These are swapped in every dictation, even when you mean them literally.",
+      "save": "Save"
+    }
   },
   "support": {
     "joinDiscord": "Join Discord",
@@ -1595,5 +1638,335 @@
       "redirectTitle": "Redirecting to app...",
       "closeTab": "You can close this tab."
     }
+  },
+  "meetings": {
+    "title": "Call notes",
+    "subtitle": "Capture the conversation. Keep it with the work.",
+    "settings": "Call note settings",
+    "importTranscript": "Import transcript",
+    "new": "New call",
+    "dismiss": "Dismiss message",
+    "recording": "Recording microphone + system audio",
+    "stop": "Stop recording",
+    "provider": "Transcription",
+    "local": "On this Mac",
+    "cloud": "MAI · OpenRouter",
+    "localEngine": "Local engine",
+    "apiKey": "OpenRouter API key",
+    "keySaved": "Key saved securely",
+    "keyPlaceholder": "Paste your OpenRouter key",
+    "saveKey": "Save key",
+    "removeKey": "Remove key",
+    "localHelp": "Audio and transcription stay on this Mac. Uses your downloaded model. No cloud fallback.",
+    "cloudHelp": "When you choose Transcribe, call audio is sent to OpenRouter and Microsoft Azure for MAI-Transcribe 2. Recording itself stays local.",
+    "captureUnavailable": "Recording requires macOS 15 or later and the bundled recorder. You can still import transcripts or audio.",
+    "recent": "Your calls",
+    "importAudio": "Import audio",
+    "untitled": "Untitled call",
+    "emptyTitle": "A notebook for your conversations",
+    "emptyBody": "Record a call or bring in an existing transcript. Add your own notes, then save Markdown directly into a project or person’s folder.",
+    "callTitle": "Call title",
+    "titlePlaceholder": "What was this call about?",
+    "saving": "Saving…",
+    "unsaved": "Unsaved edits",
+    "saved": "Draft saved on this Mac",
+    "resume": "Record more",
+    "record": "Record call",
+    "transcribe": "Transcribe audio",
+    "cancel": "Cancel transcription",
+    "processing": "Transcribing audio · {{completed}} / {{total}} parts",
+    "notes": "My notes",
+    "transcript": "Transcript",
+    "notesPlaceholder": "Your thoughts, questions, and follow-ups…\n\nMarkdown supported. Notes save as you write.",
+    "speakerHelp": "Select a speaker name in the transcript to name that voice.",
+    "localSpeakerHelp": "Local transcription combines microphone and call audio into one timeline to avoid duplicate text. Playback and audio export still let you choose either track. Individual remote speakers are not identified.",
+    "readTranscript": "Read transcript",
+    "editTranscript": "Edit transcript",
+    "editedTranscriptHelp": "This transcript was edited. Original word timing is retained in the source data but is not applied to your rewritten text.",
+    "noTranscript": "Your transcript will appear here after you import one or transcribe saved audio.",
+    "renameSpeaker": "Name {{speaker}}",
+    "speakerName": "Speaker name",
+    "destination": "Save destination",
+    "chooseFolder": "Choose a pinned folder…",
+    "pinFolder": "Pin folder",
+    "file": "Save Markdown",
+    "reveal": "Show in Finder",
+    "draftHelp": "A draft stays in ScottySpeaks until you choose where to file it.",
+    "draftStorageError": "Could not save the recovery copy. Keep this window open and save your notes before leaving.",
+    "you": "You",
+    "callAudio": "Call audio",
+    "unknownSpeaker": "Speaker",
+    "speakerLabel": "Speaker {{id}}",
+    "status": {
+      "draft": "Draft",
+      "recording": "Recording",
+      "recorded": "Audio saved",
+      "transcribing": "Transcribing",
+      "ready": "Ready",
+      "interrupted": "Needs attention",
+      "queued": "Queued"
+    },
+    "saveCopy": "Save a copy",
+    "unpinFolder": "Unpin selected folder",
+    "recordingBadge": "Call recording",
+    "transcribeCloud": "Transcribe with MAI",
+    "importSpeakerHelp": "Speaker labels and times come from the imported transcript. You can rename speakers or edit the text.",
+    "keyStored": "API key saved on this Mac",
+    "keyNotVerified": "Stored securely. OpenRouter checks it when you transcribe.",
+    "replaceKey": "Replace key",
+    "cancelKeyChange": "Cancel",
+    "addFolder": "Add folder…",
+    "pinnedFolders": "Pinned folders",
+    "deleteCall": "Delete call",
+    "deleteTitle": "Delete “{{title}}”?",
+    "deleteDescription": "Permanently delete this call’s notes, transcript, saved audio and agent drafts from this Mac, and revoke agent access. Exported files and original imported files stay where they are. This cannot be undone.",
+    "confirmDelete": "Delete permanently",
+    "microphoneSource": "Microphone",
+    "speakersTitle": "Speakers ({{count}})",
+    "renameHelp": "Name a voice using the excerpt or listen to it. A name applies to every occurrence of that speaker in this transcript. Speakers from different audio parts remain separate; identify each by listening.",
+    "listenAt": "Listen at {{time}}",
+    "listenSpeaker": "Listen to {{speaker}} at {{time}}",
+    "exportAudio": "Export audio…",
+    "audioExported": "Audio saved.",
+    "transcribeAgain": "Transcribe again",
+    "retranscribeTitle": "Transcribe this call again?",
+    "retranscribeDescription": "The current transcript is kept unless the new transcription succeeds. A successful retry replaces the transcript and speaker names; your notes and saved audio stay unchanged. The retry uses the provider and model currently selected in Call note settings.",
+    "replaceTranscript": "Replace transcript",
+    "openrouterAuthError": "OpenRouter rejected the API key ({{status}}). Replace it in Call note settings and try again.",
+    "openrouterCreditError": "Your OpenRouter account needs credit before it can transcribe this call.",
+    "openrouterEmptyError": "OpenRouter returned no usable transcript. Try again or choose a local model.",
+    "openrouterFailedError": "OpenRouter transcription failed ({{status}}). Check your connection and try again."
+  },
+  "replay": {
+    "open": "Replay & repair",
+    "title": "Replay & repair",
+    "description": "Listen again, compare the words, and keep a correction without changing your original.",
+    "retention": "Keep dictation audio",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "off": "Off",
+    "retentionHelp": "Audio stays on this Mac. Shortening this period removes older audio now; transcripts remain. Saved correction examples are kept separately.",
+    "loading": "Loading recordings…",
+    "recording": "Recording",
+    "noCapture": "No recording selected",
+    "noCaptureHelp": "No saved audio is linked to this entry. Recordings made before replay was enabled only have text.",
+    "state": {
+      "processing": "Processing",
+      "ready": "Ready",
+      "failed": "Needs attention"
+    },
+    "preparingAudio": "Preparing audio…",
+    "originalAudio": "Original dictation audio",
+    "audioError": "Audio could not be played. Reopen this recording to try again.",
+    "audioDisabled": "Audio retention was turned off. Your text is still available.",
+    "audioExpired": "This audio has expired. Your text is still available.",
+    "settings": {
+      "provider": "Transcription provider",
+      "model": "Transcription model",
+      "language": "Language",
+      "styleId": "Style",
+      "polishModel": "Cleanup model",
+      "exact": "Exact wording",
+      "removeFillers": "Remove hesitation sounds",
+      "resolveCorrections": "Resolve spoken corrections",
+      "preserveTechnical": "Preserve technical terms"
+    },
+    "enabled": "On",
+    "disabled": "Off",
+    "raw": "Original recognition",
+    "final": "Original delivered text",
+    "savedRetry": "Saved retry",
+    "retryTitle": "Try another transcription",
+    "retryHelp": "Choose an installed local model or MAI. Review the result before keeping it. Your original text and text in other apps stay unchanged.",
+    "model": "Retry model",
+    "cloudConsent": "Send this recording to OpenRouter and Microsoft Azure for MAI transcription. Provider charges may apply.",
+    "preview": "Create preview",
+    "retrying": "Transcribing preview…",
+    "previousAttempts": "Earlier previews",
+    "choosePreview": "Choose a preview",
+    "previewResult": "Retry preview",
+    "keepRetry": "Keep this retry",
+    "copy": "Copy text",
+    "copied": "Copied to clipboard.",
+    "copyFailed": "Could not copy the text.",
+    "retrySaved": "Retry saved separately. Your original is unchanged.",
+    "wrong": "This was wrong",
+    "corrected": "What it should have said",
+    "fixtureConsent": "Keep this correction example, including any available original audio, on this Mac until I remove it. It stays separate from the audio retention period and is not uploaded or used for training automatically.",
+    "saveExample": "Save correction example",
+    "exampleSaved": "Correction example saved locally.",
+    "callAudio": "Call audio",
+    "source": "Listen to",
+    "sources": {
+      "all": "Microphone + system",
+      "microphone": "Microphone",
+      "system": "System audio",
+      "audio": "Imported audio"
+    },
+    "textOnly": "This is a text-only transcript. There is no audio to play.",
+    "stopToListen": "Stop recording to listen back.",
+    "editedAlignment": "You edited this transcript. Its wording is no longer aligned to the original timestamps.",
+    "seek": "Play from {{time}}",
+    "playManually": "Press Play to listen from the selected timestamp.",
+    "delete": "Delete saved recording",
+    "deleteHelp": "Removes this recording and its replay text. Separately saved correction examples remain on this Mac.",
+    "deleted": "Recording deleted.",
+    "examples": "Saved correction examples",
+    "examplesHelp": "These examples stay local, including their audio, until you delete them here.",
+    "noExamples": "No saved correction examples.",
+    "deleteExample": "Delete example",
+    "exampleDeleted": "Correction example and its saved audio deleted."
+  },
+  "dictationCleanup": {
+    "dictationExact": {
+      "label": "Exact wording",
+      "description": "Keep the transcription unchanged. Overrides styles, snippets and cleanup; explicit voice commands still work."
+    },
+    "dictationRemoveFillers": {
+      "label": "Remove hesitations",
+      "description": "Remove only um/uh hesitation sounds. Keep meaningful words such as “like” and “you know”."
+    },
+    "dictationResolveCorrections": {
+      "label": "Resolve numeric self-corrections",
+      "description": "Resolve adjacent numeric corrections with explicit cues, such as “15, sorry, 50”. Ambiguous corrections stay unchanged."
+    },
+    "dictationPreserveTechnical": {
+      "label": "Preserve technical spelling",
+      "description": "Protect identifiers, acronyms and technical names, including their case and underscores."
+    },
+    "stages": {
+      "queued": "Queued",
+      "transcribing": "Transcribing",
+      "refining": "Refining",
+      "failed": "Failed",
+      "preparing": "Preparing audio",
+      "idle": "Ready",
+      "recording": "Recording"
+    },
+    "polishUnavailable": "AI refinement was unavailable. Your text retains the selected deterministic cleanup.",
+    "polishUnavailableTitle": "AI refinement unavailable",
+    "aiRefinement": {
+      "label": "AI refinement",
+      "description": "Use the selected AI model after the cleanup choices below. These choices also work with AI off. Exact wording overrides refinement."
+    }
+  },
+  "recordingTarget": {
+    "manualTitle": "Text ready to copy",
+    "manualDescription": "The original text field could not be verified. Your result is saved in History. Use Copy there to paste it yourself.",
+    "selectionReplaced": "Replaced your selection.",
+    "dictationReplaced": "Replaced your last dictation."
+  },
+  "callAgent": {
+    "tab": "Agents",
+    "title": "Selected-call agent access",
+    "help": "Share saved notes and transcript evidence from this call. Keep SS2 open while your agent uses the connection.",
+    "ready": "Ready · keep SS2 open",
+    "unavailable": "Connection unavailable",
+    "lastConnected": "Last agent request: {{time}}",
+    "notConnected": "No agent requests yet",
+    "revoke": "Revoke access",
+    "share": "Share this call",
+    "refresh": "Refresh",
+    "previewHandoff": "Preview Markdown handoff",
+    "sharedHelp": "Agents can read this call and submit drafts. Revoking stops future access; copies already received remain with the agent.",
+    "privateHelp": "This call is private. Sharing grants access to its current and future saved notes and transcript.",
+    "actionFailed": "Could not complete this action. Check sharing, saved changes and the destination, then refresh and try again.",
+    "copied": "Copied",
+    "filed": "Saved a new Markdown copy. Existing files and source notes are unchanged.",
+    "configure": "Configure an agent",
+    "configHelp": "Copy a configuration into your agent. These controls do not change external settings. Compatible with Codex and Claude Code; the JSON also works with MCP clients. Refresh configuration after moving SS2.",
+    "json": "MCP JSON",
+    "codex": "Codex command",
+    "claude": "Claude Code command",
+    "copyConfig": "Copy configuration",
+    "handoff": "Markdown handoff preview",
+    "copyHandoff": "Copy Markdown handoff",
+    "handoffHelp": "Review before pasting into an agent. This exports text only. Revocation cannot retract copied text. This one-time export does not require sharing or grant ongoing agent access.",
+    "drafts": "Agent drafts",
+    "draftHelp": "Drafts are separate from source notes. Review the proposal and its saved evidence before filing. Evidence may describe an older source version.",
+    "noDrafts": "No drafts yet. Ask your connected agent to submit a cited draft.",
+    "review": "Review draft",
+    "evidence": "Cited evidence",
+    "untimed": "Untimed evidence",
+    "timed": "{{start}}–{{end}} seconds",
+    "notes": "Notes",
+    "original": "Original transcript",
+    "edited": "Edited or imported transcript",
+    "file": "Save reviewed Markdown copy",
+    "close": "Close review",
+    "chooseFolder": "Choose a pinned folder below before filing.",
+    "evidenceSaved": "Evidence saved with this draft: {{time}}"
+  },
+  "speech": {
+    "title": "Local read-aloud",
+    "stop": "Stop reading",
+    "unavailable": "System voices are available on macOS",
+    "recording": "Read-aloud paused during recording",
+    "agentSpeaking": "Agent update speaking",
+    "speaking": "Reading aloud",
+    "ready": "Local read-aloud ready",
+    "settings": "Voice settings",
+    "help": "Uses installed macOS voices. Text stays on this Mac. Recording stops read-aloud and replay audio.",
+    "voice": "Installed voice",
+    "defaultVoice": "System default",
+    "rate": "Words per minute (100–350)",
+    "agentEnabled": "Allow agent spoken updates",
+    "agentHelp": "Off by default. Shared-call agents can speak brief updates only while recording is inactive. Revoking a call stops its agent speech.",
+    "error": "Could not complete the speech action. Check the voice settings and try again.",
+    "readSelection": "Read selection",
+    "readAll": "Read all: {{source}}",
+    "readError": "Select text in this section, or read the whole field. Text must fit within 20 KB; stop recording before reading.",
+    "notes": "Notes",
+    "transcript": "Transcript",
+    "draft": "Agent draft"
+  },
+  "historyHome": {
+    "welcome": "Welcome back, Scott",
+    "description": "Find what you said. Pick up where you left off.",
+    "usage": "{{dictations}} dictations · {{words}} words",
+    "tools": "Dictation tools",
+    "copyLatest": "Copy latest",
+    "searchLabel": "Search all dictations",
+    "searchPlaceholder": "Search all dictations…",
+    "searchHelp": "Searches your full history, including original words before edits. ⌘/Ctrl F to focus.",
+    "clear": "Clear",
+    "loadError": "Could not load your history. Your saved dictations are still on this Mac.",
+    "retry": "Try again",
+    "results": "Search results",
+    "history": "Your dictations",
+    "shown": "{{count}} shown",
+    "noResults": "No matching dictations",
+    "tryAnother": "Try a different word or clear the search.",
+    "loadMore": "Load older dictations"
+  },
+  "workspace": {
+    "workspace": "Workspace",
+    "personalize": "Make it yours",
+    "navigation": "Main navigation",
+    "dictation": "Dictation",
+    "snippets": "Snippets",
+    "style": "Writing style",
+    "callsSubtitle": "Record the conversation. Keep the useful parts.",
+    "recordNew": "Record a call",
+    "stopping": "Stopping…",
+    "searchCalls": "Search calls and notes",
+    "noCalls": "No matching calls. Try another phrase.",
+    "markMoment": "Mark moment",
+    "actionItem": "Action item",
+    "useTemplate": "Use meeting outline",
+    "notesTemplate": "## Decisions\n\n- \n\n## Action items\n\n- [ ] \n\n## Open questions\n\n- ",
+    "notesPlaceholder": "What matters from this conversation?\n\nDecisions, next steps, and anything you want to remember.",
+    "addToNotes": "Add to notes",
+    "saveFailed": "Could not save. Your edit is still here — try again.",
+    "learnFailed": "Your edit was saved, but style learning failed.",
+    "editDictation": "Edit dictation",
+    "copyText": "Copy text",
+    "saveAndLearn": "Save & learn",
+    "learned": "Learned",
+    "editHint": "Your correction teaches the polish engine your style."
+  },
+  "workspacePreview": {
+    "banner": "Interactive preview · Sample data · Recording is simulated",
+    "desktopOnly": "This feature is available in the desktop app."
   }
 }

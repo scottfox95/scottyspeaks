@@ -1,17 +1,15 @@
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Flame, Pencil, Zap, Loader2 } from "lucide-react";
+import { Copy, Loader2, Mic, Search } from "lucide-react";
+import CaptureReplay from "./captures/CaptureReplay";
 import TranscriptionItem from "./ui/TranscriptionItem";
-import type { TranscriptionItem as TranscriptionItemType } from "../types/electron";
+import { Alert, AlertDescription } from "./ui/alert";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import type { TranscriptionItem as TranscriptionItemType, UsageStats } from "../types/electron";
+import { useHistorySearch } from "../hooks/useHistorySearch";
 import { formatHotkeyLabel } from "../utils/hotkeys";
-import { formatDateGroup } from "../utils/dateFormatting";
-
-interface UsageStats {
-  totalDays: number;
-  totalWords: number;
-  totalDictations: number;
-  averageWpm: number;
-}
+import { formatDateGroup, normalizeDbDate } from "../utils/dateFormatting";
 
 interface HomeViewProps {
   history: TranscriptionItemType[];
@@ -21,12 +19,6 @@ interface HomeViewProps {
   deleteTranscription: (id: number) => void;
 }
 
-function formatNumber(n: number): string {
-  if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
-  return String(n);
-}
-
 export default function HomeView({
   history,
   isLoading,
@@ -34,157 +26,179 @@ export default function HomeView({
   copyToClipboard,
   deleteTranscription,
 }: HomeViewProps) {
-  const { t } = useTranslation();
-  const [stats, setStats] = useState<UsageStats>({
-    totalDays: 0,
-    totalWords: 0,
-    totalDictations: 0,
-    averageWpm: 0,
-  });
+  const { t, i18n } = useTranslation();
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [stats, setStats] = useState<UsageStats | null>(null);
+  const result = useHistorySearch(query, history);
+  const searching = query.trim().length > 0;
+  const loading = isLoading || result.loading;
+  const latest = history[0];
 
   useEffect(() => {
-    window.electronAPI?.getUsageStats?.().then((data: UsageStats) => {
-      if (data) setStats(data);
-    });
-  }, [history.length]);
+    let active = true;
+    window.electronAPI
+      ?.getUsageStats?.()
+      .then((data) => {
+        if (active && data) setStats(data);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [history]);
+
+  useEffect(() => {
+    const focusSearch = (event: KeyboardEvent) => {
+      // A replay/settings dialog owns its own keyboard interaction.
+      if (document.querySelector('[role="dialog"]')) return;
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", focusSearch);
+    return () => window.removeEventListener("keydown", focusSearch);
+  }, []);
 
   const groupedHistory = useMemo(() => {
-    if (history.length === 0) return [];
-
     const groups: { label: string; items: TranscriptionItemType[] }[] = [];
-    let currentLabel: string | null = null;
-
-    for (const item of history) {
-      const label = formatDateGroup(item.timestamp, t);
-
-      if (label !== currentLabel) {
-        groups.push({ label, items: [item] });
-        currentLabel = label;
-      } else {
-        groups[groups.length - 1].items.push(item);
-      }
+    for (const item of result.items) {
+      const label = formatDateGroup(normalizeDbDate(item.timestamp), t);
+      const last = groups[groups.length - 1];
+      if (last?.label === label) last.items.push(item);
+      else groups.push({ label, items: [item] });
     }
-
     return groups;
-  }, [history, t]);
+  }, [result.items, t]);
 
   return (
-    <div className="px-4 pt-4 pb-6">
-      <div className="max-w-3xl mx-auto">
-        {/* Welcome header with stats */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-xl font-semibold text-foreground tracking-tight" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>Welcome back, Scott</h1>
-            {stats.totalDays > 0 && (
-              <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Flame size={12} className="text-orange-500" />
-                  {stats.totalDays} {stats.totalDays === 1 ? "day" : "days"}
-                </span>
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Pencil size={12} className="text-blue-500" />
-                  {formatNumber(stats.totalWords)} words
-                </span>
-                {stats.averageWpm > 0 && (
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Zap size={12} className="text-yellow-500" />
-                    {stats.averageWpm} WPM
-                  </span>
-                )}
-              </div>
+    <div className="px-4 py-6 sm:px-6">
+      <div className="mx-auto flex max-w-3xl flex-col gap-6">
+        <header className="flex flex-col gap-2">
+          <h1
+            className="text-2xl font-semibold tracking-tight text-foreground"
+            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+          >
+            {t("historyHome.welcome")}
+          </h1>
+          <p className="text-sm text-muted-foreground">{t("historyHome.description")}</p>
+          {stats && stats.totalDictations > 0 && (
+            <p className="text-xs tabular-nums text-muted-foreground">
+              {t("historyHome.usage", {
+                dictations: stats.totalDictations.toLocaleString(i18n.language),
+                words: stats.totalWords.toLocaleString(i18n.language),
+              })}
+            </p>
+          )}
+        </header>
+
+        <section className="flex flex-col gap-3" aria-label={t("historyHome.tools")}>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="press-tactile"
+              disabled={!latest}
+              onClick={() => latest && copyToClipboard(latest.text)}
+            >
+              <Copy data-icon="inline-start" />
+              {t("historyHome.copyLatest")}
+            </Button>
+            <div className="[&>button]:mb-0">
+              <CaptureReplay />
+            </div>
+          </div>
+          <label htmlFor="history-search" className="sr-only">
+            {t("historyHome.searchLabel")}
+          </label>
+          <div className="flex items-center gap-2">
+            <Input
+              id="history-search"
+              ref={searchRef}
+              type="search"
+              value={query}
+              maxLength={500}
+              placeholder={t("historyHome.searchPlaceholder")}
+              aria-describedby="history-search-help"
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  setQuery("");
+                  event.preventDefault();
+                }
+              }}
+            />
+            {searching && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="press-tactile"
+                onClick={() => setQuery("")}
+              >
+                {t("historyHome.clear")}
+              </Button>
             )}
           </div>
-        </div>
+          <p id="history-search-help" className="text-xs text-muted-foreground">
+            {t("historyHome.searchHelp")}
+          </p>
+        </section>
 
-        {/* Recent activity */}
-        {isLoading ? (
-          <div className="rounded-lg border border-border bg-card/50 dark:bg-card/60 backdrop-blur-sm">
-            <div className="flex items-center justify-center gap-2 py-8">
-              <Loader2 size={14} className="animate-spin text-primary" />
-              <span className="text-sm text-muted-foreground">{t("controlPanel.loading")}</span>
-            </div>
+        {result.error && (
+          <Alert variant="destructive">
+            <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+              <span>{t("historyHome.loadError")}</span>
+              <Button variant="outline" size="sm" className="press-tactile" onClick={result.retry}>
+                {t("historyHome.retry")}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <section className="flex flex-col gap-4" aria-busy={loading || result.loadingMore}>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-medium text-foreground">
+              {t(searching ? "historyHome.results" : "historyHome.history")}
+            </h2>
+            <span role="status" className="text-xs tabular-nums text-muted-foreground">
+              {loading
+                ? t("controlPanel.loading")
+                : t("historyHome.shown", { count: result.items.length })}
+            </span>
           </div>
-        ) : history.length === 0 ? (
-          <div className="rounded-lg border border-border bg-card/50 dark:bg-card/60 backdrop-blur-sm">
-            <div className="flex flex-col items-center justify-center py-16 px-4">
-              <svg
-                className="text-foreground dark:text-white mb-5"
-                width="64"
-                height="64"
-                viewBox="0 0 64 64"
-                fill="none"
-              >
-                <rect
-                  x="24"
-                  y="6"
-                  width="16"
-                  height="28"
-                  rx="8"
-                  fill="currentColor"
-                  fillOpacity={0.04}
-                  stroke="currentColor"
-                  strokeOpacity={0.1}
-                />
-                <rect
-                  x="28"
-                  y="12"
-                  width="8"
-                  height="3"
-                  rx="1.5"
-                  fill="currentColor"
-                  fillOpacity={0.06}
-                />
-                <path
-                  d="M18 28c0 7.7 6.3 14 14 14s14-6.3 14-14"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeOpacity={0.07}
-                  strokeWidth={1.5}
-                  strokeLinecap="round"
-                />
-                <line
-                  x1="32"
-                  y1="42"
-                  x2="32"
-                  y2="50"
-                  stroke="currentColor"
-                  strokeOpacity={0.07}
-                  strokeWidth={1.5}
-                  strokeLinecap="round"
-                />
-                <line
-                  x1="26"
-                  y1="50"
-                  x2="38"
-                  y2="50"
-                  stroke="currentColor"
-                  strokeOpacity={0.07}
-                  strokeWidth={1.5}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <h3 className="text-xs font-semibold text-foreground/70 dark:text-foreground/60 mb-2">
-                {t("controlPanel.history.empty")}
-              </h3>
-              <div className="flex items-center gap-2 text-xs text-foreground/50 dark:text-foreground/25">
-                <span>{t("controlPanel.history.press")}</span>
-                <kbd className="inline-flex items-center h-5 px-1.5 rounded-sm bg-surface-1 dark:bg-white/6 border border-border/50 text-xs font-mono font-medium text-foreground/60 dark:text-foreground/40">
-                  {formatHotkeyLabel(hotkey)}
-                </kbd>
-                <span>{t("controlPanel.history.toStart")}</span>
-              </div>
+          {loading && result.items.length === 0 ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="size-5 animate-spin text-muted-foreground" aria-hidden="true" />
             </div>
-          </div>
-        ) : (
-          <div>
-            {groupedHistory.map((group, index) => (
-              <div key={group.label} className={index > 0 ? "mt-4" : ""}>
-                <div className="sticky -top-1 z-10 -mx-4 px-5 pt-2 pb-2 bg-background">
-                  <span className="text-[11px] font-semibold text-muted-foreground dark:text-muted-foreground uppercase tracking-wide">
-                    {group.label}
-                  </span>
-                </div>
-                <div className="space-y-1.5 relative z-0">
+          ) : result.items.length === 0 && !result.error ? (
+            <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border px-6 py-12 text-center">
+              {searching ? (
+                <Search className="size-6 text-muted-foreground" aria-hidden="true" />
+              ) : (
+                <Mic className="size-6 text-muted-foreground" aria-hidden="true" />
+              )}
+              <p className="text-sm font-medium text-foreground">
+                {t(searching ? "historyHome.noResults" : "controlPanel.history.empty")}
+              </p>
+              {searching ? (
+                <p className="text-sm text-muted-foreground">{t("historyHome.tryAnother")}</p>
+              ) : (
+                <p className="flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <span>{t("controlPanel.history.press")}</span>
+                  <kbd className="rounded border border-border bg-muted px-2 py-1 text-xs font-mono">
+                    {formatHotkeyLabel(hotkey)}
+                  </kbd>
+                  <span>{t("controlPanel.history.toStart")}</span>
+                </p>
+              )}
+            </div>
+          ) : (
+            groupedHistory.map((group) => (
+              <div key={group.label} className="flex flex-col gap-2">
+                <h3 className="text-xs font-medium text-muted-foreground">{group.label}</h3>
+                <div className="flex flex-col gap-2">
                   {group.items.map((item) => (
                     <TranscriptionItem
                       key={item.id}
@@ -195,9 +209,20 @@ export default function HomeView({
                   ))}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            ))
+          )}
+          {result.hasMore && (
+            <Button
+              variant="outline"
+              className="press-tactile self-center"
+              disabled={loading || result.loadingMore}
+              onClick={result.loadMore}
+            >
+              {result.loadingMore && <Loader2 data-icon="inline-start" className="animate-spin" />}
+              {t(result.loadingMore ? "controlPanel.loading" : "historyHome.loadMore")}
+            </Button>
+          )}
+        </section>
       </div>
     </div>
   );

@@ -10,12 +10,14 @@ export const useAudioRecording = (toast, options = {}) => {
   const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [pipelineStage, setPipelineStage] = useState("idle");
   const [isStreaming, setIsStreaming] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [partialTranscript, setPartialTranscript] = useState("");
   const audioManagerRef = useRef(null);
   const startLockRef = useRef(false);
   const stopLockRef = useRef(false);
+  const commandModeRef = useRef(false);
   const { onToggle } = options;
 
   const performStartRecording = useCallback(async () => {
@@ -33,6 +35,9 @@ export const useAudioRecording = (toast, options = {}) => {
 
       if (didStart) {
         void playStartCue();
+      } else {
+        commandModeRef.current = false;
+        if (audioManagerRef.current) audioManagerRef.current.commandMode = false;
       }
 
       return didStart;
@@ -48,7 +53,13 @@ export const useAudioRecording = (toast, options = {}) => {
       if (!audioManagerRef.current) return false;
 
       const currentState = audioManagerRef.current.getState();
-      if (!currentState.isRecording && !currentState.isStreamingStartInProgress) return false;
+      if (
+        !currentState.isRecording &&
+        !currentState.isRecordingStartInProgress &&
+        !currentState.isStreamingStartInProgress
+      ) {
+        return false;
+      }
 
       if (currentState.isStreaming || currentState.isStreamingStartInProgress) {
         void playStopCue();
@@ -71,31 +82,109 @@ export const useAudioRecording = (toast, options = {}) => {
     audioManagerRef.current = new AudioManager();
 
     audioManagerRef.current.setCallbacks({
-      onStateChange: ({ isRecording, isProcessing, isStreaming }) => {
+      onStateChange: ({ isRecording, isProcessing, isStreaming, pipelineStage }) => {
         setIsRecording(isRecording);
         setIsProcessing(isProcessing);
+        setPipelineStage((previous) => pipelineStage || (isRecording ? "recording" : isProcessing ? "transcribing" : previous === "failed" ? "failed" : "idle"));
         setIsStreaming(isStreaming ?? false);
         if (!isStreaming) {
           setPartialTranscript("");
         }
       },
       onError: (error) => {
-        const title = getRecordingErrorTitle(error, t);
+        if (error.code !== "POLISH_UNAVAILABLE" && error.code !== "PASTE_FAILED") setPipelineStage("failed");
+        const title = error.code === "PASTE_FAILED" ? t("recordingTarget.manualTitle") : error.code === "POLISH_UNAVAILABLE" ? t("dictationCleanup.polishUnavailableTitle") : getRecordingErrorTitle(error, t);
+        const isSoftPasteFailure =
+          error.code === "PASTE_FAILED" || error.code === "POLISH_UNAVAILABLE";
         toast({
           title,
-          description: error.description,
-          variant: "destructive",
-          duration: error.code === "AUTH_EXPIRED" ? 8000 : undefined,
+          description: error.code === "PASTE_FAILED" ? t("recordingTarget.manualDescription") : error.code === "POLISH_UNAVAILABLE" ? t("dictationCleanup.polishUnavailable") : error.description,
+          variant: isSoftPasteFailure ? "default" : "destructive",
+          duration: error.code === "AUTH_EXPIRED" ? 8000 : isSoftPasteFailure ? 6000 : undefined,
         });
       },
       onPartialTranscript: (text) => {
         setPartialTranscript(text);
       },
       onTranscriptionComplete: async (result) => {
+        const manager = audioManagerRef.current;
+        const cancelled = () => !manager || audioManagerRef.current !== manager || result.isCancelled?.();
+        if (cancelled()) return;
         if (result.success) {
           const transcribedText = result.text?.trim();
 
           if (!transcribedText) {
+            if (commandModeRef.current) {
+              commandModeRef.current = false;
+              if (audioManagerRef.current) audioManagerRef.current.commandMode = false;
+            }
+            return;
+          }
+
+          // Voice command mode: the transcript is an instruction, not content
+          if (commandModeRef.current) {
+            result.evidenceFinalText = "";
+            result.evidenceError = "Voice command did not apply";
+            commandModeRef.current = false;
+            if (audioManagerRef.current) audioManagerRef.current.commandMode = false;
+            try {
+              const { applyVoiceCommand } = await import("../services/polish/voiceCommand");
+              if (cancelled()) return;
+              const lastPasted = manager.lastPastedText;
+              const res = await applyVoiceCommand(transcribedText, lastPasted, result.targetToken);
+              if (cancelled()) return;
+              if (res.ok && res.text) {
+                result.evidenceFinalText = res.text;
+                result.evidenceError = undefined;
+                let replaced = false;
+                if (res.usedSelection) {
+                  // Pasting over a live selection already replaces it
+                  const pasted = await audioManagerRef.current.safePaste(res.text, { targetToken: result.targetToken, exact: result.captureSnapshot?.cleanup.exact });
+                  result.evidenceFinalText = pasted?.text ?? res.text;
+                  if (!pasted || pasted.success === false) result.evidenceError = "Result retained for manual copy; original target could not be verified";
+                  replaced = !!pasted && pasted.success !== false;
+                } else {
+                  // Nothing selected: replace our own previous paste when it's
+                  // still verifiably on screen; otherwise retain for manual Copy.
+                  const replacement = await window.electronAPI?.replaceLastPaste?.(
+                    res.text,
+                    res.target || lastPasted || "",
+                    { targetToken: result.targetToken }
+                  );
+                  replaced = !!replacement?.replaced;
+                  if (replaced) manager.lastPastedText = res.text;
+                  else result.evidenceError = "Result retained for manual copy; original target could not be verified";
+                }
+                if (cancelled()) return;
+                const saved = await manager.saveTranscription(result.evidenceFinalText, result.rawText);
+                result.historyId = saved?.transcription?.id;
+                if (!saved?.success) result.evidenceError = "History could not be saved";
+                toast({
+                  title: replaced ? `✨ ${transcribedText}` : t("recordingTarget.manualTitle"),
+                  description: replaced
+                    ? t(res.usedSelection ? "recordingTarget.selectionReplaced" : "recordingTarget.dictationReplaced")
+                    : t("recordingTarget.manualDescription"),
+                  variant: "default",
+                  duration: 4000,
+                });
+              } else {
+                toast({
+                  title: "Voice command didn't apply",
+                  description:
+                    res.error === "no-target"
+                      ? "Select some text first, or dictate something to edit."
+                      : "The AI couldn't process that instruction. Try again.",
+                  variant: "default",
+                  duration: 5000,
+                });
+              }
+            } catch (e) {
+              toast({
+                title: "Voice command failed",
+                description: e?.message,
+                variant: "destructive",
+              });
+            }
             return;
           }
 
@@ -103,7 +192,7 @@ export const useAudioRecording = (toast, options = {}) => {
           let finalText = result.text;
           let wasSnippet = false;
           try {
-            const snippet = await window.electronAPI?.findSnippet?.(transcribedText);
+            const snippet = result.captureSnapshot?.cleanup.exact ? null : await window.electronAPI?.findSnippet?.(transcribedText);
             if (snippet) {
               finalText = snippet.expansion;
               wasSnippet = true;
@@ -112,27 +201,36 @@ export const useAudioRecording = (toast, options = {}) => {
             // Snippet lookup failed, use original text
           }
 
-          // Apply active style profile (skip for snippet expansions)
-          if (!wasSnippet) {
+          if (cancelled()) return;
+
+          // Apply regex style rules only when the AI polish pass didn't run
+          // (snippets and AI-polished text must not be re-mangled by regex)
+          const wasAiPolished = result.polished === true;
+          if (!wasSnippet && !wasAiPolished && !result.captureSnapshot?.cleanup.exact) {
             try {
-              const profile = await window.electronAPI?.getActiveStyleProfile?.();
+              const profile = result.captureSnapshot ?
+                (result.captureSnapshot.context.styleRules ? { rules: JSON.stringify(result.captureSnapshot.context.styleRules) } : null)
+                : await window.electronAPI?.getActiveStyleProfile?.();
+              if (cancelled()) return;
               if (profile) {
                 const { applyStyleRules } = await import("../services/StyleProcessor");
+                if (cancelled()) return;
                 const rules = JSON.parse(profile.rules);
-                finalText = applyStyleRules(finalText, rules);
+                finalText = applyStyleRules(finalText, rules, result.captureSnapshot?.cleanup);
               }
             } catch (e) {
               // Style processing failed, use text as-is
             }
           }
 
+          if (cancelled()) return;
           setTranscript(finalText);
 
           const isStreaming = result.source?.includes("streaming");
           const pasteStart = performance.now();
-          await audioManagerRef.current.safePaste(
+          const pasteResult = await audioManagerRef.current.safePaste(
             finalText,
-            isStreaming ? { fromStreaming: true } : {}
+            { fromStreaming: !!isStreaming, targetToken: result.targetToken, exact: result.captureSnapshot?.cleanup.exact }
           );
           logger.info(
             "Paste timing",
@@ -144,7 +242,12 @@ export const useAudioRecording = (toast, options = {}) => {
             "streaming"
           );
 
-          audioManagerRef.current.saveTranscription(wasSnippet ? finalText : result.text);
+          result.evidenceFinalText = pasteResult?.text ?? finalText;
+          if (pasteResult === false || pasteResult?.success === false) result.evidenceError = "Result retained for manual copy; original target could not be verified";
+          if (cancelled()) return;
+          const saved = await manager.saveTranscription(result.evidenceFinalText, result.rawText);
+          result.historyId = saved?.transcription?.id;
+          if (!saved?.success) result.evidenceError = "History could not be saved";
 
           // Record usage stats
           const wordCount = finalText.split(/\s+/).filter(w => w.length > 0).length;
@@ -194,10 +297,14 @@ export const useAudioRecording = (toast, options = {}) => {
       if (!audioManagerRef.current) return;
       const currentState = audioManagerRef.current.getState();
 
-      if (!currentState.isRecording && !currentState.isProcessing) {
-        await performStartRecording();
-      } else if (currentState.isRecording) {
+      if (
+        currentState.isRecording ||
+        currentState.isRecordingStartInProgress ||
+        currentState.isStreamingStartInProgress
+      ) {
         await performStopRecording();
+      } else if (!currentState.isProcessing) {
+        await performStartRecording();
       }
     };
 
@@ -224,6 +331,14 @@ export const useAudioRecording = (toast, options = {}) => {
       onToggle?.();
     });
 
+    // Pedal "command" switch: record a spoken instruction instead of content
+    const disposeCommand = window.electronAPI.onStartCommandDictation?.(() => {
+      commandModeRef.current = true;
+      if (audioManagerRef.current) audioManagerRef.current.commandMode = true;
+      handleStart();
+      onToggle?.();
+    });
+
     const handleNoAudioDetected = () => {
       toast({
         title: t("hooks.audioRecording.noAudio.title"),
@@ -239,6 +354,7 @@ export const useAudioRecording = (toast, options = {}) => {
       disposeToggle?.();
       disposeStart?.();
       disposeStop?.();
+      disposeCommand?.();
       disposeNoAudio?.();
       if (audioManagerRef.current) {
         audioManagerRef.current.cleanup();
@@ -257,8 +373,8 @@ export const useAudioRecording = (toast, options = {}) => {
   const cancelRecording = async () => {
     if (audioManagerRef.current) {
       const state = audioManagerRef.current.getState();
-      if (state.isStreaming) {
-        return await audioManagerRef.current.stopStreamingRecording();
+      if (state.isStreaming || audioManagerRef.current.streamingStartInProgress) {
+        return await audioManagerRef.current.cancelStreamingRecording();
       }
       return audioManagerRef.current.cancelRecording();
     }
@@ -273,16 +389,23 @@ export const useAudioRecording = (toast, options = {}) => {
   };
 
   const toggleListening = async () => {
-    if (!isRecording && !isProcessing) {
-      await startRecording();
-    } else if (isRecording) {
+    const currentState = audioManagerRef.current?.getState();
+    if (!currentState) return;
+    if (
+      currentState.isRecording ||
+      currentState.isRecordingStartInProgress ||
+      currentState.isStreamingStartInProgress
+    ) {
       await stopRecording();
+    } else if (!currentState.isProcessing) {
+      await startRecording();
     }
   };
 
   return {
     isRecording,
     isProcessing,
+    pipelineStage,
     isStreaming,
     transcript,
     partialTranscript,

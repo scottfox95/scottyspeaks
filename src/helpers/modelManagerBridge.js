@@ -367,7 +367,10 @@ class ModelManager {
       });
 
       await this.serverManager.start(modelPath, {
-        contextSize: options.contextSize || modelInfo.model.contextLength || 4096,
+        // Clamp: huge context windows (128k-256k) over-allocate KV cache and
+        // cause Metal "Compute error" on 16GB machines. Dictation never needs
+        // more than a few thousand tokens.
+        contextSize: Math.min(options.contextSize || modelInfo.model.contextLength || 4096, 16384),
         threads: options.threads || 4,
         gpuLayers: 99,
       });
@@ -440,7 +443,7 @@ class ModelManager {
 
     try {
       await this.serverManager.start(modelPath, {
-        contextSize: modelInfo.model.contextLength || 4096,
+        contextSize: Math.min(modelInfo.model.contextLength || 4096, 16384),
         threads: 4,
         gpuLayers: 99,
       });

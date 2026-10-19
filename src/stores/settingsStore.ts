@@ -50,6 +50,10 @@ const BOOLEAN_SETTINGS = new Set([
   "allowLocalFallback",
   "assemblyAiStreaming",
   "useReasoningModel",
+  "dictationExact",
+  "dictationRemoveFillers",
+  "dictationResolveCorrections",
+  "dictationPreserveTechnical",
   "preferBuiltInMic",
   "cloudBackupEnabled",
   "telemetryEnabled",
@@ -89,6 +93,12 @@ export interface SettingsState
   setWhisperModel: (value: string) => void;
   setLocalTranscriptionProvider: (value: LocalTranscriptionProvider) => void;
   setParakeetModel: (value: string) => void;
+  setPolishStyle: (value: string) => void;
+  setDictationExact: (value: boolean) => void;
+  setDictationRemoveFillers: (value: boolean) => void;
+  setDictationResolveCorrections: (value: boolean) => void;
+  setDictationPreserveTechnical: (value: boolean) => void;
+
   setAllowOpenAIFallback: (value: boolean) => void;
   setAllowLocalFallback: (value: boolean) => void;
   setFallbackWhisperModel: (value: string) => void;
@@ -188,6 +198,16 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     ? "nvidia"
     : "whisper") as LocalTranscriptionProvider,
   parakeetModel: readString("parakeetModel", ""),
+  polishStyle: readBoolean("dictationExact", readString("polishStyle", "balanced") === "verbatim")
+    ? "verbatim"
+    : "balanced",
+  dictationExact: readBoolean(
+    "dictationExact",
+    readString("polishStyle", "balanced") === "verbatim"
+  ),
+  dictationRemoveFillers: readBoolean("dictationRemoveFillers", true),
+  dictationResolveCorrections: readBoolean("dictationResolveCorrections", false),
+  dictationPreserveTechnical: readBoolean("dictationPreserveTechnical", true),
   allowOpenAIFallback: readBoolean("allowOpenAIFallback", false),
   allowLocalFallback: readBoolean("allowLocalFallback", false),
   fallbackWhisperModel: readString("fallbackWhisperModel", "base"),
@@ -245,6 +265,19 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     set({ localTranscriptionProvider: value });
   },
   setParakeetModel: createStringSetter("parakeetModel"),
+  // Legacy API remains an alias of exact wording, never a competing setting.
+  setPolishStyle: (value) => get().setDictationExact(value === "verbatim"),
+  setDictationExact: (value) => {
+    const polishStyle = value ? "verbatim" : "balanced";
+    if (isBrowser) {
+      localStorage.setItem("dictationExact", String(value));
+      localStorage.setItem("polishStyle", polishStyle);
+    }
+    set({ dictationExact: value, polishStyle });
+  },
+  setDictationRemoveFillers: createBooleanSetter("dictationRemoveFillers"),
+  setDictationResolveCorrections: createBooleanSetter("dictationResolveCorrections"),
+  setDictationPreserveTechnical: createBooleanSetter("dictationPreserveTechnical"),
   setAllowOpenAIFallback: createBooleanSetter("allowOpenAIFallback"),
   setAllowLocalFallback: createBooleanSetter("allowLocalFallback"),
   setFallbackWhisperModel: createStringSetter("fallbackWhisperModel"),
@@ -405,6 +438,15 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
   updateReasoningSettings: (settings: Partial<ReasoningSettings>) => {
     const s = useSettingsStore.getState();
+    if (settings.polishStyle !== undefined && settings.dictationExact === undefined)
+      s.setPolishStyle(settings.polishStyle);
+    if (settings.dictationExact !== undefined) s.setDictationExact(settings.dictationExact);
+    if (settings.dictationRemoveFillers !== undefined)
+      s.setDictationRemoveFillers(settings.dictationRemoveFillers);
+    if (settings.dictationResolveCorrections !== undefined)
+      s.setDictationResolveCorrections(settings.dictationResolveCorrections);
+    if (settings.dictationPreserveTechnical !== undefined)
+      s.setDictationPreserveTechnical(settings.dictationPreserveTechnical);
     if (settings.useReasoningModel !== undefined)
       s.setUseReasoningModel(settings.useReasoningModel);
     if (settings.reasoningModel !== undefined) s.setReasoningModel(settings.reasoningModel);
@@ -467,6 +509,63 @@ export async function initializeSettings(): Promise<void> {
   if (!isBrowser) return;
 
   const state = useSettingsStore.getState();
+
+  // Polish-engine migration: point dictation polish at the fast non-thinking
+  // instruct model (Qwen3-8B's thinking mode made every dictation take 20s+;
+  // the 4B Instruct 2507 does it in 1-3s).
+  //
+  // reasoningProvider must be a *model family* id ("qwen"), NOT "local" —
+  // the Settings model picker matches it against family ids and silently
+  // falls back to Cloud (rewriting the model to a cloud default and stopping
+  // llama-server) when it sees an unknown value.
+  const POLISH_MODEL = "qwen3-4b-instruct-2507-q4_k_m";
+  const POLISH_PROVIDER = "qwen";
+  try {
+    if (localStorage.getItem("polishEngineMigrated") !== "2") {
+      const previouslyMigrated = localStorage.getItem("polishEngineMigrated") === "1";
+      localStorage.setItem("polishEngineMigrated", "2");
+
+      const localFamilies = ["qwen", "granite", "mistral", "llama", "openai-oss", "gemma"];
+      const localAvailable = await window.electronAPI?.checkLocalReasoningAvailable?.();
+
+      // Repair v1's damage: it wrote provider "local", which the picker then
+      // reset to a cloud provider/model, silently disabling polish. Detect
+      // both the raw broken value and the cloud state it decayed into —
+      // a cloud provider with no API key was never a deliberate choice.
+      const cloudProviders = ["openai", "anthropic", "gemini", "groq", "custom"];
+      const providerIsBroken = !localFamilies
+        .concat(cloudProviders)
+        .includes(state.reasoningProvider);
+      const cloudKeys: Record<string, string> = {
+        openai: state.openaiApiKey,
+        anthropic: state.anthropicApiKey,
+        gemini: state.geminiApiKey,
+        groq: state.groqApiKey,
+      };
+      const decayedToKeylessCloud =
+        cloudProviders.includes(state.reasoningProvider) &&
+        !(cloudKeys[state.reasoningProvider] || "").trim();
+      const needsRepair =
+        previouslyMigrated &&
+        (providerIsBroken || state.reasoningProvider === "local" || decayedToKeylessCloud);
+
+      const modelIsLocalDefaultable =
+        !state.reasoningModel || /^qwen3-8b/.test(state.reasoningModel);
+
+      if (localAvailable && (modelIsLocalDefaultable || needsRepair || providerIsBroken)) {
+        state.setReasoningModel(POLISH_MODEL);
+        state.setReasoningProvider(POLISH_PROVIDER);
+      } else if (providerIsBroken) {
+        state.setReasoningProvider(POLISH_PROVIDER);
+      }
+
+      if (!state.useReasoningModel) {
+        state.setUseReasoningModel(true);
+      }
+    }
+  } catch {
+    // Migration is best-effort
+  }
 
   // Sync API keys from main process (if localStorage is empty, read from .env via IPC)
   if (window.electronAPI) {
@@ -606,6 +705,9 @@ export async function initializeSettings(): Promise<void> {
     }
 
     useSettingsStore.setState({ [key]: value });
+    if (key === "dictationExact")
+      useSettingsStore.setState({ polishStyle: value ? "verbatim" : "balanced" });
+    if (key === "polishStyle") useSettingsStore.setState({ dictationExact: value === "verbatim" });
 
     if (key === "uiLanguage" && typeof value === "string") {
       void i18n.changeLanguage(value);

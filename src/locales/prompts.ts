@@ -11,6 +11,8 @@ import zhTWPrompts from "./zh-TW/prompts.json";
 
 export interface PromptBundle {
   cleanupPrompt: string;
+  /** Minimal-touch variant: punctuation only, keeps filler and wording intact. */
+  verbatimPrompt: string;
   fullPrompt: string;
   dictionarySuffix: string;
 }

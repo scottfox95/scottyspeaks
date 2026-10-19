@@ -281,6 +281,8 @@ export function getModelProvider(modelId: string): string {
       modelId.includes("qwen") ||
       modelId.includes("llama") ||
       modelId.includes("mistral") ||
+      modelId.includes("granite") ||
+      modelId.includes("gemma") ||
       modelId.includes("gpt-oss-20b-mxfp4")
     )
       return "local";

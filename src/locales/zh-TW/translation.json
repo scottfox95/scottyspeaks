@@ -4,7 +4,7 @@
       "sectionTitle": "語言",
       "sectionDescription": "分別設定介面語言和轉錄語言",
       "uiLabel": "介面語言",
-      "uiDescription": "選擇 OpenWhispr 介面使用的語言",
+      "uiDescription": "選擇 ScottySpeaks 介面使用的語言",
       "transcriptionLabel": "轉錄語言",
       "transcriptionDescription": "選擇你說話的語言，以提高轉錄準確度"
     }
@@ -15,12 +15,12 @@
       "hide": "隱藏語音輸入面板"
     },
     "openControlPanel": "開啟控制面板",
-    "quit": "結束 OpenWhispr",
-    "tooltip": "OpenWhispr - 語音輸入"
+    "quit": "結束 ScottySpeaks",
+    "tooltip": "ScottySpeaks - 語音輸入"
   },
   "menu": {
-    "appLabel": "OpenWhispr",
-    "quit": "結束 OpenWhispr",
+    "appLabel": "ScottySpeaks",
+    "quit": "結束 ScottySpeaks",
     "speech": "語音",
     "help": "說明",
     "learnMore": "瞭解更多",
@@ -37,8 +37,8 @@
       "message": "無法在瀏覽器中開啟連結：\n{{url}}\n\n錯誤：{{error}}"
     },
     "loadFailure": {
-      "title": "OpenWhispr 載入失敗",
-      "message": "OpenWhispr 無法載入介面。",
+      "title": "ScottySpeaks 載入失敗",
+      "message": "ScottySpeaks 無法載入介面。",
       "detail": {
         "window": "視窗：{{windowName}}",
         "error": "錯誤 {{errorCode}}：{{errorDescription}}",
@@ -49,17 +49,17 @@
   },
   "startup": {
     "error": {
-      "title": "OpenWhispr 啟動錯誤",
+      "title": "ScottySpeaks 啟動錯誤",
       "message": "應用程式啟動失敗：\n\n{{error}}\n\n請回報此問題。"
     },
     "globeHotkey": {
       "title": "Globe 快捷鍵無法使用",
-      "message": "OpenWhispr 無法啟用 Globe 鍵快捷鍵。",
+      "message": "ScottySpeaks 無法啟用 Globe 鍵快捷鍵。",
       "details": {
         "unknown": "啟動 Globe 監聽程式時發生未知錯誤。",
         "fallback": "Globe 鍵快捷鍵將維持停用狀態；現有的鍵盤快捷鍵仍可正常使用。",
         "devHint": "執行 `npm run compile:globe` 並重新建置應用程式以重新產生監聽程式。",
-        "reinstallHint": "請嘗試重新安裝 OpenWhispr，或聯絡客服。"
+        "reinstallHint": "請嘗試重新安裝 ScottySpeaks，或聯絡客服。"
       }
     }
   },
@@ -79,9 +79,9 @@
     "accessibility": "此平台不支援輔助使用設定。"
   },
   "titleBar": {
-    "quitTitle": "結束 OpenWhispr",
-    "quitConfirmTitle": "確定要結束 OpenWhispr？",
-    "quitConfirmDescription": "這將關閉 OpenWhispr 並停止背景程序。",
+    "quitTitle": "結束 ScottySpeaks",
+    "quitConfirmTitle": "確定要結束 ScottySpeaks？",
+    "quitConfirmDescription": "這將關閉 ScottySpeaks 並停止背景程序。",
     "quit": "結束",
     "cancel": "取消"
   },
@@ -157,7 +157,7 @@
       "accessibilityTitle": "輔助使用",
       "accessibilityDescription": "用於將文字貼入應用程式",
       "testAndGrant": "測試並授權",
-      "requiredForApp": "OpenWhispr 運作所需",
+      "requiredForApp": "ScottySpeaks 運作所需",
       "microphoneRequired": "需要麥克風存取權限"
     },
     "transcription": {
@@ -185,7 +185,7 @@
       "problemTitle": "更新遇到問題",
       "problemDescription": "無法完成更新。請稍後再試。",
       "installTitle": "安裝更新",
-      "installDescription": "OpenWhispr 將重新啟動以套用更新。進行中的工作會自動儲存。",
+      "installDescription": "ScottySpeaks 將重新啟動以套用更新。進行中的工作會自動儲存。",
       "couldNotInstallTitle": "無法安裝更新",
       "couldNotInstallDescription": "發生錯誤，請再試一次。",
       "couldNotDownloadTitle": "無法下載更新",
@@ -281,7 +281,14 @@
     },
     "parakeet": {
       "multilingual": "25 種語言",
-      "english": "英文"
+      "english": "英文",
+      "engine": {
+        "label": "運算方式",
+        "neuralEngine": "神經網路引擎",
+        "cpu": "CPU",
+        "description": "神經網路引擎執行同一模型的速度約快 3 倍，啟動也更快。如有異常可改用 CPU。",
+        "downloadPending": "正在下載模型…"
+      }
     },
     "apiKeyOptional": "API Key（選填）",
     "getKey": "取得金鑰 ->",
@@ -378,7 +385,7 @@
       "micErrors": {
         "accessFailed": "麥克風存取失敗。請再試一次。",
         "noMicrophones": "未偵測到麥克風。請在 {{settingsPath}} 中連接或選擇麥克風。",
-        "permissionDenied": "權限被拒絕。請開啟 {{privacyPath}} 並允許 OpenWhispr。",
+        "permissionDenied": "權限被拒絕。請開啟 {{privacyPath}} 並允許 ScottySpeaks。",
         "couldNotStart": "無法啟動所選的麥克風。請在 {{settingsPath}} 中選擇輸入裝置後重新測試。",
         "noActiveInput": "找不到有效的音訊輸入。請在 {{settingsPath}} 中選擇麥克風。",
         "unknown": "麥克風存取失敗：{{error}}。請選擇其他輸入裝置後再試。",
@@ -407,8 +414,8 @@
         "accessibilityNeeded": "請在系統設定中授予輔助使用權限，以啟用自動貼上功能。",
         "windowsReady": "Windows 不需要特殊權限即可自動貼上。一切就緒！",
         "linuxReadyWithMethod": "已使用 {{method}} 啟用自動貼上。一切就緒！",
-        "waylandClipboardMode": "此 Wayland 工作階段不支援自動貼上。OpenWhispr 會將文字複製到剪貼簿，你可以使用 Ctrl+V 貼上。",
-        "optionalPasteTool": "如需自動貼上，請安裝 {{tool}}：\n\n{{installCmd}}{{waylandNote}}\n\n沒有安裝也可以使用 OpenWhispr，文字會複製到剪貼簿，你可以使用 Ctrl+V 貼上。"
+        "waylandClipboardMode": "此 Wayland 工作階段不支援自動貼上。ScottySpeaks 會將文字複製到剪貼簿，你可以使用 Ctrl+V 貼上。",
+        "optionalPasteTool": "如需自動貼上，請安裝 {{tool}}：\n\n{{installCmd}}{{waylandNote}}\n\n沒有安裝也可以使用 ScottySpeaks，文字會複製到剪貼簿，你可以使用 Ctrl+V 貼上。"
       },
       "alerts": {
         "accessibilityNeeded": "需要輔助使用權限！請在系統設定中授權。"
@@ -421,7 +428,7 @@
         "defaultPasteTool": "xdotool",
         "xdotoolXwayland": "xdotool（XWayland 應用程式）"
       },
-      "accessibilityTestText": "OpenWhispr 輔助使用測試",
+      "accessibilityTestText": "ScottySpeaks 輔助使用測試",
       "warning": {
         "messages": {
           "macos": "請檢查聲音設定以選擇輸入裝置",
@@ -491,7 +498,7 @@
       "continueWithGoogle": "使用 Google 繼續"
     },
     "welcomeSubtitle": "隨時隨地用語音輸入文字",
-    "welcomeTitle": "歡迎使用 OpenWhispr",
+    "welcomeTitle": "歡迎使用 ScottySpeaks",
     "sessionExpired": "工作階段已過期，請重新登入。"
   },
   "cleanupPrompt": "文字整理",
@@ -697,10 +704,10 @@
     "recheckChecking": "檢查中...",
     "title": "自動貼上",
     "usingMethodPrefix": "使用",
-    "waylandClipboardDescription": "此 Wayland 工作階段不支援自動貼上。OpenWhispr 會將文字複製到剪貼簿，你可以使用 Ctrl+V 手動貼上。",
+    "waylandClipboardDescription": "此 Wayland 工作階段不支援自動貼上。ScottySpeaks 會將文字複製到剪貼簿，你可以使用 Ctrl+V 手動貼上。",
     "waylandClipboardTitle": "Wayland 剪貼簿模式",
     "windowsReady": "Windows 內建支援自動貼上。不需要額外設定！",
-    "withoutToolPrefix": "若未安裝此工具，OpenWhispr 會將文字複製到剪貼簿。你可以使用 Ctrl+V 手動貼上。",
+    "withoutToolPrefix": "若未安裝此工具，ScottySpeaks 會將文字複製到剪貼簿。你可以使用 Ctrl+V 手動貼上。",
     "xwaylandAppsOnly": "自動貼上僅適用於 XWayland 應用程式"
   },
   "promptStudio": {
@@ -940,7 +947,11 @@
         "enterprise": {
           "name": "企業版",
           "price": "自訂",
-          "features": ["雲端同步", "團隊功能（即將推出）", "SSO 與合規"],
+          "features": [
+            "雲端同步",
+            "團隊功能（即將推出）",
+            "SSO 與合規"
+          ],
           "cta": "聯絡我們"
         },
         "currentPlan": "目前方案"
@@ -979,6 +990,13 @@
       "customSetupDescription": "使用你自己的供應商和 API Key。",
       "description": "整理轉錄文字、處理指令、修正錯誤，同時保留你的語調。",
       "enableTextCleanup": "啟用文字整理",
+      "polishStyle": {
+        "label": "編輯風格",
+        "balanced": "均衡",
+        "verbatim": "逐字",
+        "balancedDescription": "移除口頭禪、修正文法並分段。建議使用。",
+        "verbatimDescription": "完整保留你的原話和口頭禪，僅加上標點與大小寫。"
+      },
       "enableTextCleanupDescription": "AI 自動提升轉錄品質",
       "openwhisprCloud": "OpenWhispr Cloud",
       "openwhisprCloudDescription": "即開即用，無需設定。",
@@ -1049,7 +1067,7 @@
       "appearance": {
         "auto": "自動",
         "dark": "深色",
-        "description": "控制 OpenWhispr 的外觀",
+        "description": "控制 ScottySpeaks 的外觀",
         "light": "淺色",
         "theme": "主題",
         "themeDescription": "選擇淺色、深色或跟隨系統",
@@ -1078,7 +1096,7 @@
       },
       "startup": {
         "launchAtLogin": "登入時啟動",
-        "launchAtLoginDescription": "登入時自動啟動 OpenWhispr",
+        "launchAtLoginDescription": "登入時自動啟動 ScottySpeaks",
         "title": "啟動"
       },
       "updates": {
@@ -1110,7 +1128,7 @@
           },
           "installUpdate": {
             "confirmText": "安裝並重新啟動",
-            "description": "OpenWhispr 將重新啟動以套用更新。",
+            "description": "ScottySpeaks 將重新啟動以套用更新。",
             "title": "安裝更新"
           },
           "noUpdates": {
@@ -1141,13 +1159,13 @@
     "permissions": {
       "accessibilityDescription": "轉錄後自動貼上文字所需的權限",
       "accessibilityTitle": "輔助使用",
-      "description": "測試和管理 OpenWhispr 正常運作所需的系統權限",
+      "description": "測試和管理 ScottySpeaks 正常運作所需的系統權限",
       "microphoneDescription": "錄音和語音輸入所需的權限",
       "microphoneTitle": "麥克風",
       "resetAccessibility": {
-        "description": "這將從輔助使用權限中移除 OpenWhispr。你需要在「系統設定 > 隱私權與安全性 > 輔助使用」中重新授權。",
+        "description": "這將從輔助使用權限中移除 ScottySpeaks。你需要在「系統設定 > 隱私權與安全性 > 輔助使用」中重新授權。",
         "label": "重設輔助使用權限",
-        "rowDescription": "重新安裝或重新建置應用程式後，透過在系統設定中移除並重新加入 OpenWhispr 來修復問題",
+        "rowDescription": "重新安裝或重新建置應用程式後，透過在系統設定中移除並重新加入 ScottySpeaks 來修復問題",
         "title": "重設輔助使用權限"
       },
       "test": "測試",
@@ -1162,7 +1180,7 @@
       "description": "控制哪些資料會離開你的裝置。預設全部關閉。",
       "title": "隱私權",
       "usageAnalytics": "使用分析",
-      "usageAnalyticsDescription": "分享匿名的效能指標，協助我們改善 OpenWhispr。我們絕不會傳送轉錄內容——只有計時和錯誤資料。"
+      "usageAnalyticsDescription": "分享匿名的效能指標，協助我們改善 ScottySpeaks。我們絕不會傳送轉錄內容——只有計時和錯誤資料。"
     },
     "prompts": {
       "description": "檢視、自訂和測試用於文字整理和指令偵測的統一系統提示詞",
@@ -1171,7 +1189,7 @@
     "transcription": {
       "customSetup": "自訂設定",
       "customSetupDescription": "使用你自己的供應商和 API Key。",
-      "description": "選擇 OpenWhispr 轉錄語音的方式",
+      "description": "選擇 ScottySpeaks 轉錄語音的方式",
       "openwhisprCloud": "OpenWhispr Cloud",
       "openwhisprCloudDescription": "即開即用，無需設定。",
       "title": "語音轉文字",
@@ -1314,7 +1332,7 @@
     },
     "tryAgain": "重試",
     "card": {
-      "brand": "OpenWhispr",
+      "brand": "ScottySpeaks",
       "signalId": "Signal ID",
       "audioSignature": "您的音訊簽名",
       "stop": "停止",
@@ -1498,7 +1516,32 @@
     "description": "教 AI 學習你的詞彙 — 名字、專業術語和它可能遺漏的表達",
     "clearTitle": "清空字典？",
     "clearDescription": "這將移除自訂字典中的所有詞彙。此操作無法復原。",
-    "addPlaceholder": "新增詞語或片語..."
+    "addPlaceholder": "新增詞語或片語...",
+    "soundsLike": "聽起來像",
+    "soundsLikeHint": "辨識器把某個詞聽成了什麼。此處列出的內容一律會被替換成該詞，即使你是照字面意思說的。",
+    "teachWord": "教它你怎麼說 {{word}}",
+    "removeAlias": "不再修正「{{alias}}」",
+    "teach": {
+      "title": "教它你怎麼說「{{word}}」",
+      "intro": "按下麥克風，只說這個詞，然後按停止。重複大約 {{count}} 次。它聽錯的內容今後會自動修正。",
+      "record": "開始錄音",
+      "stop": "停止錄音",
+      "listening": "聆聽中…",
+      "processing": "正在分析聽到的內容…",
+      "take": "第 {{number}} 次",
+      "takes": "錄音記錄",
+      "heard": "聽到「{{heard}}」— 將會修正",
+      "heardCorrect": "聽對了",
+      "heardNothing": "沒聽到 — 請再大聲一點",
+      "heardTooMuch": "聽到「{{heard}}」— 請只說這個詞",
+      "willFix": "將替換為 {{word}}",
+      "none": "還沒有內容。錄一次，或輸入它聽到的內容。",
+      "manualPlaceholder": "或輸入它聽到的內容：bravo, a rather",
+      "manualLabel": "要新增的相似詞",
+      "add": "新增",
+      "hint": "每次聽寫都會替換，即使你是照字面意思說的。",
+      "save": "儲存"
+    }
   },
   "sidebar": {
     "home": "首頁",
@@ -1595,5 +1638,335 @@
       "redirectTitle": "正在跳轉到應用程式...",
       "closeTab": "您可以關閉此分頁。"
     }
+  },
+  "meetings": {
+    "title": "通話筆記",
+    "subtitle": "記錄對話，並與工作資料一起保存。",
+    "settings": "通話筆記設定",
+    "importTranscript": "匯入轉錄文字",
+    "new": "新通話",
+    "dismiss": "關閉訊息",
+    "recording": "正在錄製麥克風和系統音訊",
+    "stop": "停止錄製",
+    "provider": "轉錄",
+    "local": "在這台 Mac 上",
+    "cloud": "MAI · OpenRouter",
+    "localEngine": "本機引擎",
+    "apiKey": "OpenRouter API 金鑰",
+    "keySaved": "金鑰已安全保存",
+    "keyPlaceholder": "貼上 OpenRouter 金鑰",
+    "saveKey": "儲存金鑰",
+    "removeKey": "移除金鑰",
+    "localHelp": "音訊和轉錄內容會保留在這台 Mac 上。使用已下載的模型，不會改用雲端。",
+    "cloudHelp": "選擇「轉錄」後，通話音訊會傳送至 OpenRouter 和 Microsoft Azure，由 MAI-Transcribe 2 處理。錄音本身仍保留在本機。",
+    "captureUnavailable": "錄音需要 macOS 15 或更新版本以及內建錄音器。你仍可匯入轉錄文字或音訊。",
+    "recent": "你的通話",
+    "importAudio": "匯入音訊",
+    "untitled": "未命名通話",
+    "emptyTitle": "用來記錄對話的筆記本",
+    "emptyBody": "錄製通話或匯入現有轉錄文字。加入自己的筆記，然後將 Markdown 直接儲存到專案或聯絡人資料夾。",
+    "callTitle": "通話標題",
+    "titlePlaceholder": "這次通話討論了什麼？",
+    "saving": "正在儲存…",
+    "unsaved": "有未儲存的編輯",
+    "saved": "草稿已儲存在這台 Mac 上",
+    "resume": "繼續錄製",
+    "record": "錄製通話",
+    "transcribe": "轉錄音訊",
+    "cancel": "取消轉錄",
+    "processing": "正在轉錄音訊 · {{completed}} / {{total}} 個部分",
+    "notes": "我的筆記",
+    "transcript": "轉錄文字",
+    "notesPlaceholder": "你的想法、問題和後續事項…\n\n支援 Markdown。輸入時會自動儲存筆記。",
+    "speakerHelp": "選取逐字稿中的說話者名稱，為該聲音命名。",
+    "localSpeakerHelp": "本機轉錄會將麥克風和通話音訊合併到一條時間軸中，以避免重複文字。播放和音訊匯出仍可選擇個別音軌。不會識別各個遠端說話者。",
+    "readTranscript": "閱讀轉錄文字",
+    "editTranscript": "編輯轉錄文字",
+    "editedTranscriptHelp": "此轉錄文字已編輯。原始詞語時間資訊仍保留在來源資料中，但不會套用到改寫後的文字。",
+    "noTranscript": "匯入轉錄文字或轉錄已儲存的音訊後，內容會顯示在這裡。",
+    "renameSpeaker": "命名 {{speaker}}",
+    "speakerName": "說話者姓名",
+    "destination": "儲存位置",
+    "chooseFolder": "選擇已釘選的資料夾…",
+    "pinFolder": "釘選資料夾",
+    "file": "儲存 Markdown",
+    "reveal": "在 Finder 中顯示",
+    "draftHelp": "選擇歸檔位置之前，草稿會保留在 ScottySpeaks 中。",
+    "draftStorageError": "無法儲存復原副本。請保持此視窗開啟，並在離開前儲存筆記。",
+    "you": "你",
+    "callAudio": "通話音訊",
+    "unknownSpeaker": "說話者",
+    "speakerLabel": "說話者 {{id}}",
+    "saveCopy": "儲存副本",
+    "unpinFolder": "取消釘選所選資料夾",
+    "recordingBadge": "通話錄音",
+    "transcribeCloud": "使用 MAI 轉錄",
+    "importSpeakerHelp": "說話者標籤和時間來自匯入的轉錄文字。你可以重新命名說話者或編輯文字。",
+    "status": {
+      "draft": "草稿",
+      "recording": "正在錄製",
+      "recorded": "音訊已儲存",
+      "transcribing": "正在轉錄",
+      "ready": "就緒",
+      "interrupted": "需要處理",
+      "queued": "排隊中"
+    },
+    "keyStored": "API 金鑰已儲存在此 Mac 上",
+    "keyNotVerified": "已安全儲存。OpenRouter 會在轉錄時驗證金鑰。",
+    "replaceKey": "更換金鑰",
+    "cancelKeyChange": "取消",
+    "addFolder": "新增資料夾…",
+    "pinnedFolders": "已釘選的資料夾",
+    "deleteCall": "刪除通話",
+    "deleteTitle": "刪除「{{title}}」？",
+    "deleteDescription": "從此 Mac 永久刪除此通話的筆記、逐字稿、已儲存的音訊和代理草稿，並撤銷代理存取權限。已匯出的檔案和匯入的原始檔案將保留在原位置。此操作無法復原。",
+    "confirmDelete": "永久刪除",
+    "microphoneSource": "麥克風",
+    "speakersTitle": "說話者（{{count}}）",
+    "renameHelp": "透過文字片段或試聽辨識聲音。姓名將套用至此逐字稿中該說話者的所有發言。不同音訊部分的說話者保持獨立，請逐一試聽辨識。",
+    "listenAt": "從 {{time}} 試聽",
+    "listenSpeaker": "從 {{time}} 試聽{{speaker}}",
+    "exportAudio": "匯出音訊…",
+    "audioExported": "音訊已儲存。",
+    "transcribeAgain": "重新轉錄",
+    "retranscribeTitle": "重新轉錄此通話？",
+    "retranscribeDescription": "除非新的轉錄成功，否則會保留目前的轉錄。成功後將取代轉錄和說話者姓名；您的筆記和已儲存音訊不會改變。重試將使用通話筆記設定中目前選擇的供應商和模型。",
+    "replaceTranscript": "取代轉錄",
+    "openrouterAuthError": "OpenRouter 拒絕了 API 金鑰（{{status}}）。請在通話筆記設定中更換金鑰，然後重試。",
+    "openrouterCreditError": "您的 OpenRouter 帳戶需要餘額才能轉錄此通話。",
+    "openrouterEmptyError": "OpenRouter 未傳回可用的轉錄。請重試或選擇本機模型。",
+    "openrouterFailedError": "OpenRouter 轉錄失敗（{{status}}）。請檢查連線後重試。"
+  },
+  "replay": {
+    "open": "重播與修正",
+    "title": "重播與修正",
+    "description": "重新聆聽、比較文字，並在不變更原文的情況下儲存修正。",
+    "retention": "保留聽寫音訊",
+    "days_one": "{{count}}天",
+    "days_other": "{{count}}天",
+    "off": "關閉",
+    "retentionHelp": "音訊儲存在這台Mac上。縮短保留期限會立即刪除較舊的音訊，但逐字稿會保留。已儲存的修正範例會另外保留。",
+    "loading": "正在載入錄音…",
+    "recording": "錄音",
+    "noCapture": "未選取錄音",
+    "noCaptureHelp": "此項目沒有連結的已儲存音訊。啟用重播功能之前的錄音只有文字。",
+    "state": {
+      "processing": "處理中",
+      "ready": "已就緒",
+      "failed": "需要處理"
+    },
+    "preparingAudio": "正在準備音訊…",
+    "originalAudio": "原始聽寫音訊",
+    "audioError": "無法播放音訊。請重新開啟此錄音後再試。",
+    "audioDisabled": "音訊保留功能已關閉。文字仍可使用。",
+    "audioExpired": "此音訊的保留期限已到。文字仍可使用。",
+    "settings": {
+      "provider": "轉錄服務供應商",
+      "model": "轉錄模型",
+      "language": "語言",
+      "styleId": "風格",
+      "polishModel": "文字整理模型",
+      "exact": "保留原話",
+      "removeFillers": "移除猶豫語氣詞",
+      "resolveCorrections": "套用口頭更正",
+      "preserveTechnical": "保留專業術語"
+    },
+    "enabled": "開啟",
+    "disabled": "關閉",
+    "raw": "原始辨識結果",
+    "final": "最初輸出的文字",
+    "savedRetry": "已儲存的重試結果",
+    "retryTitle": "嘗試另一種轉錄",
+    "retryHelp": "選擇已安裝的本機模型或MAI。儲存前請檢查結果。原文和其他App中的文字保持不變。",
+    "model": "重試模型",
+    "cloudConsent": "將此錄音傳送至OpenRouter和Microsoft Azure，使用MAI進行轉錄。服務供應商可能會收取費用。",
+    "preview": "建立預覽",
+    "retrying": "正在轉錄預覽…",
+    "previousAttempts": "先前的預覽",
+    "choosePreview": "選擇預覽",
+    "previewResult": "重試預覽",
+    "keepRetry": "儲存這次重試結果",
+    "copy": "複製文字",
+    "copied": "已複製到剪貼簿。",
+    "copyFailed": "無法複製文字。",
+    "retrySaved": "重試結果已另外儲存。原文保持不變。",
+    "wrong": "錯誤內容",
+    "corrected": "正確內容",
+    "fixtureConsent": "將此修正範例（包括所有可用的原始音訊）保存在這台Mac上，直到我將其刪除。它不受音訊保留期限限制，不會自動上傳或用於訓練。",
+    "saveExample": "儲存修正範例",
+    "exampleSaved": "修正範例已儲存在本機。",
+    "callAudio": "通話音訊",
+    "source": "聆聽來源",
+    "sources": {
+      "all": "麥克風＋系統",
+      "microphone": "麥克風",
+      "system": "系統音訊",
+      "audio": "匯入的音訊"
+    },
+    "textOnly": "此逐字稿只有文字，沒有可播放的音訊。",
+    "stopToListen": "停止錄音後即可重播。",
+    "editedAlignment": "你已編輯此逐字稿，其內容不再與原始時間戳記對應。",
+    "seek": "從{{time}}開始播放",
+    "playManually": "按下播放，從所選時間戳記開始聆聽。",
+    "delete": "刪除已儲存的錄音",
+    "deleteHelp": "刪除此錄音及其重播文字。另外儲存的修正範例會繼續保留在這台Mac上。",
+    "deleted": "錄音已刪除。",
+    "examples": "已儲存的修正範例",
+    "examplesHelp": "這些範例（包括音訊）會保存在本機，直到你在此處刪除它們。",
+    "noExamples": "沒有已儲存的修正範例。",
+    "deleteExample": "刪除範例",
+    "exampleDeleted": "修正範例及其儲存的音訊已刪除。"
+  },
+  "dictationCleanup": {
+    "dictationExact": {
+      "label": "原樣措辭",
+      "description": "保持轉錄不變。覆蓋樣式、片段和清理設定；明確的語音命令仍然有效。"
+    },
+    "dictationRemoveFillers": {
+      "label": "移除猶豫聲",
+      "description": "僅移除 um/uh 等猶豫聲，保留有意義的詞語。"
+    },
+    "dictationResolveCorrections": {
+      "label": "處理數字自我糾正",
+      "description": "處理相鄰且明確的數字糾正，例如「15, sorry, 50」。含糊的糾正保持不變。"
+    },
+    "dictationPreserveTechnical": {
+      "label": "保留技術拼寫",
+      "description": "保護識別碼、縮寫和技術名稱，包括大小寫和底線。"
+    },
+    "stages": {
+      "queued": "排隊中",
+      "transcribing": "轉錄中",
+      "refining": "潤飾中",
+      "failed": "失敗",
+      "preparing": "準備音訊",
+      "idle": "就緒",
+      "recording": "錄音中"
+    },
+    "polishUnavailable": "AI 潤飾無法使用。文字保留所選的確定性清理結果。",
+    "polishUnavailableTitle": "AI 潤飾無法使用",
+    "aiRefinement": {
+      "label": "AI 潤飾",
+      "description": "在下方清理選項之後使用所選 AI 模型。這些選項在關閉 AI 時也有效。原樣措辭會覆蓋潤飾。"
+    }
+  },
+  "recordingTarget": {
+    "manualTitle": "文字已可複製",
+    "manualDescription": "無法驗證原始文字欄位。結果已儲存在歷史記錄中。請使用其中的「複製」手動貼上。",
+    "selectionReplaced": "已取代所選文字。",
+    "dictationReplaced": "已取代上次聽寫。"
+  },
+  "callAgent": {
+    "tab": "代理",
+    "title": "此通話的代理存取",
+    "help": "分享已儲存的筆記和轉錄證據。代理使用連線時，請保持 SS2 開啟。",
+    "ready": "已就緒 · 請保持 SS2 開啟",
+    "unavailable": "連線無法使用",
+    "lastConnected": "上次代理請求：{{time}}",
+    "notConnected": "尚無代理請求",
+    "revoke": "撤銷存取",
+    "share": "分享此通話",
+    "refresh": "重新整理",
+    "previewHandoff": "預覽 Markdown 交接文件",
+    "sharedHelp": "代理可以讀取此通話並提交草稿。撤銷會停止後續存取；代理仍保留已收到的副本。",
+    "privateHelp": "此通話為私人。分享將允許存取目前及未來儲存的筆記和轉錄。",
+    "actionFailed": "無法完成操作。請檢查分享權限、已儲存的變更和目的資料夾，然後重新整理再試。",
+    "copied": "已複製",
+    "filed": "已儲存新的 Markdown 副本。現有檔案和原始筆記未變更。",
+    "configure": "設定代理",
+    "configHelp": "將設定複製到代理中。這些控制項不會修改外部設定。支援 Codex、Claude Code 和使用 JSON 的 MCP 用戶端。移動 SS2 後請重新整理設定。",
+    "json": "MCP JSON",
+    "codex": "Codex 指令",
+    "claude": "Claude Code 指令",
+    "copyConfig": "複製設定",
+    "handoff": "Markdown 交接預覽",
+    "copyHandoff": "複製 Markdown 交接文件",
+    "handoffHelp": "貼給代理前請先審閱。僅匯出文字。撤銷無法收回已複製的文字。 此一次性匯出無需共享，也不會授予代理程式持續存取權限。",
+    "drafts": "代理草稿",
+    "draftHelp": "草稿與原始筆記分開儲存。歸檔前請審閱建議及其已儲存的證據。證據可能來自較早的版本。",
+    "noDrafts": "尚無草稿。請讓已連線的代理提交附引用的草稿。",
+    "review": "審閱草稿",
+    "evidence": "引用證據",
+    "untimed": "無時間標記的證據",
+    "timed": "{{start}}–{{end}} 秒",
+    "notes": "筆記",
+    "original": "原始轉錄",
+    "edited": "已編輯或匯入的轉錄",
+    "file": "儲存已審閱的 Markdown 副本",
+    "close": "關閉審閱",
+    "chooseFolder": "儲存前請在下方選擇已釘選的資料夾。",
+    "evidenceSaved": "隨此草稿儲存的證據：{{time}}"
+  },
+  "speech": {
+    "title": "本機朗讀",
+    "stop": "停止朗讀",
+    "unavailable": "系統語音可在 macOS 上使用",
+    "recording": "錄音期間已暫停朗讀",
+    "agentSpeaking": "正在播報代理更新",
+    "speaking": "正在朗讀",
+    "ready": "本機朗讀已就緒",
+    "settings": "語音設定",
+    "help": "使用已安裝的 macOS 語音。文字保留在此 Mac 上。錄音會停止朗讀和音訊播放。",
+    "voice": "已安裝的語音",
+    "defaultVoice": "系統預設",
+    "rate": "每分鐘字詞數（100–350）",
+    "agentEnabled": "允許代理語音更新",
+    "agentHelp": "預設關閉。共享通話的代理只能在沒有錄音時播報簡短更新。撤銷通話共享會停止該通話的代理語音。",
+    "error": "無法完成語音操作。請檢查語音設定後再試一次。",
+    "readSelection": "朗讀所選內容",
+    "readAll": "朗讀全部：{{source}}",
+    "readError": "請選取此節中的文字，或朗讀整個欄位。文字上限為 20 KB；請先停止錄音。",
+    "notes": "筆記",
+    "transcript": "逐字稿",
+    "draft": "代理草稿"
+  },
+  "historyHome": {
+    "welcome": "歡迎回來，Scott",
+    "description": "找到你說過的話，接著上次繼續。",
+    "usage": "{{dictations}} 次聽寫 · {{words}} 個詞",
+    "tools": "聽寫工具",
+    "copyLatest": "複製最新內容",
+    "searchLabel": "搜尋全部聽寫",
+    "searchPlaceholder": "搜尋全部聽寫…",
+    "searchHelp": "搜尋完整歷史，包括編輯前的原始內容。按 ⌘/Ctrl F 聚焦搜尋框。",
+    "clear": "清除",
+    "loadError": "無法載入歷史記錄。已儲存的聽寫仍在這台 Mac 上。",
+    "retry": "重試",
+    "results": "搜尋結果",
+    "history": "你的聽寫",
+    "shown": "已顯示 {{count}} 筆",
+    "noResults": "沒有符合的聽寫",
+    "tryAnother": "嘗試其他詞語，或清除搜尋。",
+    "loadMore": "載入更早的聽寫"
+  },
+  "workspace": {
+    "workspace": "工作區",
+    "personalize": "個人化設定",
+    "navigation": "主導覽",
+    "dictation": "聽寫",
+    "snippets": "文字片段",
+    "style": "寫作風格",
+    "callsSubtitle": "錄下對話，留下有用的內容。",
+    "recordNew": "錄製通話",
+    "stopping": "正在停止…",
+    "searchCalls": "搜尋通話與筆記",
+    "noCalls": "沒有符合的通話，請換個詞試試。",
+    "markMoment": "標記此刻",
+    "actionItem": "待辦事項",
+    "useTemplate": "使用會議大綱",
+    "notesTemplate": "## 決定\n\n- \n\n## 待辦事項\n\n- [ ] \n\n## 待解決的問題\n\n- ",
+    "notesPlaceholder": "這段對話中什麼最重要？\n\n記錄決定、下一步行動，以及任何想記住的內容。",
+    "addToNotes": "新增至筆記",
+    "saveFailed": "無法儲存。你的修改仍在這裡，請重試。",
+    "learnFailed": "修改已儲存，但風格學習失敗。",
+    "editDictation": "編輯聽寫",
+    "copyText": "複製文字",
+    "saveAndLearn": "儲存並學習",
+    "learned": "已學習",
+    "editHint": "你的修改會教會潤飾引擎你的寫作風格。"
+  },
+  "workspacePreview": {
+    "banner": "互動預覽 · 範例資料 · 模擬錄音",
+    "desktopOnly": "此功能可在桌面應用程式中使用。"
   }
 }

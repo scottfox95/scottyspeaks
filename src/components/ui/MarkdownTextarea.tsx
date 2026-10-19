@@ -22,6 +22,7 @@ const NUM_CONTENT_RE = /^(\s*)(\d+)\. (.+)$/;
 
 interface MarkdownTextareaProps {
   value: string;
+  ariaLabel?: string;
   onChange?: (e: ChangeEvent<HTMLTextAreaElement>) => void;
   onSelect?: () => void;
   onBlur?: () => void;
@@ -196,6 +197,7 @@ function renderOverlay(text: string): ReactNode[] {
 const SHARED = "leading-[1.7] text-sm px-5 py-3 pb-20 whitespace-pre-wrap break-words";
 
 export function MarkdownTextarea({
+  ariaLabel,
   value,
   onChange,
   onSelect,
@@ -393,6 +395,7 @@ export function MarkdownTextarea({
         {value ? overlay : <span className="text-foreground/15">{placeholder}</span>}
       </div>
       <textarea
+        aria-label={ariaLabel}
         ref={taRef}
         value={value}
         onChange={onChange}

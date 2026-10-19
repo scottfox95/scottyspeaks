@@ -314,3 +314,7 @@ Thumbs.db
 .macos-fast-paste.hash
 .macos-fast-paste.*.hash
 .linux-fast-paste.hash
+
+# SwiftPM build artifacts for the parakeet-coreml helper
+# (Package.resolved IS committed — it pins the FluidAudio revision)
+resources/parakeet-coreml/.build/

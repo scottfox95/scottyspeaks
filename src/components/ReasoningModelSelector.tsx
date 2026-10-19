@@ -591,8 +591,16 @@ export default function ReasoningModelSelector({
     } else if (cloudProviderIds.includes(localReasoningProvider)) {
       setSelectedMode("cloud");
       setSelectedCloudProvider(localReasoningProvider);
+    } else if (localReasoningProvider === "local") {
+      // Generic "local" isn't a model family; resolve it from the selected
+      // model so the picker doesn't silently fall back to Cloud mode.
+      setSelectedMode("local");
+      const owner = localProviders.find((p) =>
+        (p.models ?? []).some((m: { id: string }) => m.id === reasoningModel)
+      );
+      setSelectedLocalProvider(owner?.id ?? localProviders[0]?.id ?? "qwen");
     }
-  }, [localProviders, localReasoningProvider]);
+  }, [localProviders, localReasoningProvider, reasoningModel]);
 
   useEffect(() => {
     if (selectedCloudProvider !== "custom") return;

@@ -10,10 +10,15 @@ function isPortAvailable(port) {
     const server = net.createServer();
     server.once("error", () => resolve(false));
     server.once("listening", () => {
-      server.close();
-      resolve(true);
+      // Resolve only after the probe socket is fully released, so the caller
+      // can't hand the port to a child that binds before we let go.
+      server.close(() => resolve(true));
     });
-    server.listen(port, "127.0.0.1");
+    // Probe the wildcard address, not 127.0.0.1: the servers we launch bind
+    // to 0.0.0.0, and Node's default SO_REUSEADDR lets a loopback-only probe
+    // succeed while a stale process still holds *:port — reporting the port
+    // free and then killing the child with EADDRINUSE.
+    server.listen(port, "0.0.0.0");
   });
 }
 

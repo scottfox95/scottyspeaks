@@ -1,5 +1,7 @@
+const { trustedTargetSender } = require("./recordingTargetHandlers");
 const { ipcMain, app, shell, BrowserWindow } = require("electron");
 const path = require("path");
+const { inferenceScheduler } = require("./inferenceScheduler");
 const http = require("http");
 const https = require("https");
 const crypto = require("crypto");
@@ -9,6 +11,14 @@ const GnomeShortcutManager = require("./gnomeShortcut");
 const AssemblyAiStreaming = require("./assemblyAiStreaming");
 const { i18nMain, changeLanguage } = require("./i18nMain");
 const DeepgramStreaming = require("./deepgramStreaming");
+const {
+  applyDictionaryCorrections,
+  applyDictionaryAliases,
+  extractAliasCorrections,
+  extractCorrections,
+  mergeDictionaryCorrections,
+  undoDictionaryCorrections,
+} = require("../utils/correctionLearner");
 
 const MISTRAL_TRANSCRIPTION_URL = "https://api.mistral.ai/v1/audio/transcriptions";
 
@@ -98,13 +108,16 @@ class IPCHandlers {
     this.windowsKeyManager = managers.windowsKeyManager;
     this.textEditMonitor = managers.textEditMonitor;
     this.getTrayManager = managers.getTrayManager;
+    this.getPedalManager = managers.getPedalManager;
     this.whisperCudaManager = managers.whisperCudaManager;
     this.sessionId = crypto.randomUUID();
     this.assemblyAiStreaming = null;
     this.deepgramStreaming = null;
     this._autoLearnEnabled = true; // Default on, synced from renderer
     this._autoLearnDebounceTimer = null;
+    this._autoLearnStartTimer = null;
     this._autoLearnLatestData = null;
+    this._autoLearnUndoEntries = new Map();
     this._textEditHandler = null;
     this._setupTextEditMonitor();
     this.setupHandlers();
@@ -124,7 +137,47 @@ class IPCHandlers {
     }
   }
 
+  _getAliasesSafe() {
+    try {
+      return this.databaseManager.getDictionaryAliases();
+    } catch {
+      return [];
+    }
+  }
+
+  /** Rewrites known mishearings ("a rather" → Aravo) in recognizer output. */
+  _applyAliases(text) {
+    if (typeof text !== "string" || !text) return text;
+    try {
+      return applyDictionaryAliases(text, this._getAliasesSafe());
+    } catch {
+      return text;
+    }
+  }
+
+  /**
+   * Learns "sounds like" aliases from an edit: spans the user replaced with a
+   * dictionary word become substitutions for future dictations.
+   */
+  _learnAliases(originalText, editedText, source, dictionary = this._getDictionarySafe()) {
+    try {
+      const found = extractAliasCorrections(originalText, editedText, dictionary, this._getAliasesSafe());
+      if (found.length === 0) return [];
+      let aliases = null;
+      for (const { word, alias } of found)
+        aliases = this.databaseManager.addDictionaryAliases(word, [alias], source);
+      if (aliases) this.broadcastToWindows("dictionary-aliases-updated", aliases);
+      debugLogger.debug("[AutoLearn] Learned sounds-like aliases", { source, found });
+      return found;
+    } catch (error) {
+      debugLogger.debug("[AutoLearn] Alias learning failed", { error: error.message });
+      return [];
+    }
+  }
+
   _cleanupTextEditMonitor() {
+    if (this._autoLearnStartTimer) clearTimeout(this._autoLearnStartTimer);
+    this._autoLearnStartTimer = null;
     if (this._autoLearnDebounceTimer) {
       clearTimeout(this._autoLearnDebounceTimer);
       this._autoLearnDebounceTimer = null;
@@ -140,6 +193,7 @@ class IPCHandlers {
     if (!this.textEditMonitor) return;
 
     this._textEditHandler = (data) => {
+      if (!this._autoLearnEnabled) return;
       if (
         !data ||
         typeof data.originalText !== "string" ||
@@ -183,7 +237,6 @@ class IPCHandlers {
     this._autoLearnLatestData = null;
 
     try {
-      const { extractCorrections } = require("../utils/correctionLearner");
       const currentDict = this._getDictionarySafe();
       const corrections = extractCorrections(originalText, newFieldValue, currentDict);
       debugLogger.debug("[AutoLearn] Corrections result", {
@@ -191,22 +244,32 @@ class IPCHandlers {
         dictSize: currentDict.length,
       });
 
+      let dictionaryForAliases = currentDict;
       if (corrections.length > 0) {
-        const updatedDict = [...currentDict, ...corrections];
+        const merged = mergeDictionaryCorrections(currentDict, corrections);
+        if (merged.learned.length === 0) return;
+        const updatedDict = merged.dictionary;
         const saveResult = this.databaseManager.setDictionary(updatedDict);
 
         if (saveResult?.success === false) {
           debugLogger.debug("[AutoLearn] Failed to save dictionary", { error: saveResult.error });
           return;
         }
+        dictionaryForAliases = updatedDict;
 
         this.broadcastToWindows("dictionary-updated", updatedDict);
+        for (const entry of merged.undoEntries) {
+          this._autoLearnUndoEntries.set(entry.word, entry);
+        }
 
         // Show the overlay so the toast is visible (it may have been hidden after dictation)
         this.windowManager.showDictationPanel();
-        this.broadcastToWindows("corrections-learned", corrections);
-        debugLogger.debug("[AutoLearn] Saved corrections", { corrections });
+        this.broadcastToWindows("corrections-learned", merged.learned);
+        debugLogger.debug("[AutoLearn] Saved corrections", { corrections: merged.learned });
       }
+      // Multi-word mishearings ("a rather" → Aravo) are not single-word
+      // corrections; learn them as sounds-like aliases of dictionary words.
+      this._learnAliases(originalText, newFieldValue, "auto-learn", dictionaryForAliases);
     } catch (error) {
       debugLogger.debug("[AutoLearn] Error processing corrections", { error: error.message });
     }
@@ -278,6 +341,60 @@ class IPCHandlers {
       }
     });
 
+    // Reservations are renderer-owned, token-scoped and released on navigation/crash.
+    const reservations = new Map();
+    const assertInferenceSender = (event) => {
+      if (
+        ![
+          this.windowManager?.mainWindow?.webContents,
+          this.windowManager?.controlPanelWindow?.webContents,
+        ].includes(event.sender) ||
+        !event.sender
+      ) {
+        throw new Error("Invalid local inference sender");
+      }
+    };
+    ipcMain.handle("local-inference-reserve", (event) => {
+      assertInferenceSender(event);
+      let owned = reservations.get(event.sender);
+      if (!owned) {
+        owned = { tokens: new Map() };
+        const cleanup = () => {
+          for (const release of owned.tokens.values()) release();
+          owned.tokens.clear();
+          reservations.delete(event.sender);
+          event.sender.removeListener("destroyed", cleanup);
+          event.sender.removeListener("render-process-gone", cleanup);
+          event.sender.removeListener("did-start-navigation", navigate);
+        };
+        const navigate = (_event, _url, _inPlace, isMainFrame) => {
+          if (isMainFrame) cleanup();
+        };
+        owned.cleanup = cleanup;
+        reservations.set(event.sender, owned);
+        event.sender.once("destroyed", cleanup);
+        event.sender.once("render-process-gone", cleanup);
+        event.sender.on("did-start-navigation", navigate);
+      }
+      const token = crypto.randomUUID();
+      owned.tokens.set(token, inferenceScheduler.reserveForeground());
+      return token;
+    });
+    ipcMain.handle("local-inference-release", (event, token) => {
+      assertInferenceSender(event);
+      const owned = reservations.get(event.sender);
+      const release = owned?.tokens.get(token);
+      if (release) {
+        release();
+        owned.tokens.delete(token);
+        if (!owned.tokens.size) owned.cleanup();
+      }
+    });
+    ipcMain.handle("local-inference-status", (event) => {
+      assertInferenceSender(event);
+      return inferenceScheduler.status();
+    });
+
     ipcMain.handle("show-dictation-panel", () => {
       this.windowManager.showDictationPanel();
     });
@@ -310,11 +427,29 @@ class IPCHandlers {
       return this.environmentManager.createProductionEnvFile(apiKey);
     });
 
-    ipcMain.handle("db-save-transcription", async (event, text) => {
-      const result = this.databaseManager.saveTranscription(text);
+    ipcMain.handle("db-save-transcription", async (event, text, rawText) => {
+      const result = this.databaseManager.saveTranscription(text, rawText);
       if (result?.success && result?.transcription) {
         setImmediate(() => {
           this.broadcastToWindows("transcription-added", result.transcription);
+        });
+      }
+      return result;
+    });
+
+    ipcMain.handle("db-update-transcription", async (event, id, text) => {
+      let previous = null;
+      try {
+        previous = this.databaseManager.getTranscription(id);
+      } catch {}
+      const result = this.databaseManager.updateTranscription(id, text);
+      if (result?.success && result?.transcription) {
+        // A History edit that swaps a mishearing for a dictionary word teaches
+        // the substitution for every future dictation.
+        if (previous && typeof text === "string")
+          this._learnAliases(previous.raw_text || previous.text, text, "history-edit");
+        setImmediate(() => {
+          this.broadcastToWindows("transcription-updated", result.transcription);
         });
       }
       return result;
@@ -324,9 +459,14 @@ class IPCHandlers {
       return this.databaseManager.getTranscriptions(limit);
     });
 
+    ipcMain.handle("db-query-transcriptions", async (event, options) => {
+      return this.databaseManager.queryTranscriptions(options);
+    });
+
     ipcMain.handle("db-clear-transcriptions", async (event) => {
       const result = this.databaseManager.clearTranscriptions();
       if (result?.success) {
+        this.databaseManager.captureStore?.clearHistoryCaptures();
         setImmediate(() => {
           this.broadcastToWindows("transcriptions-cleared", {
             cleared: result.cleared,
@@ -339,6 +479,7 @@ class IPCHandlers {
     ipcMain.handle("db-delete-transcription", async (event, id) => {
       const result = this.databaseManager.deleteTranscription(id);
       if (result?.success) {
+        this.databaseManager.captureStore?.deleteForHistory(id);
         setImmediate(() => {
           this.broadcastToWindows("transcription-deleted", { id });
         });
@@ -350,6 +491,9 @@ class IPCHandlers {
     ipcMain.on("auto-learn-changed", (_event, enabled) => {
       this._autoLearnEnabled = !!enabled;
       if (!this._autoLearnEnabled) {
+        if (this._autoLearnStartTimer) clearTimeout(this._autoLearnStartTimer);
+        this._autoLearnStartTimer = null;
+        this.textEditMonitor?.stopMonitoring?.();
         if (this._autoLearnDebounceTimer) {
           clearTimeout(this._autoLearnDebounceTimer);
           this._autoLearnDebounceTimer = null;
@@ -367,7 +511,30 @@ class IPCHandlers {
       if (!Array.isArray(words)) {
         throw new Error("words must be an array");
       }
-      return this.databaseManager.setDictionary(words);
+      const result = this.databaseManager.setDictionary(words);
+      // Removing a word drops its aliases; let open views refresh.
+      this.broadcastToWindows("dictionary-aliases-updated", this._getAliasesSafe());
+      return result;
+    });
+
+    ipcMain.handle("db-get-dictionary-aliases", async () => {
+      return this.databaseManager.getDictionaryAliases();
+    });
+
+    ipcMain.handle("db-set-word-aliases", async (event, word, aliases) => {
+      if (typeof word !== "string" || !Array.isArray(aliases) || aliases.length > 50) {
+        throw new Error("Invalid alias update");
+      }
+      const list = this.databaseManager.setWordAliases(word, aliases, "manual");
+      this.broadcastToWindows("dictionary-aliases-updated", list);
+      return list;
+    });
+
+    ipcMain.handle("db-remove-dictionary-alias", async (event, alias) => {
+      if (typeof alias !== "string") throw new Error("Invalid alias");
+      const list = this.databaseManager.removeDictionaryAlias(alias);
+      this.broadcastToWindows("dictionary-aliases-updated", list);
+      return list;
     });
 
     ipcMain.handle("undo-learned-corrections", async (_event, words) => {
@@ -380,8 +547,15 @@ class IPCHandlers {
           return { success: false };
         }
         const currentDict = this._getDictionarySafe();
-        const removeSet = new Set(validWords.map((w) => w.toLowerCase()));
-        const updatedDict = currentDict.filter((w) => !removeSet.has(w.toLowerCase()));
+        const undoEntries = validWords.map(
+          (word) =>
+            this._autoLearnUndoEntries.get(word) || {
+              word,
+              previous: [],
+              index: currentDict.length,
+            }
+        );
+        const updatedDict = undoDictionaryCorrections(currentDict, undoEntries);
         const saveResult = this.databaseManager.setDictionary(updatedDict);
         if (saveResult?.success === false) {
           debugLogger.debug("[AutoLearn] Undo failed to save dictionary", {
@@ -389,6 +563,7 @@ class IPCHandlers {
           });
           return { success: false };
         }
+        for (const word of validWords) this._autoLearnUndoEntries.delete(word);
         this.broadcastToWindows("dictionary-updated", updatedDict);
         debugLogger.debug("[AutoLearn] Undo: removed words", { words: validWords });
         return { success: true };
@@ -553,8 +728,179 @@ class IPCHandlers {
     });
 
     // Style profile handlers
+    // --- Stream Deck Pedal ---
+    ipcMain.handle("pedal-get-status", async () => {
+      const pedal = this.getPedalManager?.();
+      return pedal ? pedal.getStatus() : { supported: false, connected: false };
+    });
+
+    ipcMain.handle("pedal-set-config", async (event, partial) => {
+      const pedal = this.getPedalManager?.();
+      return pedal ? pedal.setConfig(partial) : { supported: false, connected: false };
+    });
+
+    ipcMain.handle("pedal-quit-blocking-app", async () => {
+      const pedal = this.getPedalManager?.();
+      return pedal ? pedal.quitBlockingApp() : { success: false, error: "no-pedal-manager" };
+    });
+
+    // Copies the current selection in the frontmost app (for voice commands)
+    ipcMain.handle("capture-selected-text", async (event, token) => {
+      if (!trustedTargetSender(event, this.windowManager)) return { text: null, error: "untrusted-sender" };
+      try {
+        return await this.clipboardManager.captureSelection(token, event.sender.id);
+      } catch (error) {
+        return { text: null, error: error.message };
+      }
+    });
+
+    // Self-diagnostics: everything needed to explain "why is it slow / why
+    // isn't it formatting" without shipping a script to the machine.
+    ipcMain.handle("run-diagnostics", async () => {
+      const { spawnSync } = require("child_process");
+      const fsx = require("fs");
+      const osx = require("os");
+      const pathx = require("path");
+      const out = { generatedAt: new Date().toISOString() };
+
+      const sh = (cmd, args) => {
+        try {
+          return spawnSync(cmd, args, { encoding: "utf8", timeout: 4000 }).stdout?.trim() || "";
+        } catch {
+          return "";
+        }
+      };
+
+      // Hardware + power (throttling is the usual cause of "slow on a better Mac")
+      out.chip = sh("sysctl", ["-n", "machdep.cpu.brand_string"]);
+      out.memoryGB = Math.round(Number(sh("sysctl", ["-n", "hw.memsize"]) || 0) / 1073741824);
+      const pm = sh("pmset", ["-g"]);
+      out.lowPowerMode = /lowpowermode\s+1/i.test(pm);
+      out.onBattery = !/AC Power/.test(sh("pmset", ["-g", "ps"]));
+      const thermal = sh("pmset", ["-g", "therm"]);
+      out.cpuSpeedLimit = Number((thermal.match(/CPU_Speed_Limit\s+=\s+(\d+)/) || [])[1] || 100);
+
+      // Which engine processes are alive
+      const ps = sh("ps", ["ax", "-o", "command"]);
+      out.llamaRunning = ps.includes("llama-server");
+      out.parakeetRunning = ps.includes("sherpa-onnx");
+
+      // Models actually on disk
+      const cacheDir = pathx.join(osx.homedir(), ".cache", "scottyspeaks");
+      const sizeOf = (dir) => {
+        let total = 0;
+        const walk = (d) => {
+          let entries = [];
+          try {
+            entries = fsx.readdirSync(d, { withFileTypes: true });
+          } catch {
+            return;
+          }
+          for (const e of entries) {
+            const p = pathx.join(d, e.name);
+            if (e.isDirectory()) walk(p);
+            else {
+              try {
+                total += fsx.statSync(p).size;
+              } catch {}
+            }
+          }
+        };
+        walk(dir);
+        return total;
+      };
+      out.models = {};
+      for (const sub of ["models", "parakeet-models", "whisper-models"]) {
+        const p = pathx.join(cacheDir, sub);
+        out.models[sub] = fsx.existsSync(p)
+          ? { files: fsx.readdirSync(p), bytes: sizeOf(p) }
+          : null;
+      }
+
+      // Did polish actually run recently? The decisive signal.
+      try {
+        const rows = this.databaseManager.db
+          .prepare("SELECT raw_text FROM transcriptions ORDER BY id DESC LIMIT 20")
+          .all();
+        out.recentCount = rows.length;
+        out.recentPolished = rows.filter((r) => r.raw_text).length;
+      } catch (e) {
+        out.recentCount = null;
+        out.recentPolished = null;
+      }
+
+      // Time a real inference against the local model server
+      try {
+        const modelManager = require("./modelManagerBridge").default;
+        const port = modelManager.serverManager?.port;
+        out.llamaPort = port || null;
+        if (port) {
+          const started = Date.now();
+          const res = await fetch(`http://127.0.0.1:${port}/v1/chat/completions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messages: [
+                { role: "system", content: "Rewrite as clean text. Output only the text." },
+                {
+                  role: "user",
+                  content: "so um i think we should ship it today and follow up tomorrow",
+                },
+              ],
+              max_tokens: 128,
+              temperature: 0.2,
+              stream: false,
+            }),
+          });
+          const json = await res.json();
+          out.polishMs = Date.now() - started;
+          out.polishSample = json?.choices?.[0]?.message?.content?.trim()?.slice(0, 120) || null;
+        }
+      } catch (e) {
+        out.polishError = e.message;
+      }
+
+      return out;
+    });
+
+    // Frontmost app name — gives the polish pass app-aware tone context
+    ipcMain.handle("get-frontmost-app", async () => {
+      if (process.platform !== "darwin") return { name: null };
+      return new Promise((resolve) => {
+        const { spawn } = require("child_process");
+        const proc = spawn("osascript", [
+          "-e",
+          'tell application "System Events" to get name of first application process whose frontmost is true',
+        ]);
+        let out = "";
+        const timeoutId = setTimeout(() => {
+          proc.kill("SIGKILL");
+          resolve({ name: null });
+        }, 1500);
+        proc.stdout.on("data", (d) => (out += d.toString()));
+        proc.on("close", () => {
+          clearTimeout(timeoutId);
+          const name = out.trim();
+          // Our own overlay may be frontmost at record start; that's useless context
+          resolve({ name: name && name !== "ScottySpeaks" && name !== "Electron" ? name : null });
+        });
+        proc.on("error", () => {
+          clearTimeout(timeoutId);
+          resolve({ name: null });
+        });
+      });
+    });
+
     ipcMain.handle("db-get-style-profiles", async () => {
       return this.databaseManager.getStyleProfiles();
+    });
+
+    ipcMain.handle("db-get-style-examples", async (event, limit) => {
+      return this.databaseManager.getStyleExamples(limit);
+    });
+
+    ipcMain.handle("db-add-style-example", async (event, beforeText, afterText, source) => {
+      return this.databaseManager.addStyleExample(beforeText, afterText, source);
     });
 
     ipcMain.handle("db-get-active-style-profile", async () => {
@@ -647,10 +993,16 @@ class IPCHandlers {
       try {
         const audioBuffer = fs.readFileSync(filePath);
         if (options.provider === "nvidia") {
-          const result = await this.parakeetManager.transcribeLocalParakeet(audioBuffer, options);
+          const result = await inferenceScheduler.run(
+            () => this.parakeetManager.transcribeLocalParakeet(audioBuffer, options),
+            { priority: "foreground" }
+          );
           return result;
         }
-        const result = await this.whisperManager.transcribeLocalWhisper(audioBuffer, options);
+        const result = await inferenceScheduler.run(
+          () => this.whisperManager.transcribeLocalWhisper(audioBuffer, options),
+          { priority: "foreground" }
+        );
         return result;
       } catch (error) {
         debugLogger.error("Audio file transcription error", { error: error.message });
@@ -658,11 +1010,13 @@ class IPCHandlers {
       }
     });
 
-    ipcMain.handle("paste-text", async (event, text, options) => {
+    ipcMain.handle("paste-text", async (event, text, options = {}) => {
+      if (!trustedTargetSender(event, this.windowManager) || typeof text !== "string" || Buffer.byteLength(text) > 200000)
+        return { success: false, manualCopy: true, reason: "invalid-request" };
       // If the floating dictation panel currently has focus, dismiss it so the
       // paste keystroke lands in the user's target app instead of the overlay.
       const mainWindow = this.windowManager?.mainWindow;
-      if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isFocused()) {
+      if (process.platform !== "darwin" && mainWindow && !mainWindow.isDestroyed() && mainWindow.isFocused()) {
         if (process.platform === "darwin") {
           // hide() forces macOS to activate the previous app; showInactive()
           // restores the overlay without stealing focus.
@@ -674,29 +1028,57 @@ class IPCHandlers {
           await new Promise((resolve) => setTimeout(resolve, 80));
         }
       }
-      const result = await this.clipboardManager.pasteText(text, {
+      const canonicalText = options?.exact
+        ? text
+        : applyDictionaryCorrections(this._applyAliases(text), this._getDictionarySafe());
+      const result = await this.clipboardManager.pasteText(canonicalText, {
         ...options,
         webContents: event.sender,
       });
-      const targetPid = this.textEditMonitor?.lastTargetPid || null;
+      const targetPid = result?.pid || this.textEditMonitor?.lastTargetPid || null;
       debugLogger.debug("[AutoLearn] Paste completed", {
         autoLearnEnabled: this._autoLearnEnabled,
         hasMonitor: !!this.textEditMonitor,
         targetPid,
       });
-      if (this.textEditMonitor && this._autoLearnEnabled) {
-        setTimeout(() => {
+      if (result?.success !== false && this.textEditMonitor && this._autoLearnEnabled) {
+        if (this._autoLearnStartTimer) clearTimeout(this._autoLearnStartTimer);
+        this._autoLearnStartTimer = setTimeout(() => {
+          this._autoLearnStartTimer = null;
+          if (!this._autoLearnEnabled) return;
           try {
             debugLogger.debug("[AutoLearn] Starting monitoring", {
-              textPreview: text.substring(0, 80),
+              textLength: canonicalText.length,
             });
-            this.textEditMonitor.startMonitoring(text, 30000, { targetPid });
+            this.textEditMonitor.startMonitoring(canonicalText, 30000, { targetPid });
           } catch (err) {
             debugLogger.debug("[AutoLearn] Failed to start monitoring", { error: err.message });
           }
         }, 500);
       }
-      return result;
+      return { ...(result || {}), text: canonicalText };
+    });
+
+    // Voice command with nothing selected: replace our own previous paste
+    // when it's verifiably still there, otherwise append.
+    ipcMain.handle("replace-last-paste", async (event, newText, expectedText, options = {}) => {
+      if (!trustedTargetSender(event, this.windowManager) || typeof newText !== "string" || typeof expectedText !== "string" || Buffer.byteLength(newText) > 200000 || Buffer.byteLength(expectedText) > 200000)
+        return { success: false, replaced: false, manualCopy: true, reason: "invalid-request" };
+      const mainWindow = this.windowManager?.mainWindow;
+      if (process.platform !== "darwin" && mainWindow && !mainWindow.isDestroyed() && mainWindow.isFocused()) {
+        if (process.platform === "darwin") {
+          mainWindow.hide();
+          await new Promise((resolve) => setTimeout(resolve, 120));
+          mainWindow.showInactive();
+        } else {
+          mainWindow.blur();
+          await new Promise((resolve) => setTimeout(resolve, 80));
+        }
+      }
+      return this.clipboardManager.replaceLastPaste(newText, expectedText, {
+        ...options,
+        webContents: event.sender,
+      });
     });
 
     ipcMain.handle("check-accessibility-permission", async () => {
@@ -723,7 +1105,14 @@ class IPCHandlers {
       });
 
       try {
-        const result = await this.whisperManager.transcribeLocalWhisper(audioBlob, options);
+        const result = await inferenceScheduler.run(
+          () => {
+            if (typeof options.requestId === "string" && options.requestId.length < 100 && !event.sender.isDestroyed?.())
+              event.sender.send("local-transcription-started", { requestId: options.requestId });
+            return this.whisperManager.transcribeLocalWhisper(audioBlob, options);
+          },
+          { priority: "foreground" }
+        );
 
         debugLogger.log("Whisper result", {
           success: result.success,
@@ -731,6 +1120,8 @@ class IPCHandlers {
           message: result.message,
           error: result.error,
         });
+        if (result?.success && result.text && !options.skipAliases)
+          result.text = this._applyAliases(result.text);
 
         // Check if no audio was detected and send appropriate event
         if (!result.success && result.message === "No audio detected") {
@@ -925,7 +1316,14 @@ class IPCHandlers {
       });
 
       try {
-        const result = await this.parakeetManager.transcribeLocalParakeet(audioBlob, options);
+        const result = await inferenceScheduler.run(
+          () => {
+            if (typeof options.requestId === "string" && options.requestId.length < 100 && !event.sender.isDestroyed?.())
+              event.sender.send("local-transcription-started", { requestId: options.requestId });
+            return this.parakeetManager.transcribeLocalParakeet(audioBlob, options);
+          },
+          { priority: "foreground" }
+        );
 
         debugLogger.log("Parakeet result", {
           success: result.success,
@@ -933,6 +1331,8 @@ class IPCHandlers {
           message: result.message,
           error: result.error,
         });
+        if (result?.success && result.text && !options.skipAliases)
+          result.text = this._applyAliases(result.text);
 
         if (!result.success && result.message === "No audio detected") {
           debugLogger.log("Sending no-audio-detected event to renderer");
@@ -1017,6 +1417,37 @@ class IPCHandlers {
 
     ipcMain.handle("get-parakeet-diagnostics", async () => {
       return this.parakeetManager.getDiagnostics();
+    });
+
+    ipcMain.handle("get-parakeet-engine-info", async () => {
+      const manager = this.parakeetManager.serverManager;
+      return {
+        engine: manager.getEngine(),
+        coremlAvailable: manager.coremlServer.isAvailable(),
+        coremlModelDownloaded: manager.coremlServer.isModelDownloaded(),
+      };
+    });
+
+    ipcMain.handle("set-parakeet-engine", async (event, engine) => {
+      const manager = this.parakeetManager.serverManager;
+      try {
+        manager.setEngine(engine || null);
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+
+      // Drop both backends so the next dictation starts on the chosen one
+      // rather than continuing to use whichever is still resident.
+      await this.parakeetManager.stopServer();
+
+      if (engine) {
+        process.env.PARAKEET_ENGINE = engine;
+      } else {
+        delete process.env.PARAKEET_ENGINE;
+      }
+      await this.environmentManager.saveAllKeysToEnvFile();
+
+      return { success: true, engine: manager.getEngine() };
     });
 
     ipcMain.handle("parakeet-server-start", async (event, modelName) => {

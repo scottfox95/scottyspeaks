@@ -28,6 +28,12 @@ export interface ReasoningSettings {
   reasoningProvider: string;
   cloudReasoningBaseUrl?: string;
   cloudReasoningMode: string;
+  /** How much the polish pass may rewrite: "balanced" (default) or "verbatim". */
+  polishStyle: "verbatim" | "balanced";
+  dictationExact: boolean;
+  dictationRemoveFillers: boolean;
+  dictationResolveCorrections: boolean;
+  dictationPreserveTechnical: boolean;
 }
 
 export interface HotkeySettings {
@@ -170,6 +176,17 @@ function useSettingsInternal() {
     assemblyAiStreaming: store.assemblyAiStreaming,
     setAssemblyAiStreaming: store.setAssemblyAiStreaming,
     useReasoningModel: store.useReasoningModel,
+    polishStyle: store.polishStyle,
+    dictationExact: store.dictationExact,
+    setDictationExact: store.setDictationExact,
+    dictationRemoveFillers: store.dictationRemoveFillers,
+    setDictationRemoveFillers: store.setDictationRemoveFillers,
+    dictationResolveCorrections: store.dictationResolveCorrections,
+    setDictationResolveCorrections: store.setDictationResolveCorrections,
+    dictationPreserveTechnical: store.dictationPreserveTechnical,
+    setDictationPreserveTechnical: store.setDictationPreserveTechnical,
+
+    setPolishStyle: store.setPolishStyle,
     reasoningModel: store.reasoningModel,
     reasoningProvider: store.reasoningProvider,
     openaiApiKey: store.openaiApiKey,

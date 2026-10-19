@@ -1,3 +1,4 @@
+import { SpeechControls } from "./speech/SpeechControls";
 import React, { Suspense, useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
@@ -17,6 +18,7 @@ import ControlPanelSidebar, { type ControlPanelView } from "./ControlPanelSideba
 import HomeView from "./HomeView";
 
 const SettingsModal = React.lazy(() => import("./SettingsModal"));
+const MeetingsView = React.lazy(() => import("./meetings/MeetingsView"));
 const PersonalNotesView = React.lazy(() => import("./notes/PersonalNotesView"));
 const DictionaryView = React.lazy(() => import("./DictionaryView"));
 const SnippetsView = React.lazy(() => import("./SnippetsView"));
@@ -31,7 +33,14 @@ export default function ControlPanel() {
   const [aiCTADismissed, setAiCTADismissed] = useState(
     () => localStorage.getItem("aiCTADismissed") === "true"
   );
-  const [activeView, setActiveView] = useState<ControlPanelView>("home");
+  const [activeView, setActiveView] = useState<ControlPanelView>(() => {
+    const saved = localStorage.getItem("controlPanelView");
+    return ["home", "meetings", "personal-notes", "dictionary", "snippets", "style"].includes(
+      saved || ""
+    )
+      ? (saved as ControlPanelView)
+      : "home";
+  });
   const { hotkey } = useHotkey();
   const { toast } = useToast();
   useSettings(); // initialize settings provider
@@ -57,6 +66,29 @@ export default function ControlPanel() {
 
   useEffect(() => {
     loadTranscriptions();
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("controlPanelView", activeView);
+  }, [activeView]);
+
+  useEffect(() => {
+    const navigate = (event: KeyboardEvent) => {
+      if (
+        !(event.metaKey || event.ctrlKey) ||
+        event.altKey ||
+        event.shiftKey ||
+        document.querySelector('[role="dialog"]')
+      )
+        return;
+      const view = { "1": "home", "2": "meetings", "3": "personal-notes" }[event.key];
+      if (view) {
+        event.preventDefault();
+        setActiveView(view as ControlPanelView);
+      }
+    };
+    window.addEventListener("keydown", navigate);
+    return () => window.removeEventListener("keydown", navigate);
   }, []);
 
   useEffect(() => {
@@ -241,7 +273,18 @@ export default function ControlPanel() {
         </Suspense>
       )}
 
-      <div className="flex flex-1 overflow-hidden">
+      <div
+        data-window-titlebar
+        className="shrink-0 select-none"
+        style={
+          {
+            WebkitAppRegion: window.electronAPI.getPlatform() === "darwin" ? "no-drag" : "drag",
+          } as React.CSSProperties
+        }
+      >
+        <SpeechControls />
+      </div>
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         <ControlPanelSidebar
           activeView={activeView}
           onViewChange={setActiveView}
@@ -267,12 +310,10 @@ export default function ControlPanel() {
             ) : undefined
           }
         />
-        <main className="flex-1 flex flex-col overflow-hidden">
+        <main className="min-h-0 min-w-0 flex-1 flex flex-col overflow-hidden">
           <div
-            className="flex items-center justify-end w-full h-10 shrink-0"
-            style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
-          />
-          <div className="flex-1 overflow-y-auto pt-1">
+            className={`min-h-0 flex-1 pt-1 ${activeView === "meetings" ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}
+          >
             {activeView === "home" && (
               <HomeView
                 history={history}
@@ -290,6 +331,11 @@ export default function ControlPanel() {
                     setShowSettings(true);
                   }}
                 />
+              </Suspense>
+            )}
+            {activeView === "meetings" && (
+              <Suspense fallback={null}>
+                <MeetingsView />
               </Suspense>
             )}
             {activeView === "dictionary" && (

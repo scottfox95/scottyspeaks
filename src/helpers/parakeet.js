@@ -68,12 +68,16 @@ class ParakeetManager {
 
       const { localTranscriptionProvider, parakeetModel } = settings;
 
+      if (settings.parakeetEngine) {
+        this.serverManager.setEngine(settings.parakeetEngine);
+      }
+
       if (
         localTranscriptionProvider === "nvidia" &&
         parakeetModel &&
         this.serverManager.isAvailable()
       ) {
-        if (this.serverManager.isModelDownloaded(parakeetModel)) {
+        if (this.serverManager.canTranscribe(parakeetModel)) {
           debugLogger.info("Pre-warming parakeet server", { model: parakeetModel });
 
           try {
@@ -116,13 +120,25 @@ class ParakeetManager {
   }
 
   async logDependencyStatus() {
+    const engine = this.serverManager.getEngine();
     const status = {
-      sherpaOnnx: {
+      engine,
+      backend: {
         available: this.serverManager.isAvailable(),
         path: this.serverManager.getBinaryPath(),
       },
       models: [],
     };
+
+    if (engine === "coreml") {
+      const serverStatus = this.serverManager.getServerStatus();
+      debugLogger.info("Parakeet dependency check", { ...status, coreml: serverStatus });
+      debugLogger.info(
+        `[Parakeet] engine: CoreML/ANE — binary ${status.backend.available ? "✓" : "✗"}, ` +
+          `models ${serverStatus.modelDownloaded ? "✓" : "will download on first use"}`
+      );
+      return;
+    }
 
     for (const modelName of getValidModelNames()) {
       const modelPath = this.getModelPath(modelName);
@@ -140,9 +156,7 @@ class ParakeetManager {
 
     debugLogger.info("Parakeet dependency check", status);
 
-    const binaryStatus = status.sherpaOnnx.available
-      ? `✓ ${status.sherpaOnnx.path}`
-      : "✗ Not found";
+    const binaryStatus = status.backend.available ? `✓ ${status.backend.path}` : "✗ Not found";
     const modelsStatus =
       status.models.length > 0
         ? status.models.map((m) => `${m.name}`).join(", ")
@@ -194,7 +208,7 @@ class ParakeetManager {
 
     const model = options.model || "parakeet-tdt-0.6b-v3";
 
-    if (!this.serverManager.isModelDownloaded(model)) {
+    if (!this.serverManager.canTranscribe(model)) {
       throw new Error(
         `Parakeet model "${model}" not downloaded. Please download it from Settings.`
       );
@@ -226,7 +240,11 @@ class ParakeetManager {
 
     const startTime = Date.now();
     const language = options.language || "auto";
-    const result = await this.serverManager.transcribe(audioBuffer, { modelName: model, language });
+    const result = await this.serverManager.transcribe(audioBuffer, {
+      modelName: model,
+      language,
+      wordTimings: options.wordTimings === true,
+    });
     const elapsed = Date.now() - startTime;
 
     debugLogger.logSTTPipeline("transcribeLocalParakeet - completed", {
@@ -254,7 +272,7 @@ class ParakeetManager {
       return { success: false, message: "No audio detected" };
     }
 
-    return { success: true, text };
+    return { success: true, text, ...(Array.isArray(output.words) ? { words: output.words } : {}) };
   }
 
   async downloadParakeetModel(modelName, progressCallback = null) {
@@ -581,14 +599,16 @@ class ParakeetManager {
       arch: process.arch,
       resourcesPath: process.resourcesPath || null,
       isPackaged: !!process.resourcesPath && !process.resourcesPath.includes("node_modules"),
+      engine: this.serverManager.getEngine(),
       sherpaOnnx: { available: false, path: null },
+      coreml: this.serverManager.coremlServer.getStatus(),
       modelsDir: this.getModelsDir(),
       models: [],
     };
 
-    const binaryPath = this.serverManager.getBinaryPath();
-    if (binaryPath) {
-      diagnostics.sherpaOnnx = { available: true, path: binaryPath };
+    const sherpaPath = this.serverManager.wsServer.getWsBinaryPath();
+    if (sherpaPath) {
+      diagnostics.sherpaOnnx = { available: true, path: sherpaPath };
     }
 
     try {

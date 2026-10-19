@@ -1,3 +1,4 @@
+import { openRecordingMicrophone } from "../../helpers/recordingActivity";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Toggle } from "./toggle";
@@ -49,8 +50,8 @@ export const MicrophoneSettings: React.FC<MicrophoneSettingsProps> = ({
 
     try {
       // Request permission first to get device labels
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((track) => track.stop());
+      const microphone = await openRecordingMicrophone({ audio: true });
+      await microphone.release();
 
       const allDevices = await navigator.mediaDevices.enumerateDevices();
       const audioInputs = allDevices

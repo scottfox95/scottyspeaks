@@ -1,7 +1,7 @@
-import i18n from "i18next";
+import i18n, { type BackendModule, type Resource } from "i18next";
 import { initReactI18next } from "react-i18next";
 import { PROMPTS_BY_LOCALE } from "./locales/prompts";
-import { TRANSLATIONS_BY_LOCALE } from "./locales/translations";
+import enTranslation from "./locales/en/translation.json";
 
 export const SUPPORTED_UI_LANGUAGES = [
   "en",
@@ -36,48 +36,44 @@ export function normalizeUiLanguage(language: string | null | undefined): UiLang
   return "en";
 }
 
-const resources = {
-  en: {
-    translation: TRANSLATIONS_BY_LOCALE.en,
-    prompts: PROMPTS_BY_LOCALE.en,
+// Keep prompt lookup synchronous even while a UI language change is loading.
+// Dictation uses the language captured when recording began.
+const resources: Resource = Object.fromEntries(
+  SUPPORTED_UI_LANGUAGES.map((locale) => [locale, { prompts: PROMPTS_BY_LOCALE[locale] }])
+);
+resources.en.translation = enTranslation;
+
+// Vite emits these as local chunks, so language switching stays fully offline
+// in a packaged Electron app without parsing every UI dictionary at startup.
+const translationLoaders = {
+  es: () => import("./locales/es/translation.json"),
+  fr: () => import("./locales/fr/translation.json"),
+  de: () => import("./locales/de/translation.json"),
+  pt: () => import("./locales/pt/translation.json"),
+  it: () => import("./locales/it/translation.json"),
+  ru: () => import("./locales/ru/translation.json"),
+  ja: () => import("./locales/ja/translation.json"),
+  "zh-CN": () => import("./locales/zh-CN/translation.json"),
+  "zh-TW": () => import("./locales/zh-TW/translation.json"),
+};
+
+const localTranslations: BackendModule = {
+  type: "backend",
+  init() {},
+  read(language, namespace, callback) {
+    const locale = normalizeUiLanguage(language);
+    if (namespace === "prompts") {
+      callback(null, PROMPTS_BY_LOCALE[locale]);
+    } else if (locale === "en") {
+      callback(null, enTranslation);
+    } else {
+      translationLoaders[locale]().then(
+        (module) => callback(null, module.default),
+        (error) => callback(error, false)
+      );
+    }
   },
-  es: {
-    translation: TRANSLATIONS_BY_LOCALE.es,
-    prompts: PROMPTS_BY_LOCALE.es,
-  },
-  fr: {
-    translation: TRANSLATIONS_BY_LOCALE.fr,
-    prompts: PROMPTS_BY_LOCALE.fr,
-  },
-  de: {
-    translation: TRANSLATIONS_BY_LOCALE.de,
-    prompts: PROMPTS_BY_LOCALE.de,
-  },
-  pt: {
-    translation: TRANSLATIONS_BY_LOCALE.pt,
-    prompts: PROMPTS_BY_LOCALE.pt,
-  },
-  it: {
-    translation: TRANSLATIONS_BY_LOCALE.it,
-    prompts: PROMPTS_BY_LOCALE.it,
-  },
-  ru: {
-    translation: TRANSLATIONS_BY_LOCALE.ru,
-    prompts: PROMPTS_BY_LOCALE.ru,
-  },
-  ja: {
-    translation: TRANSLATIONS_BY_LOCALE.ja,
-    prompts: PROMPTS_BY_LOCALE.ja,
-  },
-  "zh-CN": {
-    translation: TRANSLATIONS_BY_LOCALE["zh-CN"],
-    prompts: PROMPTS_BY_LOCALE["zh-CN"],
-  },
-  "zh-TW": {
-    translation: TRANSLATIONS_BY_LOCALE["zh-TW"],
-    prompts: PROMPTS_BY_LOCALE["zh-TW"],
-  },
-} as const;
+};
 
 const browserLanguage =
   typeof navigator !== "undefined" ? navigator.language || navigator.languages?.[0] : undefined;
@@ -87,17 +83,23 @@ const storageLanguage =
 
 const initialLanguage = normalizeUiLanguage(storageLanguage || browserLanguage || "en");
 
-void i18n.use(initReactI18next).init({
-  resources,
-  lng: initialLanguage,
-  fallbackLng: "en",
-  ns: ["translation", "prompts"],
-  defaultNS: "translation",
-  interpolation: {
-    escapeValue: false,
-  },
-  returnEmptyString: true,
-  returnNull: false,
-});
+export const i18nReady = i18n
+  .use(localTranslations)
+  .use(initReactI18next)
+  .init({
+    resources,
+    partialBundledLanguages: true,
+    supportedLngs: [...SUPPORTED_UI_LANGUAGES],
+    load: "currentOnly",
+    lng: initialLanguage,
+    fallbackLng: "en",
+    ns: ["translation", "prompts"],
+    defaultNS: "translation",
+    interpolation: {
+      escapeValue: false,
+    },
+    returnEmptyString: true,
+    returnNull: false,
+  });
 
 export default i18n;

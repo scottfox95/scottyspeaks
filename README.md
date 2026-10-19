@@ -1,3 +1,17 @@
+# ScottySpeaks / SS2
+
+This repository is Scott's personal, local-first fork of OpenWhispr. The upstream account, subscription and referral descriptions retained below do not apply to this build.
+
+**Version 0.3.0** adds retained dictation audio with replay and repair, call evidence playback, explicit cleanup choices, original-field paste targeting, selected-call agent access with separate reviewed drafts, installed-voice read-aloud, and dictation priority over queued local call transcription. [Voice workflow guide](docs/voice-workflows.md) · [Selected-call agent setup](docs/selected-call-agents.md) · [Development and work-Mac delivery](docs/DEVELOPMENT.md).
+
+- [Call notes guide](docs/CALL_NOTES.md)
+- [Development, verification, install and rollback](docs/DEVELOPMENT.md)
+- [Product findings and future candidates](docs/2026-09-06-product-recovery.md)
+
+The live capture feature requires macOS 15+. Provider quality and real hardware acceptance need the checks in the development guide; automated tests are not a substitute for them.
+
+---
+
 <p align="center">
   <img src="src/assets/logo.svg" alt="OpenWhispr" width="120" />
 </p>
@@ -60,10 +74,20 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Prerequisites
 
 - **Node.js 18+** and npm (Download from [nodejs.org](https://nodejs.org/))
-- **macOS 10.15+**, **Windows 10+**, or **Linux**
+- **macOS 13+** for this Apple Silicon SS2 release; **macOS 15+** for native call capture. Upstream Windows/Linux dictation paths remain, while original-field capture and system-voice read-aloud in this release are macOS features.
 - On macOS, Globe key support requires the Xcode Command Line Tools (`xcode-select --install`) so the bundled Swift helper can run
 
 ## Quick Start
+
+### Codex Agent Install
+
+If you are sharing this repo with a Codex agent to build and install the app from source, use the dedicated handoff:
+
+```bash
+npm run codex:install
+```
+
+See [docs/CODEX_INSTALL.md](docs/CODEX_INSTALL.md) for platform notes, expected output paths, and verification steps.
 
 ### For Personal Use (Recommended)
 

@@ -1,3 +1,5 @@
+import { SpeechControls } from "./components/speech/SpeechControls";
+import { useSpeech } from "./hooks/useSpeech";
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import "./index.css";
@@ -190,7 +192,7 @@ export default function App() {
     setWindowInteractivity(false);
   }, [setWindowInteractivity]);
 
-  const { isRecording, isProcessing, toggleListening, cancelRecording, cancelProcessing } =
+  const { isRecording, isProcessing, pipelineStage, toggleListening, cancelRecording, cancelProcessing } =
     useAudioRecording(toast, {
       onToggle: handleDictationToggle,
     });
@@ -204,11 +206,14 @@ export default function App() {
     return () => unsubscribe?.();
   }, []);
 
+  const speech = useSpeech();
+  const speechBusy = speech?.speaking || speech?.starting;
+
   // Auto-hide the floating icon when idle (setting enabled or dictation cycle completed)
   useEffect(() => {
     let hideTimeout;
 
-    if (floatingIconAutoHide && !isRecording && !isProcessing && toastCount === 0) {
+    if (floatingIconAutoHide && !isRecording && !isProcessing && !speechBusy && toastCount === 0) {
       // Delay briefly so processing can start after recording stops without a flash
       hideTimeout = setTimeout(() => {
         window.electronAPI?.hideWindow?.();
@@ -219,7 +224,7 @@ export default function App() {
 
     prevAutoHideRef.current = floatingIconAutoHide;
     return () => clearTimeout(hideTimeout);
-  }, [isRecording, isProcessing, floatingIconAutoHide, toastCount]);
+  }, [isRecording, isProcessing, floatingIconAutoHide, toastCount, speechBusy]);
 
   const handleClose = () => {
     window.electronAPI.hideWindow();
@@ -289,7 +294,7 @@ export default function App() {
       case "processing":
         return {
           className: `${baseClasses} bg-accent cursor-not-allowed`,
-          tooltip: t("app.mic.processing"),
+          tooltip: t(`dictationCleanup.stages.${pipelineStage || "transcribing"}`),
         };
       default:
         return {
@@ -319,6 +324,7 @@ export default function App() {
             }
           }}
         >
+          {speechBusy && <div className="absolute inset-0 z-50"><SpeechControls compact /></div>}
           {/* Hands-free indicator */}
           {isHandsFree && isRecording && (
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/90 backdrop-blur-sm shadow-sm animate-pulse">
@@ -430,6 +436,7 @@ export default function App() {
               )}
             </button>
           </Tooltip>
+          {(isProcessing || pipelineStage === "failed") && <span role="status" className="absolute bottom-0 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] text-foreground">{t(`dictationCleanup.stages.${pipelineStage}`)}</span>}
           {isCommandMenuOpen && (
             <div
               ref={commandMenuRef}

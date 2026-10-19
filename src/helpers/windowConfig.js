@@ -67,11 +67,9 @@ const CONTROL_PANEL_CONFIG = {
   title: "Control Panel",
   resizable: true,
   show: false,
-  frame: false,
-  ...(process.platform === "darwin" && {
-    titleBarStyle: "hiddenInset",
-    trafficLightPosition: { x: 20, y: 20 },
-  }),
+  // Native macOS chrome owns window dragging and keeps its buttons outside the web content.
+  frame: process.platform === "darwin",
+  ...(process.platform === "darwin" && { titleBarStyle: "default" }),
   transparent: false,
   minimizable: true,
   maximizable: true,

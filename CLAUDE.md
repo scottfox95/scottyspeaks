@@ -1,3 +1,7 @@
+# ScottySpeaks Studio operating context
+
+This repository is **ScottySpeaks (SS2)**, Scott's customized OpenWhispr-derived desktop dictation application. On the Mac Studio, `/Users/scott/Projects/ScottySpeaks` is the short Moshi alias for this checkout. Do not declare the Studio migration accepted from builds or automated tests alone: `/Applications/SS2.app` must complete first-launch macOS Microphone and Accessibility permission prompts, record a real spoken phrase, and paste the resulting text into a disposable document. System-audio/call capture is a separate later acceptance step.
+
 # OpenWhispr Technical Reference for AI Assistants
 
 This document provides comprehensive technical details about the OpenWhispr project architecture for AI assistants working on the codebase.
@@ -557,3 +561,113 @@ const { t } = useTranslation();
 - Cloud model selection
 - Batch transcription
 - Export formats beyond clipboard
+
+## ScottySpeaks V2 Additions (July 2026)
+
+### AI Polish Engine (dictation formatting)
+- Every dictation ≥8 words runs through a local LLM polish pass: lists, paragraphs, filler removal, self-corrections, spoken commands ("new paragraph"), app-aware tone.
+- Default model: `qwen3-4b-instruct-2507-q4_k_m` (2.5GB, non-thinking instruct — Qwen3-8B thinking mode took 20s; this does 0.4–3s). Prewarmed at app start (main.js).
+- Prompt: `cleanupPrompt` in `src/locales/*/prompts.json` (synced across locales). Context blocks (style profile `instructions`, frontmost app, learned examples) appended via `src/services/polish/polishContext.ts`.
+- Safety: 20s timeout + output validation (length ratio, answered-instead-of-rewrote detection) → falls back to raw transcript. `audioManager.processTranscription` is the orchestrator.
+- llama-server MUST run with `--reasoning-format none` (llamaServer.js) and ctx-size clamped ≤16384 (modelManagerBridge) — 128k+ ctx causes Metal "Compute error" on 16GB.
+
+**Polish is now the latency budget.** Measured on Granite 4.0 Micro (what Scott's machine has selected; the code default in `settingsStore.POLISH_MODEL` is still Qwen3-4B-Instruct), for a 10s / 41-word dictation:
+
+| Stage | Time | Share |
+|---|---|---|
+| Transcribe (Parakeet on ANE) | 74ms | 6% |
+| Polish prefill (cache hit) | ~25ms | 2% |
+| **Polish generation** | **~780–840ms** | **~80%** |
+| Paste | ~140ms | 12% |
+
+- Prefill caching already works — the constant 873-token system prompt costs ~25ms warm vs ~1975ms when forced to miss. Nothing to win there.
+- **Speculative decoding was measured and ruled out** (Jul 2026). llama-server supports model-free n-gram drafting via `--spec-type`; across three novel-text runs at temperature 0 with byte-identical outputs: `ngram-simple` +9%/−2%/0% (noise), `ngram-cache` −3%/−9%/−9% (consistently worse), `ngram-map-k` ≈0%. An early +51% for `ngram-cache` was a benchmark artifact — repeating the same prompt let the n-gram cache hold the answer, which never happens with real dictation. Don't re-litigate without a novel-text harness.
+- Generation cost scales with output length, so the only real lever left is a faster/smaller polish model or emitting fewer tokens.
+- **Edit effort is free; output length is not.** Measured across light/default/heavy editing instructions on the same 172-word dictation, throughput was flat (34.8 / 34.8 / 34.4 tok/s) — a heavier edit that emitted 119 tokens instead of 191 was *37% faster*. A "lighter formatting" control therefore cannot speed anything up; only emitting fewer words can. Rule of thumb: **~30ms per output word** (50w ≈ 1.6s, 200w ≈ 6.3s).
+- Parallel chunked polish across llama-server slots was measured and rejected: 1.07x / 1.13x / 1.24x for 2/3/4-way, and chunking breaks self-corrections that span a boundary.
+
+### Editing style: Balanced vs Verbatim
+`polishStyle` (localStorage, default `balanced`) selects between two **separate** system prompts, not a modifier on one:
+- Appending "keep the filler" to `cleanupPrompt` measured as near-placebo (53% vs 41% filler kept) — the base prompt's removal contract dominates. A standalone `verbatimPrompt` with no removal contract keeps **100%** of filler and word count while still applying punctuation.
+- `verbatimPrompt` lives alongside `cleanupPrompt` in `src/locales/*/prompts.json` (English in every locale, like the other AI prompts). Selected in `config/prompts.ts`; agent-addressed commands always use `fullPrompt` regardless of style.
+
+### Polish invention guard (`validatePolishOutput`)
+The polish model completes cut-off dictations and answers them. "i think we should probably" came back as a 43-word bulleted document-revision plan; "it looks like the issue is" became contract-enforcement steps.
+- Root cause is *not* temperature — the polish path already passes 0.2 (`audioManager.js`). Prompt hardening did **not** fix it (it measured slightly worse). The reliable fix is the deterministic guard.
+- Old rule only ran at `inWords >= 12` and allowed `2x + 12`, so short dictations were entirely unguarded: **14/32 sampled short truncations grew by >3 words and the guard caught 0**.
+- Now a growth cap applies at every length: `outWords > inWords + max(3, 10% of inWords)` → reject and paste the raw transcript. Caught 14/14 with **0 false positives** across 24 short complete dictations; legitimate cleanup never added more than +2 words in any measured config.
+
+### Transcription on the Neural Engine (CoreML)
+Parakeet TDT 0.6B **v3 — the same model as the sherpa-onnx path**, run through CoreML with the encoder pinned to the ANE. Two interchangeable backends now sit behind `ParakeetServerManager`:
+
+| | sherpa-onnx (CPU) | CoreML (ANE) |
+|---|---|---|
+| Inference, 10.8s audio | 226ms | **74ms** |
+| Cold start (warm ANE cache) | ~2.0–2.3s | **~150–220ms** |
+| On-disk model | 670MB | **470MB** |
+| Transcript | identical | identical |
+
+- `resources/parakeet-coreml/` is a SwiftPM package (depends on [FluidAudio](https://github.com/FluidInference/FluidAudio) 0.17.3) producing a persistent helper binary (and the one-shot `call-diarizer`, below). Protocol on stdin: `[uint32LE metaLen][uint32LE audioLen][meta JSON][float32 16kHz mono]`; replies are JSON lines on stdout. Human logs go to stderr so they can't corrupt the stream.
+- `npm run compile:parakeet-coreml` (part of `compile:native`) builds it to `resources/bin/parakeet-coreml-darwin-arm64`. Hash-cached; first build fetches FluidAudio (~45s). **arm64-only** — the ANE doesn't exist on Intel, and the backend auto-falls-back to sherpa-onnx.
+- Engine selection: `ParakeetServerManager.getEngine()` prefers CoreML when the binary is present. Override via `setEngine("onnx"|"coreml")`, the `PARAKEET_ENGINE` env var, or a `parakeetEngine` setting passed to `initializeAtStartup`.
+- **UI:** Settings → Transcription → NVIDIA Parakeet shows a Compute toggle (Neural Engine / CPU) when the CoreML binary is present, backed by the `get-parakeet-engine-info` / `set-parakeet-engine` IPC pair. Switching stops *both* backends so the next dictation starts clean, and persists `PARAKEET_ENGINE` to the userData `.env`.
+- CoreML models auto-download from HuggingFace on first start (~470MB) to `~/.cache/scottyspeaks/parakeet-coreml-models/parakeet-tdt-0.6b-v3`. **First run after install also pays a one-time ~12s ANE model compile**; afterwards cold start is ~150ms.
+- **FluidAudio path quirk:** `AsrModels.download(to:)` resolves its cache as `dirname(passedPath)/<repoFolderName>` — the leaf you pass is discarded. `ParakeetCoremlServer.getModelDir()` therefore passes the full final path so the location is predictable.
+- int8 encoders must use `.cpuAndNeuralEngine`, never `.all` — CoreML routes quantized ops to MPSGraph under `.all`, which fails its MLIR pass.
+- No manual 15s segmentation on this path: FluidAudio windows long audio internally and merges on a 2s overlap, which beats the hard cuts in `parakeetServer.js`.
+- **Readiness race:** `transcribe()` (dictation; requests without `wordTimings`) gives CoreML `COREML_READY_BUDGET_MS` (1500ms) to come up. If it doesn't, that one dictation is served by sherpa-onnx while CoreML keeps provisioning in the background. This covers both the first-run 470MB download and the periodic ~14s ANE recompile that macOS triggers when it evicts the e5rt bundle cache — neither ever stalls a dictation.
+- `findAvailablePort` used to probe `127.0.0.1`; Node's default `SO_REUSEADDR` let that succeed while a stale process still held `*:port`, so sherpa-onnx would be handed an occupied port and die with EADDRINUSE. It now probes `0.0.0.0` and waits for the probe socket to close.
+- `.build/` is gitignored (1.2GB); `Package.resolved` is committed to pin the FluidAudio revision.
+
+**Note:** ANE vs CPU here is a raw-throughput win, *not* a GPU-contention fix. sherpa-onnx runs ONNX on the CPU and never touched Metal, so it was never competing with the llama.cpp polish model. Under sustained Metal load both backends degrade only slightly (CPU 226→362ms, ANE 74→90ms).
+
+### Local call speaker diarization (Nemotron 3)
+Local call transcripts are split into speaker paragraphs by NVIDIA Nemotron 3 Diarization (8 speakers) running through FluidAudio's CoreML port. Cloud (OpenRouter) calls are unchanged; Azure diarizes those.
+
+- `resources/parakeet-coreml/Sources/call-diarizer` is a second executable in the same SwiftPM package, built to `resources/bin/call-diarizer-darwin-arm64`. It is **one-shot** (spawned per call by `src/helpers/callDiarizer.js`) so the model is only resident while a call is transcribed. Offline profile over the whole recording group, so speaker numbers hold for the entire take. Writes per-10ms-frame activity probabilities (`float32 [frames × 8]`) to a file and prints one JSON line.
+- Model: ~190MB, auto-downloads on first use to `~/.cache/scottyspeaks/nemotron3-diarization-models/`; first run ~25s (download + compile), then ~50ms load. A 22-minute call diarizes in ~2.7s.
+- Word timings come from the dictation helper: meta `"timings":true` returns `"words":[[word,start,end],…]`. `ParakeetServerManager.transcribe({ wordTimings: true })` waits for CoreML instead of racing sherpa-onnx, since only CoreML provides timings. **Whisper and the sherpa-onnx engine have no timings, so their call transcripts stay unattributed** (as before).
+- Attribution (`src/helpers/meetingDiarization.js`): each word goes to the speaker with the highest *summed probability across its span*. Measured against the cloud transcript of a real 22-minute two-person call: **98.75%** word agreement, vs 98.2% when matching words to thresholded segments (those lag 1–3 words at turn onsets).
+- Mic and call audio are still **mixed** before diarizing. The recorder has no echo cancellation, so on speakers the far side bleeds into the mic; treating the mic track as "the user" would duplicate their words. Instead `microphoneSpeaker()` compares per-frame mic vs call-track level for each diarized speaker and keys the one clearly dominant on the mic (≥10dB margin) as `"microphone"`; ambiguous cases (two people on one mic) stay numbered.
+- Speaker keys: `microphone`, else `part-<group>:<index>` (numbered by first appearance in the UI). Diarization is best-effort: any failure logs a warning and keeps the unattributed transcript.
+- Both systems split a speaker when they switch microphones mid-call (a real acoustic change); rename both to the same name.
+
+**Local vs cloud transcription accuracy** (same call, disagreement with the Azure transcript; real content errors judged in context): Parakeet v3 6.5% (~40 content errors), Whisper large-v3-turbo 5.8% (similar), Parakeet **Ultra** (FluidAudio 0.17.3 `AsrModelVersion.ultra`) 5.7% (~28), Azure ~7. Ultra emits `<unk>` for "&" and once invented a name. CTC vocabulary boosting at its default weight is net-harmful (rewrote "FedEx"→"Codex", "always"→"Railway"). OpenRouter stays the default until a local model closes the gap.
+
+### Stream Deck Pedal
+- `src/helpers/pedalManager.js` (@elgato-stream-deck/node). Default: left=tap-toggle, middle=hold-to-talk, right=voice command. Config: `userData/pedal-config.json`, UI in Settings → Hotkeys + onboarding.
+- Voice command mode: spoken instruction applied to selected text (Cmd+C capture via `clipboard.captureSelection`) or last dictation; `src/services/polish/voiceCommand.ts`.
+
+### Stable Code Signing (TCC fix)
+- `scripts/ensure-signing.js` + `scripts/sign-mac-app.js` (postpack) re-sign the packed app with the self-signed "ScottySpeaks Local Signing" identity so Accessibility/Mic permissions survive rebuilds. Do not regenerate `~/.scottyspeaks-signing/identity.p12`.
+- electron-builder has `npmRebuild: false`; `prepack` rebuilds only better-sqlite3 (`electron-rebuild --only better-sqlite3`). node-hid uses its bundled N-API prebuilds (source build breaks on the space in the repo path).
+
+### "Sounds like" aliases (teaching names the recognizer mishears)
+The speech model cannot be taught a pronunciation (no fine-tuning; CTC boosting measured harmful), so names it keeps mishearing are fixed at the text level. Each custom-dictionary word may carry aliases (`dictionary_aliases` table, one alias → one word, case-insensitive). `applyDictionaryAliases` in `src/utils/correctionLearner.js` replaces whole-word matches (multi-word allowed, longest first) with the word's exact spelling.
+- Applied in the main process: on local transcription results (`transcribe-local-whisper` / `transcribe-local-parakeet`, so polish already sees "Aravo"; short dictations that skip polish are covered too) and again in `paste-text` for the cloud paths. Call-notes transcripts are **not** rewritten (word timings would drift).
+- Learned from edits: `extractAliasCorrections` diffs original vs edited text and learns a replaced span only when the replacement is a dictionary word ("a rather" → Aravo). Runs on History edits (`db-update-transcription`) and the Accessibility auto-learn path. Grows a hunk over unchanged neighbours so "six point tombs" → "Six Points Homes" is learned whole.
+- Taught: Dictionary → mic icon on a word opens `TeachWordDialog`. It records with an `AudioManager` in `notes` context with `setAliasSubstitution(false)` (sends `skipAliases: true` so the handler returns what the recognizer heard), normalizes each take, and saves mishearings as aliases. Manual "sounds like" entry is on the same dialog.
+- An alias is swapped even when meant literally ("bravo"); the UI says so. Tests: `tests/dictionary-aliases.test.cjs`.
+
+### Improvement Loop
+- `transcriptions.raw_text` stores the pre-polish transcript. Editing an entry in History (pencil icon) saves a `style_examples` row (raw → preferred) that is injected as few-shot context into future polish prompts (max 4, newest first, 50 kept).
+- Style profiles gained `instructions` (free-text AI directives) and `aiPolish: false` (bypass, used by "Raw" profile).
+
+### Voice command: replace-in-place
+When a voice command runs with nothing selected, `ClipboardManager.replaceLastPaste()` replaces the app's own previous paste instead of appending a duplicate. It selects back exactly `expectedText.length` characters, copies the selection, and replaces **only** on an exact match; any mismatch collapses the selection (right-arrow) and appends, so it can never overwrite text the app didn't produce. Capped at 1200 chars (`MAX_REPLACE_CHARS`).
+
+Selection uses `macos-fast-paste --select-back <N>` (CGEvent, ~142ms/111 chars). The osascript fallback costs ~9ms per keystroke and is therefore limited to 150 chars (`OSASCRIPT_SELECT_LIMIT`). After editing `resources/macos-fast-paste.swift`, run `npm run compile:fast-paste`.
+
+### Distribution & settings migration
+- `npm run share` → `~/Desktop/SS2-<date>.zip` (SS2.app + INSTALL.txt, no user data). Uses `ditto` so code signatures survive the round trip.
+- `npm run settings:export` → `~/Desktop/ss2-settings-<date>.tar.gz` (~100KB): Local Storage (prefs), transcriptions.db (history/snippets/style profiles/dictionary/learned examples), pedal-config.json, .env. Requires SS2 to be quit; checkpoints the WAL first. Excludes `~/.cache/scottyspeaks` (9.3GB of models — they re-download).
+- `npm run settings:import -- <archive>` → restores it, moving any existing data to `scotty-speaks-backup-<ts>` first.
+
+**Gatekeeper:** the app is signed with a local self-signed identity, not an Apple Developer ID, so on any *other* Mac the recipient must run `xattr -dr com.apple.quarantine /Applications/SS2.app` once after transfer. Documented in the generated INSTALL.txt. Builds are arm64-only (Apple Silicon).
+
+### Shipping updates to other Macs
+`npm run publish` (patch bump; `-- minor` / `-- none` also accepted) bumps the version, builds, signs, installs locally, and publishes the zip as a **GitHub Release** on `scottfox95/scottyspeaks`.
+
+On any other Mac: double-click `SS2-Update.command` (written to ~/Desktop on publish; send it over once, it self-updates thereafter). It reads the latest release from the GitHub API, compares `CFBundleShortVersionString`, downloads with curl, swaps `/Applications/SS2.app`, clears quarantine, verifies the signature, and relaunches. Needs only curl + python3 (both built into macOS) — no Node, no repo, and **no shared iCloud/Apple account**, since the work Mac uses a different one.
+
+The bundled electron-updater (GitHub provider) is *not* used — Squirrel.Mac validates update signatures, unproven with a self-signed identity. Revisit with an Apple Developer ID.

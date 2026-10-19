@@ -1,0 +1,18 @@
+{
+  "backup": "/Users/scottfox/Library/Application Support/SS2 App Backups.noindex/data-before-0.3.3-20260907-225706",
+  "files": 682,
+  "persistent": {
+    "call-notes/openrouter-key.enc": "5263338a14557209f19716f6627b5119ab4f5edbb2fb74bf9a96001d1ac67a42",
+    "call-notes/index.json": "1157def6fdd288e2f293f2f5cb37989bd0aa8099d08ce331e46a645e67061730",
+    "call-notes/bcce3998-9c3b-4717-a469-c4df2049678b/session.json": "27f53f5a05aa7181a52ef936ef9c3dd12ee1d17afc3d67eb4dbc78de9a939475",
+    "call-notes/bcce3998-9c3b-4717-a469-c4df2049678b/take-0f1ca274-9942-416e-ac22-b1669820c132/system.caf": "c33a442af81a0b039282e2fe05bbdae1402a4db23c4e2360722059271ae35f86",
+    "call-notes/bcce3998-9c3b-4717-a469-c4df2049678b/take-0f1ca274-9942-416e-ac22-b1669820c132/microphone.caf": "c8837b3bcb30c5f6b45ed20762eb129f35409b370a0aa1616830eb2dcdbe03a7",
+    "call-notes/bcce3998-9c3b-4717-a469-c4df2049678b/take-83b6bdc2-a4fd-44b8-9302-f06211eda6c8/system.caf": "4a384e230effe5d3d29277bfe66445d088bda239ca7291297e279a9d06dc1102",
+    "call-notes/bcce3998-9c3b-4717-a469-c4df2049678b/take-83b6bdc2-a4fd-44b8-9302-f06211eda6c8/microphone.caf": "0ed2a5c1a2676c7025150c15d2be854be78708b53042a9167a0af219a88ef087",
+    "call-notes/a5bbf505-51b8-46e4-9d21-371686b82c39/playback-5a087bf63f6585eeb57e72381a16a8702c8896968f9f6f3cdce0b4767a6a0a84.mp3": "a208ea8e3ee6214c34f86ef9a760db3282153a42b23b21dfde7d6d1d66c2adb2",
+    "call-notes/a5bbf505-51b8-46e4-9d21-371686b82c39/session.json": "01c1e77eb0644472e8eb44eb47f4dbc114d2f714bf7ad925544ff5fb0cbfe7b6",
+    "call-notes/a5bbf505-51b8-46e4-9d21-371686b82c39/take-446f440c-a013-49fc-8021-cd8bb8dd6be9/system.caf": "53d9680319fd337ef411fbc3f67785468474c98d576c5fe79c7555571c82f131",
+    "call-notes/a5bbf505-51b8-46e4-9d21-371686b82c39/take-446f440c-a013-49fc-8021-cd8bb8dd6be9/microphone.caf": "685f54c2326a01d616f53e408e9601ddb593dd2da953b81f7738f72b235d2bb5"
+  },
+  "historyCount": 2371
+}

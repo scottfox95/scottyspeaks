@@ -4,6 +4,17 @@ const fs = require("fs");
 const debugLogger = require("./debugLogger");
 const { app } = require("electron");
 
+// Same normalization as correctionLearner.normalizeAlias, kept local so this
+// module stays free of imports (tests load it in isolation).
+function normalizeAlias(value) {
+  if (typeof value !== "string") return "";
+  return value
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}\p{M}'’\s-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 class DatabaseManager {
   constructor() {
     this.db = null;
@@ -27,6 +38,10 @@ class DatabaseManager {
           timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
+      `);
+      this.db.exec(`
+        CREATE INDEX IF NOT EXISTS transcriptions_timestamp_id
+        ON transcriptions (timestamp DESC, id DESC)
       `);
 
       this.db.exec(`
@@ -177,6 +192,81 @@ class DatabaseManager {
         )
       `);
 
+      // The dictionary's UNIQUE constraint is case-sensitive, so "Aravo" and
+      // "aravo" could both be stored — teaching the polish pass two different
+      // spellings of the same term. Collapse duplicates (preferring the
+      // capitalized form) and enforce case-insensitive uniqueness from here on.
+      try {
+        const dupes = this.db
+          .prepare(
+            `SELECT lower(word) AS key, COUNT(*) AS n FROM custom_dictionary
+             GROUP BY lower(word) HAVING n > 1`
+          )
+          .all();
+        for (const { key } of dupes) {
+          const variants = this.db
+            .prepare("SELECT id, word FROM custom_dictionary WHERE lower(word) = ? ORDER BY id ASC")
+            .all(key);
+          // Prefer a spelling that contains an uppercase letter
+          const keeper =
+            variants.find((v) => /[A-Z]/.test(v.word)) || variants[0];
+          for (const v of variants) {
+            if (v.id !== keeper.id) {
+              this.db.prepare("DELETE FROM custom_dictionary WHERE id = ?").run(v.id);
+            }
+          }
+          debugLogger.info(
+            "Merged case-duplicate dictionary entries",
+            { kept: keeper.word, removed: variants.length - 1 },
+            "database"
+          );
+        }
+        this.db.exec(
+          "CREATE UNIQUE INDEX IF NOT EXISTS idx_custom_dictionary_word_nocase ON custom_dictionary (word COLLATE NOCASE)"
+        );
+      } catch (e) {
+        debugLogger.warn("Dictionary dedupe migration failed", { error: e.message }, "database");
+      }
+
+      // "Sounds like" aliases: what the recognizer tends to hear for a
+      // dictionary word ("bravo", "a rather" → Aravo). Replaced verbatim in
+      // transcripts; one alias can belong to only one word.
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS dictionary_aliases (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          word TEXT NOT NULL,
+          alias TEXT NOT NULL,
+          source TEXT NOT NULL DEFAULT 'manual',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      this.db.exec(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_dictionary_aliases_alias_nocase ON dictionary_aliases (alias COLLATE NOCASE)"
+      );
+
+      // raw_text: the pre-polish transcript, kept so user edits can teach the
+      // polish pass (raw → preferred output pairs)
+      try {
+        const cols = this.db.prepare("PRAGMA table_info(transcriptions)").all();
+        if (!cols.some((c) => c.name === "raw_text")) {
+          this.db.exec("ALTER TABLE transcriptions ADD COLUMN raw_text TEXT");
+        }
+      } catch (e) {
+        debugLogger.warn("raw_text migration failed", { error: e.message }, "database");
+      }
+
+      // Learned style examples: before/after pairs harvested from the user's
+      // edits, injected as few-shot context into the polish prompt
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS style_examples (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          before_text TEXT NOT NULL,
+          after_text TEXT NOT NULL,
+          source TEXT NOT NULL DEFAULT 'history-edit',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
       // Seed default style profiles
       const profileCount = this.db.prepare("SELECT COUNT(*) as count FROM style_profiles").get();
       if (profileCount.count === 0) {
@@ -188,12 +278,16 @@ class DatabaseManager {
           capitalization: "sentence",
           autoPunctuation: true,
           formality: "casual",
+          instructions:
+            "Keep it relaxed and conversational. Contractions are fine. Short sentences over long ones. No sign-offs unless spoken.",
         }), 1);
         seedProfile.run("Professional", JSON.stringify({
           removeFillers: true,
           capitalization: "sentence",
           autoPunctuation: true,
           formality: "formal",
+          instructions:
+            "Polished business tone. Complete sentences, no slang. Keep it concise and direct.",
         }), 0);
         seedProfile.run("Email", JSON.stringify({
           removeFillers: true,
@@ -202,13 +296,45 @@ class DatabaseManager {
           formality: "formal",
           greeting: "Hi,",
           signoff: "Best,\nScott",
+          instructions:
+            "Format as an email: greeting line, short paragraphs separated by blank lines, sign-off on its own line if one was spoken.",
         }), 0);
         seedProfile.run("Raw", JSON.stringify({
           removeFillers: false,
           capitalization: "none",
           autoPunctuation: false,
           formality: "none",
+          aiPolish: false,
+          instructions: "",
         }), 0);
+      } else {
+        // One-time upgrade for existing installs: give the seeded profiles AI
+        // instructions (and mark "Raw" as bypassing AI polish) without
+        // touching profiles the user customized.
+        const known = {
+          Casual:
+            "Keep it relaxed and conversational. Contractions are fine. Short sentences over long ones. No sign-offs unless spoken.",
+          Professional:
+            "Polished business tone. Complete sentences, no slang. Keep it concise and direct.",
+          Email:
+            "Format as an email: greeting line, short paragraphs separated by blank lines, sign-off on its own line if one was spoken.",
+          Raw: "",
+        };
+        const rows = this.db.prepare("SELECT id, name, rules FROM style_profiles").all();
+        const update = this.db.prepare("UPDATE style_profiles SET rules = ? WHERE id = ?");
+        for (const row of rows) {
+          if (!(row.name in known)) continue;
+          let rules;
+          try {
+            rules = JSON.parse(row.rules || "{}");
+          } catch {
+            continue;
+          }
+          if (rules.instructions !== undefined) continue;
+          rules.instructions = known[row.name];
+          if (row.name === "Raw" && rules.aiPolish === undefined) rules.aiPolish = false;
+          update.run(JSON.stringify(rules), row.id);
+        }
       }
 
       return true;
@@ -218,13 +344,13 @@ class DatabaseManager {
     }
   }
 
-  saveTranscription(text) {
+  saveTranscription(text, rawText = null) {
     try {
       if (!this.db) {
         throw new Error("Database not initialized");
       }
-      const stmt = this.db.prepare("INSERT INTO transcriptions (text) VALUES (?)");
-      const result = stmt.run(text);
+      const stmt = this.db.prepare("INSERT INTO transcriptions (text, raw_text) VALUES (?, ?)");
+      const result = stmt.run(text, rawText && rawText !== text ? rawText : null);
 
       const fetchStmt = this.db.prepare("SELECT * FROM transcriptions WHERE id = ?");
       const transcription = fetchStmt.get(result.lastInsertRowid);
@@ -236,18 +362,154 @@ class DatabaseManager {
     }
   }
 
+  getTranscription(id) {
+    if (!this.db) throw new Error("Database not initialized");
+    return this.db.prepare("SELECT * FROM transcriptions WHERE id = ?").get(id) || null;
+  }
+
+  // --- "Sounds like" aliases -------------------------------------------------
+
+  getDictionaryAliases() {
+    if (!this.db) throw new Error("Database not initialized");
+    return this.db
+      .prepare("SELECT word, alias, source FROM dictionary_aliases ORDER BY id ASC")
+      .all()
+      .map((row) => ({ word: row.word, alias: row.alias, source: row.source }));
+  }
+
+  /** Replaces every alias of `word`. Returns the full alias list afterwards. */
+  setWordAliases(word, aliases, source = "manual") {
+    if (!this.db) throw new Error("Database not initialized");
+    const canonical = this._canonicalDictionaryWord(word);
+    if (!canonical) throw new Error("Aliases need a dictionary word");
+    this.db.exec("BEGIN");
+    try {
+      this.db.prepare("DELETE FROM dictionary_aliases WHERE lower(word) = lower(?)").run(canonical);
+      this._insertAliases(canonical, aliases, source);
+      this.db.exec("COMMIT");
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
+    return this.getDictionaryAliases();
+  }
+
+  /** Adds aliases to `word`, taking them over from any other word. */
+  addDictionaryAliases(word, aliases, source = "manual") {
+    if (!this.db) throw new Error("Database not initialized");
+    const canonical = this._canonicalDictionaryWord(word);
+    if (!canonical) throw new Error("Aliases need a dictionary word");
+    this._insertAliases(canonical, aliases, source);
+    return this.getDictionaryAliases();
+  }
+
+  removeDictionaryAlias(alias) {
+    if (!this.db) throw new Error("Database not initialized");
+    const normalized = normalizeAlias(alias);
+    if (normalized)
+      this.db.prepare("DELETE FROM dictionary_aliases WHERE alias = ? COLLATE NOCASE").run(normalized);
+    return this.getDictionaryAliases();
+  }
+
+  _canonicalDictionaryWord(word) {
+    const trimmed = typeof word === "string" ? word.trim() : "";
+    if (!trimmed) return null;
+    const row = this.db
+      .prepare("SELECT word FROM custom_dictionary WHERE word = ? COLLATE NOCASE")
+      .get(trimmed);
+    return row ? row.word : null;
+  }
+
+  _insertAliases(canonical, aliases, source) {
+    const dictionary = new Set(this.getDictionary().map((entry) => normalizeAlias(entry)));
+    const insert = this.db.prepare(
+      "INSERT OR REPLACE INTO dictionary_aliases (word, alias, source) VALUES (?, ?, ?)"
+    );
+    for (const value of Array.isArray(aliases) ? aliases : []) {
+      const alias = normalizeAlias(value);
+      // Never rewrite the word itself or another dictionary word.
+      if (!alias || alias.length > 120 || alias === normalizeAlias(canonical)) continue;
+      if (dictionary.has(alias)) continue;
+      insert.run(canonical, alias, typeof source === "string" ? source : "manual");
+    }
+  }
+
+  updateTranscription(id, text) {
+    try {
+      if (!this.db) {
+        throw new Error("Database not initialized");
+      }
+      this.db.prepare("UPDATE transcriptions SET text = ? WHERE id = ?").run(text, id);
+      const transcription = this.db.prepare("SELECT * FROM transcriptions WHERE id = ?").get(id);
+      return { success: !!transcription, transcription };
+    } catch (error) {
+      debugLogger.error("Error updating transcription", { error: error.message }, "database");
+      throw error;
+    }
+  }
+
   getTranscriptions(limit = 50) {
     try {
       if (!this.db) {
         throw new Error("Database not initialized");
       }
-      const stmt = this.db.prepare("SELECT * FROM transcriptions ORDER BY timestamp DESC LIMIT ?");
+      const stmt = this.db.prepare(
+        "SELECT * FROM transcriptions ORDER BY timestamp DESC, id DESC LIMIT ?"
+      );
       const transcriptions = stmt.all(limit);
       return transcriptions;
     } catch (error) {
       debugLogger.error("Error getting transcriptions", { error: error.message }, "database");
       throw error;
     }
+  }
+
+  queryTranscriptions(options = {}) {
+    if (!this.db) throw new Error("Database not initialized");
+    if (!options || typeof options !== "object" || Array.isArray(options)) {
+      throw new Error("Invalid history query");
+    }
+    const { query = "", limit = 50, cursor = null } = options;
+    if (typeof query !== "string" || query.length > 500) {
+      throw new Error("History search must be at most 500 characters");
+    }
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      throw new Error("History page size must be between 1 and 100");
+    }
+    const conditions = [];
+    const parameters = [];
+    const search = query.trim();
+    if (search) {
+      // Search literal text, including SQL LIKE metacharacters in dictated code.
+      const pattern = `%${search.replace(/[\\%_]/g, "\\$&")}%`;
+      conditions.push("(text LIKE ? ESCAPE '\\' OR raw_text LIKE ? ESCAPE '\\')");
+      parameters.push(pattern, pattern);
+    }
+    if (cursor !== null) {
+      if (
+        !cursor ||
+        typeof cursor.timestamp !== "string" ||
+        cursor.timestamp.length > 64 ||
+        !Number.isSafeInteger(cursor.id) ||
+        cursor.id < 1
+      ) {
+        throw new Error("Invalid history cursor");
+      }
+      conditions.push("(timestamp < ? OR (timestamp = ? AND id < ?))");
+      parameters.push(cursor.timestamp, cursor.timestamp, cursor.id);
+    }
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const rows = this.db
+      .prepare(`SELECT * FROM transcriptions ${where} ORDER BY timestamp DESC, id DESC LIMIT ?`)
+      .all(...parameters, limit + 1);
+    const hasMore = rows.length > limit;
+    const items = rows.slice(0, limit);
+    const last = items[items.length - 1];
+    return {
+      items,
+      hasMore,
+      nextCursor: hasMore && last ? { timestamp: last.timestamp, id: last.id } : null,
+    };
   }
 
   clearTranscriptions() {
@@ -306,6 +568,12 @@ class DatabaseManager {
             insert.run(trimmed);
           }
         }
+        // Aliases follow their word; a removed word must stop rewriting text.
+        this.db
+          .prepare(
+            "DELETE FROM dictionary_aliases WHERE lower(word) NOT IN (SELECT lower(word) FROM custom_dictionary)"
+          )
+          .run();
       });
       transaction(words);
       return { success: true };
@@ -745,6 +1013,41 @@ class DatabaseManager {
     } catch (error) {
       debugLogger.error("Error getting style profiles", { error: error.message }, "database");
       return [];
+    }
+  }
+
+  getStyleExamples(limit = 4) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      return this.db
+        .prepare(
+          "SELECT before_text as before, after_text as after, source FROM style_examples ORDER BY id DESC LIMIT ?"
+        )
+        .all(Math.max(1, Math.min(limit || 4, 20)));
+    } catch (error) {
+      debugLogger.error("Error getting style examples", { error: error.message }, "database");
+      return [];
+    }
+  }
+
+  addStyleExample(beforeText, afterText, source = "history-edit") {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      if (!beforeText?.trim() || !afterText?.trim()) return null;
+      if (beforeText.trim() === afterText.trim()) return null;
+      const result = this.db
+        .prepare("INSERT INTO style_examples (before_text, after_text, source) VALUES (?, ?, ?)")
+        .run(beforeText.trim(), afterText.trim(), source);
+      // Keep only the most recent 50 examples
+      this.db
+        .prepare(
+          "DELETE FROM style_examples WHERE id NOT IN (SELECT id FROM style_examples ORDER BY id DESC LIMIT 50)"
+        )
+        .run();
+      return { id: result.lastInsertRowid };
+    } catch (error) {
+      debugLogger.error("Error adding style example", { error: error.message }, "database");
+      return null;
     }
   }
 

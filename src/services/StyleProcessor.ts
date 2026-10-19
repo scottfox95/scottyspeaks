@@ -1,3 +1,8 @@
+import {
+  applyDictationCleanup,
+  respectsCleanupChoices,
+  type CleanupChoices,
+} from "./polish/dictationCleanup";
 export interface StyleRules {
   removeFillers: boolean;
   capitalization: "none" | "sentence" | "title";
@@ -5,25 +10,13 @@ export interface StyleRules {
   formality: "none" | "casual" | "formal";
   greeting?: string;
   signoff?: string;
+  /** Free-text tone/formatting instructions injected into the AI polish prompt */
+  instructions?: string;
+  /** false = this profile bypasses AI polish entirely (raw transcription) */
+  aiPolish?: boolean;
 }
 
-const FILLER_WORDS = [
-  "um",
-  "uh",
-  "uhh",
-  "umm",
-  "hmm",
-  "like",
-  "you know",
-  "I mean",
-  "sort of",
-  "kind of",
-  "basically",
-  "literally",
-  "actually",
-  "right",
-  "so yeah",
-];
+const FILLER_WORDS = ["um", "uh", "uhh", "umm", "hmm"];
 
 const FORMAL_SUBSTITUTIONS: Record<string, string> = {
   gonna: "going to",
@@ -54,15 +47,16 @@ function removeFillers(text: string): string {
   const sorted = [...FILLER_WORDS].sort((a, b) => b.length - a.length);
   let result = text;
   for (const filler of sorted) {
-    // Match filler as a whole word/phrase, case-insensitive
+    // Only remove unambiguous hesitation sounds. A trailing comma belongs to
+    // the hesitation; surrounding horizontal whitespace is normalized below.
     const regex = new RegExp(
-      `\\b${filler.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b[,]?\\s*`,
-      "gi"
+      `(?<![\\p{L}\\p{N}_])${filler.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}_])[ \\t]*,?`,
+      "giu"
     );
     result = result.replace(regex, "");
   }
-  // Clean up double spaces
-  return result.replace(/\s{2,}/g, " ").trim();
+  // Clean up only horizontal gaps so intentional line and paragraph breaks survive.
+  return result.replace(/[ \t]{2,}/g, " ").trim();
 }
 
 function applyCasualFormality(text: string): string {
@@ -73,14 +67,9 @@ function applyCasualFormality(text: string): string {
 function applyFormalFormality(text: string): string {
   let result = text;
   // Sort substitutions by key length descending for multi-word matches first
-  const entries = Object.entries(FORMAL_SUBSTITUTIONS).sort(
-    (a, b) => b[0].length - a[0].length
-  );
+  const entries = Object.entries(FORMAL_SUBSTITUTIONS).sort((a, b) => b[0].length - a[0].length);
   for (const [informal, formal] of entries) {
-    const regex = new RegExp(
-      `\\b${informal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
-      "gi"
-    );
+    const regex = new RegExp(`\\b${informal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi");
     result = result.replace(regex, formal);
   }
   return result;
@@ -88,15 +77,29 @@ function applyFormalFormality(text: string): string {
 
 function applySentenceCapitalization(text: string): string {
   // Capitalize first letter and after sentence-ending punctuation
-  return text.replace(/(^|[.!?]\s+)([a-z])/g, (_match, prefix, char) =>
-    prefix + char.toUpperCase()
+  return text.replace(
+    /(^|[.!?]\s+)([a-z])/g,
+    (_match, prefix, char) => prefix + char.toUpperCase()
   );
 }
 
 function applyTitleCapitalization(text: string): string {
   const minorWords = new Set([
-    "a", "an", "the", "and", "but", "or", "for", "nor",
-    "on", "at", "to", "by", "in", "of", "up",
+    "a",
+    "an",
+    "the",
+    "and",
+    "but",
+    "or",
+    "for",
+    "nor",
+    "on",
+    "at",
+    "to",
+    "by",
+    "in",
+    "of",
+    "up",
   ]);
   return text
     .split(" ")
@@ -118,7 +121,12 @@ function applyAutoPunctuation(text: string): string {
   return result;
 }
 
-export function applyStyleRules(text: string, rules: StyleRules): string {
+export function applyStyleRules(text: string, rules: StyleRules, choices?: CleanupChoices): string {
+  if (choices?.exact) return text;
+  if (choices) {
+    text = applyDictationCleanup(text, choices);
+    rules = { ...rules, removeFillers: false };
+  }
   if (!text || !rules) return text;
 
   let result = text;
@@ -155,7 +163,7 @@ export function applyStyleRules(text: string, rules: StyleRules): string {
     result = `${result}\n\n${rules.signoff}`;
   }
 
-  return result;
+  return choices && !respectsCleanupChoices(text, result, choices) ? text : result;
 }
 
 export function previewStyle(text: string, rules: StyleRules): { before: string; after: string } {

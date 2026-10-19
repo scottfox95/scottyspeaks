@@ -4,7 +4,7 @@
       "sectionTitle": "Lingua",
       "sectionDescription": "Imposta separatamente la lingua dell'interfaccia e quella di trascrizione",
       "uiLabel": "Lingua dell'interfaccia",
-      "uiDescription": "Scegli la lingua usata nell'interfaccia di OpenWhispr",
+      "uiDescription": "Scegli la lingua usata nell'interfaccia di ScottySpeaks",
       "transcriptionLabel": "Lingua di trascrizione",
       "transcriptionDescription": "Scegli la lingua che parli per una trascrizione più accurata"
     }
@@ -15,12 +15,12 @@
       "hide": "Nascondi pannello dettatura"
     },
     "openControlPanel": "Apri pannello di controllo",
-    "quit": "Esci da OpenWhispr",
-    "tooltip": "OpenWhispr - Dettatura vocale"
+    "quit": "Esci da ScottySpeaks",
+    "tooltip": "ScottySpeaks - Dettatura vocale"
   },
   "menu": {
-    "appLabel": "OpenWhispr",
-    "quit": "Esci da OpenWhispr",
+    "appLabel": "ScottySpeaks",
+    "quit": "Esci da ScottySpeaks",
     "speech": "Voce",
     "help": "Aiuto",
     "learnMore": "Scopri di più",
@@ -37,8 +37,8 @@
       "message": "Impossibile aprire il link nel browser:\n{{url}}\n\nErrore: {{error}}"
     },
     "loadFailure": {
-      "title": "Caricamento di OpenWhispr non riuscito",
-      "message": "OpenWhispr non ha potuto caricare la sua interfaccia.",
+      "title": "Caricamento di ScottySpeaks non riuscito",
+      "message": "ScottySpeaks non ha potuto caricare la sua interfaccia.",
       "detail": {
         "window": "Finestra: {{windowName}}",
         "error": "Errore {{errorCode}}: {{errorDescription}}",
@@ -49,17 +49,17 @@
   },
   "startup": {
     "error": {
-      "title": "Errore di avvio di OpenWhispr",
+      "title": "Errore di avvio di ScottySpeaks",
       "message": "Impossibile avviare l'applicazione:\n\n{{error}}\n\nSegnala questo problema."
     },
     "globeHotkey": {
       "title": "Tasto Globe non disponibile",
-      "message": "OpenWhispr non è riuscito ad attivare il tasto Globe.",
+      "message": "ScottySpeaks non è riuscito ad attivare il tasto Globe.",
       "details": {
         "unknown": "Errore sconosciuto durante l'avvio del listener Globe.",
         "fallback": "La scorciatoia Globe resterà disabilitata; le scorciatoie esistenti continueranno a funzionare.",
         "devHint": "Esegui `npm run compile:globe` e ricompila l'app per rigenerare il binario.",
-        "reinstallHint": "Reinstalla OpenWhispr o contatta il supporto se il problema persiste."
+        "reinstallHint": "Reinstalla ScottySpeaks o contatta il supporto se il problema persiste."
       }
     }
   },
@@ -79,9 +79,9 @@
     "accessibility": "Le impostazioni di accessibilità non sono disponibili su questa piattaforma."
   },
   "titleBar": {
-    "quitTitle": "Esci da OpenWhispr",
-    "quitConfirmTitle": "Uscire da OpenWhispr?",
-    "quitConfirmDescription": "Questa operazione chiuderà OpenWhispr e interromperà i processi in background.",
+    "quitTitle": "Esci da ScottySpeaks",
+    "quitConfirmTitle": "Uscire da ScottySpeaks?",
+    "quitConfirmDescription": "Questa operazione chiuderà ScottySpeaks e interromperà i processi in background.",
     "quit": "Esci",
     "cancel": "Annulla"
   },
@@ -157,7 +157,7 @@
       "accessibilityTitle": "Accessibilità",
       "accessibilityDescription": "Per incollare testo nelle app",
       "testAndGrant": "Testa e concedi",
-      "requiredForApp": "Necessario per usare OpenWhispr",
+      "requiredForApp": "Necessario per usare ScottySpeaks",
       "microphoneRequired": "Accesso al microfono richiesto"
     },
     "transcription": {
@@ -185,7 +185,7 @@
       "problemTitle": "Si è verificato un problema con l'aggiornamento",
       "problemDescription": "Non siamo riusciti a completare l'aggiornamento. Riprova più tardi.",
       "installTitle": "Installa aggiornamento",
-      "installDescription": "OpenWhispr verrà riavviato per applicare l'aggiornamento. Il lavoro in corso verrà salvato.",
+      "installDescription": "ScottySpeaks verrà riavviato per applicare l'aggiornamento. Il lavoro in corso verrà salvato.",
       "couldNotInstallTitle": "Impossibile installare l'aggiornamento",
       "couldNotInstallDescription": "Qualcosa è andato storto. Riprova.",
       "couldNotDownloadTitle": "Impossibile scaricare l'aggiornamento",
@@ -281,7 +281,14 @@
     },
     "parakeet": {
       "multilingual": "25 lingue",
-      "english": "Inglese"
+      "english": "Inglese",
+      "engine": {
+        "label": "Calcolo",
+        "neuralEngine": "Neural Engine",
+        "cpu": "CPU",
+        "description": "Il Neural Engine esegue lo stesso modello circa 3 volte più velocemente e si avvia prima. La CPU è l'alternativa se qualcosa non funziona.",
+        "downloadPending": "download del modello…"
+      }
     },
     "apiKeyOptional": "Chiave API (opzionale)",
     "getKey": "Ottieni chiave ->",
@@ -378,7 +385,7 @@
       "micErrors": {
         "accessFailed": "Accesso al microfono non riuscito. Riprova.",
         "noMicrophones": "Nessun microfono rilevato. Collega o seleziona un microfono in {{settingsPath}}.",
-        "permissionDenied": "Permesso negato. Apri {{privacyPath}} e consenti OpenWhispr.",
+        "permissionDenied": "Permesso negato. Apri {{privacyPath}} e consenti ScottySpeaks.",
         "couldNotStart": "Impossibile avviare il microfono selezionato. Scegli un dispositivo in {{settingsPath}} e ripeti il test.",
         "noActiveInput": "Nessun ingresso audio attivo trovato. Scegli un microfono in {{settingsPath}}.",
         "unknown": "Accesso al microfono non riuscito: {{error}}. Seleziona un altro dispositivo e riprova.",
@@ -407,8 +414,8 @@
         "accessibilityNeeded": "Concedi i permessi di accessibilità nelle impostazioni di sistema per abilitare l'incollaggio automatico.",
         "windowsReady": "Windows non richiede permessi speciali per l'incollaggio automatico. È tutto pronto!",
         "linuxReadyWithMethod": "L'incollaggio automatico è disponibile tramite {{method}}. È tutto pronto!",
-        "waylandClipboardMode": "L'incollaggio automatico non è disponibile in questa sessione Wayland. OpenWhispr copierà il testo negli appunti e potrai incollare con Ctrl+V.",
-        "optionalPasteTool": "Per l'incollaggio automatico, installa {{tool}}:\n\n{{installCmd}}{{waylandNote}}\n\nAnche senza questo puoi usare OpenWhispr: il testo verrà copiato negli appunti e potrai incollare con Ctrl+V."
+        "waylandClipboardMode": "L'incollaggio automatico non è disponibile in questa sessione Wayland. ScottySpeaks copierà il testo negli appunti e potrai incollare con Ctrl+V.",
+        "optionalPasteTool": "Per l'incollaggio automatico, installa {{tool}}:\n\n{{installCmd}}{{waylandNote}}\n\nAnche senza questo puoi usare ScottySpeaks: il testo verrà copiato negli appunti e potrai incollare con Ctrl+V."
       },
       "alerts": {
         "accessibilityNeeded": "Permessi di accessibilità necessari! Concedili nelle impostazioni di sistema."
@@ -421,7 +428,7 @@
         "defaultPasteTool": "xdotool",
         "xdotoolXwayland": "xdotool (app XWayland)"
       },
-      "accessibilityTestText": "Test accessibilità OpenWhispr",
+      "accessibilityTestText": "Test accessibilità ScottySpeaks",
       "warning": {
         "messages": {
           "macos": "Controlla le impostazioni Audio per selezionare il dispositivo di ingresso",
@@ -492,7 +499,7 @@
       "continueWithGoogle": "Continua con Google"
     },
     "welcomeSubtitle": "Detta ovunque usando la tua voce",
-    "welcomeTitle": "Benvenuto in OpenWhispr"
+    "welcomeTitle": "Benvenuto in ScottySpeaks"
   },
   "cleanupPrompt": "Correzione",
   "developerSection": {
@@ -697,10 +704,10 @@
     "recheckChecking": "Verifica...",
     "title": "Incollaggio automatico",
     "usingMethodPrefix": "In uso",
-    "waylandClipboardDescription": "L'incollaggio automatico non è disponibile in questa sessione Wayland. OpenWhispr copierà il testo negli appunti, così potrai incollare manualmente con Ctrl+V.",
+    "waylandClipboardDescription": "L'incollaggio automatico non è disponibile in questa sessione Wayland. ScottySpeaks copierà il testo negli appunti, così potrai incollare manualmente con Ctrl+V.",
     "waylandClipboardTitle": "Modalità appunti su Wayland",
     "windowsReady": "Windows supporta l'incollaggio automatico senza configurazione aggiuntiva!",
-    "withoutToolPrefix": "Senza questo strumento, OpenWhispr copierà il testo negli appunti. Potrai poi incollare manualmente con Ctrl+V.",
+    "withoutToolPrefix": "Senza questo strumento, ScottySpeaks copierà il testo negli appunti. Potrai poi incollare manualmente con Ctrl+V.",
     "xwaylandAppsOnly": "l'incollaggio automatico funziona solo per le app XWayland"
   },
   "promptStudio": {
@@ -983,6 +990,13 @@
       "customSetupDescription": "Usa il tuo provider e la tua chiave API.",
       "description": "Correggi le trascrizioni, gestisci i comandi e risolvi gli errori preservando il tuo tono.",
       "enableTextCleanup": "Attiva correzione testo",
+      "polishStyle": {
+        "label": "Stile di modifica",
+        "balanced": "Bilanciato",
+        "verbatim": "Letterale",
+        "balancedDescription": "Rimuove le esitazioni, corregge la grammatica e aggiunge paragrafi. Consigliato.",
+        "verbatimDescription": "Mantiene le tue parole esatte e le esitazioni. Aggiunge solo punteggiatura e maiuscole."
+      },
       "enableTextCleanupDescription": "L'IA migliora la qualità della trascrizione",
       "openwhisprCloud": "OpenWhispr Cloud",
       "openwhisprCloudDescription": "Funziona subito. Nessuna configurazione necessaria.",
@@ -1053,7 +1067,7 @@
       "appearance": {
         "auto": "Automatico",
         "dark": "Scuro",
-        "description": "Personalizza l'aspetto di OpenWhispr",
+        "description": "Personalizza l'aspetto di ScottySpeaks",
         "light": "Chiaro",
         "theme": "Tema",
         "themeDescription": "Scegli chiaro, scuro o in base al sistema",
@@ -1082,7 +1096,7 @@
       },
       "startup": {
         "launchAtLogin": "Avvia all'accesso",
-        "launchAtLoginDescription": "Avvia OpenWhispr automaticamente all'accesso",
+        "launchAtLoginDescription": "Avvia ScottySpeaks automaticamente all'accesso",
         "title": "Avvio"
       },
       "updates": {
@@ -1114,7 +1128,7 @@
           },
           "installUpdate": {
             "confirmText": "Installa e riavvia",
-            "description": "OpenWhispr verrà riavviato per applicare l'aggiornamento.",
+            "description": "ScottySpeaks verrà riavviato per applicare l'aggiornamento.",
             "title": "Installa aggiornamento"
           },
           "noUpdates": {
@@ -1145,13 +1159,13 @@
     "permissions": {
       "accessibilityDescription": "Necessario per l'incollaggio automatico dopo la trascrizione",
       "accessibilityTitle": "Accessibilità",
-      "description": "Testa e gestisci i permessi di sistema necessari per il corretto funzionamento di OpenWhispr",
+      "description": "Testa e gestisci i permessi di sistema necessari per il corretto funzionamento di ScottySpeaks",
       "microphoneDescription": "Necessario per la registrazione vocale e la dettatura",
       "microphoneTitle": "Microfono",
       "resetAccessibility": {
-        "description": "Questa operazione rimuoverà OpenWhispr dai permessi di accessibilità. Dovrai concedere nuovamente l'accesso in Impostazioni di sistema > Privacy e sicurezza > Accessibilità.",
+        "description": "Questa operazione rimuoverà ScottySpeaks dai permessi di accessibilità. Dovrai concedere nuovamente l'accesso in Impostazioni di sistema > Privacy e sicurezza > Accessibilità.",
         "label": "Reimposta permessi di accessibilità",
-        "rowDescription": "Risolvi i problemi dopo la reinstallazione o ricompilazione dell'app rimuovendo e riaggiungendo OpenWhispr nelle Impostazioni di sistema",
+        "rowDescription": "Risolvi i problemi dopo la reinstallazione o ricompilazione dell'app rimuovendo e riaggiungendo ScottySpeaks nelle Impostazioni di sistema",
         "title": "Reimposta permessi di accessibilità"
       },
       "test": "Test",
@@ -1166,7 +1180,7 @@
       "description": "Controlla quali dati escono dal tuo dispositivo. Tutto è disattivato per impostazione predefinita.",
       "title": "Privacy",
       "usageAnalytics": "Analisi dell'utilizzo",
-      "usageAnalyticsDescription": "Aiutaci a migliorare OpenWhispr condividendo metriche di prestazione anonime. Non inviamo mai il contenuto delle trascrizioni, solo dati su tempi ed errori."
+      "usageAnalyticsDescription": "Aiutaci a migliorare ScottySpeaks condividendo metriche di prestazione anonime. Non inviamo mai il contenuto delle trascrizioni, solo dati su tempi ed errori."
     },
     "prompts": {
       "description": "Visualizza, personalizza e testa il prompt di sistema unificato che gestisce la correzione del testo e il rilevamento delle istruzioni",
@@ -1175,7 +1189,7 @@
     "transcription": {
       "customSetup": "Configurazione personalizzata",
       "customSetupDescription": "Usa il tuo provider e la tua chiave API.",
-      "description": "Scegli come OpenWhispr trascrive la tua voce",
+      "description": "Scegli come ScottySpeaks trascrive la tua voce",
       "openwhisprCloud": "OpenWhispr Cloud",
       "openwhisprCloudDescription": "Funziona subito. Nessuna configurazione necessaria.",
       "title": "Riconoscimento vocale",
@@ -1318,7 +1332,7 @@
     },
     "tryAgain": "Riprova",
     "card": {
-      "brand": "OpenWhispr",
+      "brand": "ScottySpeaks",
       "signalId": "Signal ID",
       "audioSignature": "La tua firma audio",
       "stop": "Ferma",
@@ -1502,7 +1516,32 @@
     "description": "Insegna all'IA il tuo vocabolario — nomi, gergo e termini che potrebbe altrimenti non riconoscere",
     "clearTitle": "Svuotare il dizionario?",
     "clearDescription": "Verranno rimossi tutti i termini dal tuo dizionario personalizzato. Questa azione non può essere annullata.",
-    "addPlaceholder": "Aggiungi una parola o una frase..."
+    "addPlaceholder": "Aggiungi una parola o una frase...",
+    "soundsLike": "Suona come",
+    "soundsLikeHint": "Ciò che il riconoscimento sente al posto di una parola. Tutto ciò che è elencato qui viene sempre sostituito con la parola, anche quando la intendi letteralmente.",
+    "teachWord": "Insegnagli come dici {{word}}",
+    "removeAlias": "Smetti di correggere “{{alias}}”",
+    "teach": {
+      "title": "Insegnagli come dici “{{word}}”",
+      "intro": "Premi il microfono, di' solo la parola, poi premi stop. Fallo circa {{count}} volte. Ciò che sente male verrà corretto automaticamente d'ora in poi.",
+      "record": "Avvia registrazione",
+      "stop": "Ferma registrazione",
+      "listening": "In ascolto…",
+      "processing": "Sto analizzando ciò che ha sentito…",
+      "take": "Ripresa {{number}}",
+      "takes": "Riprese",
+      "heard": "Ha sentito “{{heard}}” — verrà corretto",
+      "heardCorrect": "Ha sentito bene",
+      "heardNothing": "Non ha sentito nulla — riprova un po' più forte",
+      "heardTooMuch": "Ha sentito “{{heard}}” — di' solo la parola",
+      "willFix": "Verrà sostituito con {{word}}",
+      "none": "Ancora niente. Registra una ripresa o scrivi ciò che sente.",
+      "manualPlaceholder": "Oppure scrivi ciò che sente: bravo, a rather",
+      "manualLabel": "Parole simili da aggiungere",
+      "add": "Aggiungi",
+      "hint": "Vengono sostituite in ogni dettatura, anche quando le intendi letteralmente.",
+      "save": "Salva"
+    }
   },
   "sidebar": {
     "home": "Home",
@@ -1599,5 +1638,335 @@
       "redirectTitle": "Reindirizzamento all'app...",
       "closeTab": "Puoi chiudere questa scheda."
     }
+  },
+  "meetings": {
+    "title": "Note delle chiamate",
+    "subtitle": "Registra la conversazione. Conservala insieme al tuo lavoro.",
+    "settings": "Impostazioni delle note delle chiamate",
+    "importTranscript": "Importa trascrizione",
+    "new": "Nuova chiamata",
+    "dismiss": "Chiudi messaggio",
+    "recording": "Registrazione microfono e audio di sistema",
+    "stop": "Interrompi registrazione",
+    "provider": "Trascrizione",
+    "local": "Su questo Mac",
+    "cloud": "MAI · OpenRouter",
+    "localEngine": "Motore locale",
+    "apiKey": "Chiave API OpenRouter",
+    "keySaved": "Chiave salvata in modo sicuro",
+    "keyPlaceholder": "Incolla la chiave OpenRouter",
+    "saveKey": "Salva chiave",
+    "removeKey": "Rimuovi chiave",
+    "localHelp": "L’audio e la trascrizione rimangono su questo Mac. Usa il modello scaricato. Nessun ripiego sul cloud.",
+    "cloudHelp": "Quando scegli Trascrivi, l’audio della chiamata viene inviato a OpenRouter e Microsoft Azure per MAI-Transcribe 2. La registrazione rimane in locale.",
+    "captureUnavailable": "La registrazione richiede macOS 15 o versioni successive e il registratore incluso. Puoi comunque importare trascrizioni o audio.",
+    "recent": "Le tue chiamate",
+    "importAudio": "Importa audio",
+    "untitled": "Chiamata senza titolo",
+    "emptyTitle": "Un quaderno per le tue conversazioni",
+    "emptyBody": "Registra una chiamata o importa una trascrizione esistente. Aggiungi le tue note, quindi salva il Markdown direttamente nella cartella di un progetto o di una persona.",
+    "callTitle": "Titolo della chiamata",
+    "titlePlaceholder": "Di cosa parlava questa chiamata?",
+    "saving": "Salvataggio…",
+    "unsaved": "Modifiche non salvate",
+    "saved": "Bozza salvata su questo Mac",
+    "resume": "Riprendi registrazione",
+    "record": "Registra chiamata",
+    "transcribe": "Trascrivi audio",
+    "cancel": "Annulla trascrizione",
+    "processing": "Trascrizione audio · {{completed}} / {{total}} parti",
+    "notes": "Le mie note",
+    "transcript": "Trascrizione",
+    "notesPlaceholder": "Pensieri, domande e attività da seguire…\n\nMarkdown supportato. Le note vengono salvate mentre scrivi.",
+    "speakerHelp": "Seleziona il nome di un partecipante nella trascrizione per assegnare un nome a quella voce.",
+    "localSpeakerHelp": "La trascrizione locale combina microfono e audio della chiamata in un’unica sequenza temporale per evitare testo duplicato. La riproduzione e l’esportazione audio consentono comunque di scegliere ogni traccia. I singoli partecipanti remoti non vengono identificati.",
+    "readTranscript": "Leggi trascrizione",
+    "editTranscript": "Modifica trascrizione",
+    "editedTranscriptHelp": "Questa trascrizione è stata modificata. I tempi originali delle parole restano nei dati di origine, ma non vengono applicati al testo riscritto.",
+    "noTranscript": "La trascrizione apparirà qui dopo averne importata una o aver trascritto l’audio salvato.",
+    "renameSpeaker": "Assegna nome a {{speaker}}",
+    "speakerName": "Nome del partecipante",
+    "destination": "Destinazione di salvataggio",
+    "chooseFolder": "Scegli una cartella fissata…",
+    "pinFolder": "Fissa cartella",
+    "file": "Salva Markdown",
+    "reveal": "Mostra nel Finder",
+    "draftHelp": "Una bozza rimane in ScottySpeaks finché non scegli dove archiviarla.",
+    "draftStorageError": "Impossibile salvare la copia di recupero. Tieni aperta questa finestra e salva le note prima di uscire.",
+    "you": "Tu",
+    "callAudio": "Audio della chiamata",
+    "unknownSpeaker": "Partecipante",
+    "speakerLabel": "Partecipante {{id}}",
+    "saveCopy": "Salva una copia",
+    "unpinFolder": "Rimuovi la cartella selezionata dai preferiti",
+    "recordingBadge": "Registrazione della chiamata",
+    "transcribeCloud": "Trascrivi con MAI",
+    "importSpeakerHelp": "Le etichette dei partecipanti e i tempi provengono dalla trascrizione importata. Puoi rinominare i partecipanti o modificare il testo.",
+    "status": {
+      "draft": "Bozza",
+      "recording": "Registrazione",
+      "recorded": "Audio salvato",
+      "transcribing": "Trascrizione",
+      "ready": "Pronto",
+      "interrupted": "Richiede attenzione",
+      "queued": "In coda"
+    },
+    "keyStored": "Chiave API salvata su questo Mac",
+    "keyNotVerified": "Archiviata in modo sicuro. OpenRouter la verifica durante la trascrizione.",
+    "replaceKey": "Sostituisci chiave",
+    "cancelKeyChange": "Annulla",
+    "addFolder": "Aggiungi cartella…",
+    "pinnedFolders": "Cartelle fissate",
+    "deleteCall": "Elimina chiamata",
+    "deleteTitle": "Eliminare «{{title}}»?",
+    "deleteDescription": "Elimina definitivamente da questo Mac le note, la trascrizione, l’audio salvato e le bozze dell’agente di questa chiamata, revocando l’accesso dell’agente. I file esportati e i file originali importati rimangono dove sono. Questa azione non può essere annullata.",
+    "confirmDelete": "Elimina definitivamente",
+    "microphoneSource": "Microfono",
+    "speakersTitle": "Partecipanti ({{count}})",
+    "renameHelp": "Identifica una voce dal brano o ascoltandola. Il nome si applica a tutti gli interventi di quella persona nella trascrizione. Le voci di parti audio diverse restano separate; identifica ciascuna ascoltandola.",
+    "listenAt": "Ascolta a {{time}}",
+    "listenSpeaker": "Ascolta {{speaker}} a {{time}}",
+    "exportAudio": "Esporta audio…",
+    "audioExported": "Audio salvato.",
+    "transcribeAgain": "Trascrivi di nuovo",
+    "retranscribeTitle": "Trascrivere di nuovo questa chiamata?",
+    "retranscribeDescription": "La trascrizione attuale viene conservata a meno che la nuova trascrizione non riesca. Un nuovo tentativo riuscito sostituisce la trascrizione e i nomi dei partecipanti; le note e l’audio salvato restano invariati. Vengono usati il provider e il modello selezionati nelle impostazioni delle note chiamata.",
+    "replaceTranscript": "Sostituisci trascrizione",
+    "openrouterAuthError": "OpenRouter ha rifiutato la chiave API ({{status}}). Sostituiscila nelle impostazioni delle note chiamata e riprova.",
+    "openrouterCreditError": "Il tuo account OpenRouter deve avere credito prima di poter trascrivere questa chiamata.",
+    "openrouterEmptyError": "OpenRouter non ha restituito una trascrizione utilizzabile. Riprova o scegli un modello locale.",
+    "openrouterFailedError": "La trascrizione OpenRouter non è riuscita ({{status}}). Controlla la connessione e riprova."
+  },
+  "replay": {
+    "open": "Riascolta e correggi",
+    "title": "Riascolta e correggi",
+    "description": "Riascolta, confronta le parole e salva una correzione senza modificare l’originale.",
+    "retention": "Conserva l’audio dei dettati",
+    "days_one": "{{count}} giorno",
+    "days_other": "{{count}} giorni",
+    "off": "Disattivato",
+    "retentionHelp": "L’audio rimane su questo Mac. Riducendo questo periodo, l’audio meno recente viene eliminato subito; le trascrizioni restano. Gli esempi di correzione salvati vengono conservati separatamente.",
+    "loading": "Caricamento delle registrazioni…",
+    "recording": "Registrazione",
+    "noCapture": "Nessuna registrazione selezionata",
+    "noCaptureHelp": "Nessun audio salvato è collegato a questa voce. Le registrazioni precedenti all’attivazione del riascolto contengono solo testo.",
+    "state": {
+      "processing": "Elaborazione in corso",
+      "ready": "Pronto",
+      "failed": "Richiede attenzione"
+    },
+    "preparingAudio": "Preparazione dell’audio…",
+    "originalAudio": "Audio originale del dettato",
+    "audioError": "Impossibile riprodurre l’audio. Riapri questa registrazione per riprovare.",
+    "audioDisabled": "La conservazione dell’audio è stata disattivata. Il testo è ancora disponibile.",
+    "audioExpired": "Il periodo di conservazione di questo audio è scaduto. Il testo è ancora disponibile.",
+    "settings": {
+      "provider": "Fornitore della trascrizione",
+      "model": "Modello di trascrizione",
+      "language": "Lingua",
+      "styleId": "Stile",
+      "polishModel": "Modello di pulizia del testo",
+      "exact": "Formulazione esatta",
+      "removeFillers": "Rimuovi i suoni di esitazione",
+      "resolveCorrections": "Applica le correzioni dettate",
+      "preserveTechnical": "Mantieni i termini tecnici"
+    },
+    "enabled": "Attivato",
+    "disabled": "Disattivato",
+    "raw": "Riconoscimento originale",
+    "final": "Testo fornito in origine",
+    "savedRetry": "Nuovo tentativo salvato",
+    "retryTitle": "Prova un’altra trascrizione",
+    "retryHelp": "Scegli un modello locale installato o MAI. Controlla il risultato prima di salvarlo. Il testo originale e quello nelle altre app restano invariati.",
+    "model": "Modello per il nuovo tentativo",
+    "cloudConsent": "Invia questa registrazione a OpenRouter e Microsoft Azure per la trascrizione con MAI. I fornitori potrebbero applicare dei costi.",
+    "preview": "Crea anteprima",
+    "retrying": "Trascrizione dell’anteprima…",
+    "previousAttempts": "Anteprime precedenti",
+    "choosePreview": "Scegli un’anteprima",
+    "previewResult": "Anteprima del nuovo tentativo",
+    "keepRetry": "Salva questo tentativo",
+    "copy": "Copia testo",
+    "copied": "Copiato negli appunti.",
+    "copyFailed": "Impossibile copiare il testo.",
+    "retrySaved": "Nuovo tentativo salvato separatamente. L’originale resta invariato.",
+    "wrong": "Questo era sbagliato",
+    "corrected": "Cosa avrebbe dovuto dire",
+    "fixtureConsent": "Conserva questo esempio di correzione, incluso l’audio originale disponibile, su questo Mac finché non lo elimino. Viene conservato indipendentemente dal periodo di conservazione dell’audio e non viene caricato né usato per l’addestramento automaticamente.",
+    "saveExample": "Salva esempio di correzione",
+    "exampleSaved": "Esempio di correzione salvato in locale.",
+    "callAudio": "Audio della chiamata",
+    "source": "Ascolta",
+    "sources": {
+      "all": "Microfono + sistema",
+      "microphone": "Microfono",
+      "system": "Audio di sistema",
+      "audio": "Audio importato"
+    },
+    "textOnly": "Questa trascrizione contiene solo testo. Non è disponibile alcun audio da riprodurre.",
+    "stopToListen": "Interrompi la registrazione per riascoltarla.",
+    "editedAlignment": "Hai modificato questa trascrizione. Il testo non è più allineato ai riferimenti temporali originali.",
+    "seek": "Riproduci da {{time}}",
+    "playManually": "Premi Riproduci per ascoltare dal riferimento temporale selezionato.",
+    "delete": "Elimina registrazione salvata",
+    "deleteHelp": "Rimuove questa registrazione e il relativo testo di riascolto. Gli esempi di correzione salvati separatamente rimangono su questo Mac.",
+    "deleted": "Registrazione eliminata.",
+    "examples": "Esempi di correzione salvati",
+    "examplesHelp": "Questi esempi, incluso il relativo audio, rimangono in locale finché non li elimini qui.",
+    "noExamples": "Nessun esempio di correzione salvato.",
+    "deleteExample": "Elimina esempio",
+    "exampleDeleted": "Esempio di correzione e relativo audio salvato eliminati."
+  },
+  "dictationCleanup": {
+    "dictationExact": {
+      "label": "Parole esatte",
+      "description": "Mantiene la trascrizione invariata. Esclude stili, frammenti e pulizia; i comandi vocali espliciti restano disponibili."
+    },
+    "dictationRemoveFillers": {
+      "label": "Rimuovi esitazioni",
+      "description": "Rimuove solo i suoni di esitazione um/uh. Mantiene le parole significative."
+    },
+    "dictationResolveCorrections": {
+      "label": "Risolvi autocorrezioni numeriche",
+      "description": "Risolve correzioni numeriche adiacenti esplicite come “15, sorry, 50”. Le correzioni ambigue restano invariate."
+    },
+    "dictationPreserveTechnical": {
+      "label": "Preserva la scrittura tecnica",
+      "description": "Protegge identificatori, acronimi e nomi tecnici, comprese maiuscole e trattini bassi."
+    },
+    "stages": {
+      "queued": "In coda",
+      "transcribing": "Trascrizione",
+      "refining": "Revisione",
+      "failed": "Errore",
+      "preparing": "Preparazione audio",
+      "idle": "Pronto",
+      "recording": "Registrazione"
+    },
+    "polishUnavailable": "La revisione IA non era disponibile. La pulizia deterministica scelta è stata mantenuta.",
+    "polishUnavailableTitle": "Revisione IA non disponibile",
+    "aiRefinement": {
+      "label": "Revisione IA",
+      "description": "Usa il modello IA scelto dopo la pulizia seguente. Queste opzioni funzionano anche senza IA. Le parole esatte disattivano la revisione."
+    }
+  },
+  "recordingTarget": {
+    "manualTitle": "Testo pronto da copiare",
+    "manualDescription": "Impossibile verificare il campo di testo originale. Il risultato è salvato nella cronologia. Usa Copia per incollarlo manualmente.",
+    "selectionReplaced": "La selezione è stata sostituita.",
+    "dictationReplaced": "L’ultima dettatura è stata sostituita."
+  },
+  "callAgent": {
+    "tab": "Agenti",
+    "title": "Accesso dell’agente a questa chiamata",
+    "help": "Condividi le note salvate e le prove della trascrizione. Tieni SS2 aperto mentre l’agente usa la connessione.",
+    "ready": "Pronto · tieni SS2 aperto",
+    "unavailable": "Connessione non disponibile",
+    "lastConnected": "Ultima richiesta dell’agente: {{time}}",
+    "notConnected": "Nessuna richiesta dell’agente finora",
+    "revoke": "Revoca accesso",
+    "share": "Condividi questa chiamata",
+    "refresh": "Aggiorna",
+    "previewHandoff": "Anteprima del documento Markdown",
+    "sharedHelp": "Gli agenti possono leggere la chiamata e inviare bozze. La revoca blocca gli accessi futuri; le copie ricevute restano all’agente.",
+    "privateHelp": "Questa chiamata è privata. La condivisione consente l’accesso alle note e trascrizioni salvate presenti e future.",
+    "actionFailed": "Impossibile completare l’azione. Controlla condivisione, modifiche salvate e destinazione; aggiorna e riprova.",
+    "copied": "Copiato",
+    "filed": "Nuova copia Markdown salvata. I file esistenti e le note originali restano invariati.",
+    "configure": "Configura un agente",
+    "configHelp": "Copia la configurazione nel tuo agente. Le impostazioni esterne non vengono modificate. Compatibile con Codex, Claude Code e client MCP tramite JSON. Aggiorna dopo aver spostato SS2.",
+    "json": "JSON MCP",
+    "codex": "Comando Codex",
+    "claude": "Comando Claude Code",
+    "copyConfig": "Copia configurazione",
+    "handoff": "Anteprima Markdown",
+    "copyHandoff": "Copia documento Markdown",
+    "handoffHelp": "Controlla prima di incollare in un agente. Viene esportato solo testo. La revoca non elimina le copie. Questa esportazione singola non richiede la condivisione e non concede all’agente un accesso continuativo.",
+    "drafts": "Bozze dell’agente",
+    "draftHelp": "Le bozze sono separate dalle note originali. Controlla proposta e prove salvate prima di archiviare. Le prove possono riferirsi a una versione precedente.",
+    "noDrafts": "Nessuna bozza. Chiedi all’agente connesso di inviarne una con citazioni.",
+    "review": "Esamina bozza",
+    "evidence": "Prove citate",
+    "untimed": "Prove senza tempo",
+    "timed": "{{start}}–{{end}} secondi",
+    "notes": "Note",
+    "original": "Trascrizione originale",
+    "edited": "Trascrizione modificata o importata",
+    "file": "Salva copia Markdown verificata",
+    "close": "Chiudi revisione",
+    "chooseFolder": "Scegli una cartella fissata qui sotto prima di salvare.",
+    "evidenceSaved": "Prove salvate con questa bozza: {{time}}"
+  },
+  "speech": {
+    "title": "Lettura locale",
+    "stop": "Interrompi lettura",
+    "unavailable": "Le voci di sistema sono disponibili su macOS",
+    "recording": "Lettura sospesa durante la registrazione",
+    "agentSpeaking": "Lettura di un aggiornamento dell’agente",
+    "speaking": "Lettura in corso",
+    "ready": "Lettura locale pronta",
+    "settings": "Impostazioni voce",
+    "help": "Usa le voci macOS installate. Il testo resta su questo Mac. La registrazione interrompe lettura e riproduzione audio.",
+    "voice": "Voce installata",
+    "defaultVoice": "Predefinita del sistema",
+    "rate": "Parole al minuto (100–350)",
+    "agentEnabled": "Consenti aggiornamenti vocali dell’agente",
+    "agentHelp": "Disattivato per impostazione predefinita. Gli agenti delle chiamate condivise possono parlare solo senza registrazioni attive. La revoca interrompe la voce della chiamata.",
+    "error": "Impossibile completare l’azione. Controlla le impostazioni voce e riprova.",
+    "readSelection": "Leggi selezione",
+    "readAll": "Leggi tutto: {{source}}",
+    "readError": "Seleziona testo in questa sezione o leggi l’intero campo. Limite di 20 KB; interrompi la registrazione prima della lettura.",
+    "notes": "Note",
+    "transcript": "Trascrizione",
+    "draft": "Bozza dell’agente"
+  },
+  "historyHome": {
+    "welcome": "Bentornato, Scott",
+    "description": "Ritrova ciò che hai detto. Riprendi da dove eri rimasto.",
+    "usage": "{{dictations}} dettature · {{words}} parole",
+    "tools": "Strumenti di dettatura",
+    "copyLatest": "Copia l’ultima",
+    "searchLabel": "Cerca in tutte le dettature",
+    "searchPlaceholder": "Cerca in tutte le dettature…",
+    "searchHelp": "Cerca in tutta la cronologia, incluse le parole originali prima delle modifiche. ⌘/Ctrl F per attivare il campo.",
+    "clear": "Cancella",
+    "loadError": "Impossibile caricare la cronologia. Le dettature salvate sono ancora su questo Mac.",
+    "retry": "Riprova",
+    "results": "Risultati della ricerca",
+    "history": "Le tue dettature",
+    "shown": "{{count}} visualizzate",
+    "noResults": "Nessuna dettatura corrispondente",
+    "tryAnother": "Prova un’altra parola o cancella la ricerca.",
+    "loadMore": "Carica dettature precedenti"
+  },
+  "workspace": {
+    "workspace": "Area di lavoro",
+    "personalize": "Personalizza",
+    "navigation": "Navigazione principale",
+    "dictation": "Dettatura",
+    "snippets": "Frammenti",
+    "style": "Stile di scrittura",
+    "callsSubtitle": "Registra la conversazione. Conserva ciò che serve.",
+    "recordNew": "Registra una chiamata",
+    "stopping": "Interruzione…",
+    "searchCalls": "Cerca nelle chiamate e nelle note",
+    "noCalls": "Nessuna chiamata corrispondente. Prova un’altra frase.",
+    "markMoment": "Segna un momento",
+    "actionItem": "Attività",
+    "useTemplate": "Usa una scaletta per la riunione",
+    "notesTemplate": "## Decisioni\n\n- \n\n## Attività\n\n- [ ] \n\n## Questioni aperte\n\n- ",
+    "notesPlaceholder": "Che cosa conta di questa conversazione?\n\nDecisioni, prossimi passi e tutto ciò che vuoi ricordare.",
+    "addToNotes": "Aggiungi alle note",
+    "saveFailed": "Impossibile salvare. La modifica è ancora qui; riprova.",
+    "learnFailed": "La modifica è stata salvata, ma l’apprendimento dello stile non è riuscito.",
+    "editDictation": "Modifica dettatura",
+    "copyText": "Copia testo",
+    "saveAndLearn": "Salva e impara",
+    "learned": "Appreso",
+    "editHint": "La tua correzione insegna il tuo stile al motore di revisione."
+  },
+  "workspacePreview": {
+    "banner": "Anteprima interattiva · Dati di esempio · Registrazione simulata",
+    "desktopOnly": "Questa funzione è disponibile nell’app desktop."
   }
 }

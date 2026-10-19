@@ -4,7 +4,7 @@
       "sectionTitle": "言語",
       "sectionDescription": "インターフェースと文字起こしの言語を個別に設定",
       "uiLabel": "インターフェース言語",
-      "uiDescription": "OpenWhispr のインターフェースで使用する言語を選択",
+      "uiDescription": "ScottySpeaks のインターフェースで使用する言語を選択",
       "transcriptionLabel": "文字起こし言語",
       "transcriptionDescription": "より正確な文字起こしのために話す言語を選択"
     }
@@ -15,12 +15,12 @@
       "hide": "ディクテーションパネルを非表示"
     },
     "openControlPanel": "コントロールパネルを開く",
-    "quit": "OpenWhispr を終了",
-    "tooltip": "OpenWhispr - 音声ディクテーション"
+    "quit": "ScottySpeaks を終了",
+    "tooltip": "ScottySpeaks - 音声ディクテーション"
   },
   "menu": {
-    "appLabel": "OpenWhispr",
-    "quit": "OpenWhispr を終了",
+    "appLabel": "ScottySpeaks",
+    "quit": "ScottySpeaks を終了",
     "speech": "スピーチ",
     "help": "ヘルプ",
     "learnMore": "詳細を見る",
@@ -37,8 +37,8 @@
       "message": "ブラウザでリンクを開けませんでした:\n{{url}}\n\nエラー: {{error}}"
     },
     "loadFailure": {
-      "title": "OpenWhispr の読み込みに失敗しました",
-      "message": "OpenWhispr の UI を読み込めませんでした。",
+      "title": "ScottySpeaks の読み込みに失敗しました",
+      "message": "ScottySpeaks の UI を読み込めませんでした。",
       "detail": {
         "window": "ウィンドウ: {{windowName}}",
         "error": "エラー {{errorCode}}: {{errorDescription}}",
@@ -49,17 +49,17 @@
   },
   "startup": {
     "error": {
-      "title": "OpenWhispr 起動エラー",
+      "title": "ScottySpeaks 起動エラー",
       "message": "アプリケーションの起動に失敗しました:\n\n{{error}}\n\nこの問題を報告してください。"
     },
     "globeHotkey": {
       "title": "Globe ホットキーが使用できません",
-      "message": "OpenWhispr は Globe キーのホットキーを有効にできませんでした。",
+      "message": "ScottySpeaks は Globe キーのホットキーを有効にできませんでした。",
       "details": {
         "unknown": "Globe リスナーの起動中に不明なエラーが発生しました。",
         "fallback": "Globe キーのショートカットは無効のままになります。既存のキーボードショートカットは引き続き使用できます。",
         "devHint": "`npm run compile:globe` を実行し、アプリを再ビルドしてリスナーバイナリを再生成してください。",
-        "reinstallHint": "OpenWhispr を再インストールするか、問題が解決しない場合はサポートにお問い合わせください。"
+        "reinstallHint": "ScottySpeaks を再インストールするか、問題が解決しない場合はサポートにお問い合わせください。"
       }
     }
   },
@@ -79,9 +79,9 @@
     "accessibility": "このプラットフォームではアクセシビリティ設定を利用できません。"
   },
   "titleBar": {
-    "quitTitle": "OpenWhispr を終了",
-    "quitConfirmTitle": "OpenWhispr を終了しますか？",
-    "quitConfirmDescription": "OpenWhispr を終了し、バックグラウンドプロセスを停止します。",
+    "quitTitle": "ScottySpeaks を終了",
+    "quitConfirmTitle": "ScottySpeaks を終了しますか？",
+    "quitConfirmDescription": "ScottySpeaks を終了し、バックグラウンドプロセスを停止します。",
     "quit": "終了",
     "cancel": "キャンセル"
   },
@@ -157,7 +157,7 @@
       "accessibilityTitle": "アクセシビリティ",
       "accessibilityDescription": "アプリへのテキスト貼り付けに使用",
       "testAndGrant": "テストして許可",
-      "requiredForApp": "OpenWhispr の動作に必要です",
+      "requiredForApp": "ScottySpeaks の動作に必要です",
       "microphoneRequired": "マイクへのアクセスが必要です"
     },
     "transcription": {
@@ -185,7 +185,7 @@
       "problemTitle": "アップデートで問題が発生しました",
       "problemDescription": "アップデートを完了できませんでした。後でもう一度お試しください。",
       "installTitle": "アップデートをインストール",
-      "installDescription": "OpenWhispr はアップデートを適用するために再起動します。作業中のデータは保存されます。",
+      "installDescription": "ScottySpeaks はアップデートを適用するために再起動します。作業中のデータは保存されます。",
       "couldNotInstallTitle": "アップデートをインストールできませんでした",
       "couldNotInstallDescription": "問題が発生しました。もう一度お試しください。",
       "couldNotDownloadTitle": "アップデートをダウンロードできませんでした",
@@ -281,7 +281,14 @@
     },
     "parakeet": {
       "multilingual": "25 言語対応",
-      "english": "英語"
+      "english": "英語",
+      "engine": {
+        "label": "処理方式",
+        "neuralEngine": "Neural Engine",
+        "cpu": "CPU",
+        "description": "Neural Engine は同じモデルを約3倍高速に実行し、起動も速くなります。問題がある場合は CPU に切り替えられます。",
+        "downloadPending": "モデルをダウンロード中…"
+      }
     },
     "apiKeyOptional": "API キー（任意）",
     "getKey": "キーを取得 ->",
@@ -378,7 +385,7 @@
       "micErrors": {
         "accessFailed": "マイクへのアクセスに失敗しました。もう一度お試しください。",
         "noMicrophones": "マイクが検出されませんでした。{{settingsPath}} でマイクを接続または選択してください。",
-        "permissionDenied": "権限が拒否されました。{{privacyPath}} を開いて OpenWhispr を許可してください。",
+        "permissionDenied": "権限が拒否されました。{{privacyPath}} を開いて ScottySpeaks を許可してください。",
         "couldNotStart": "選択したマイクを開始できませんでした。{{settingsPath}} で入力デバイスを選択してから、テストを再実行してください。",
         "noActiveInput": "アクティブな音声入力が見つかりませんでした。{{settingsPath}} でマイクを選択してください。",
         "unknown": "マイクへのアクセスに失敗しました: {{error}}。別の入力デバイスを選択してもう一度お試しください。",
@@ -407,8 +414,8 @@
         "accessibilityNeeded": "テキストの自動貼り付けを有効にするには、システム設定でアクセシビリティの権限を許可してください。",
         "windowsReady": "Windows では自動貼り付けに特別な権限は必要ありません。準備完了です！",
         "linuxReadyWithMethod": "{{method}} を使用した自動貼り付けが利用可能です。準備完了です！",
-        "waylandClipboardMode": "この Wayland セッションでは自動貼り付けが利用できません。OpenWhispr はテキストをクリップボードにコピーしますので、Ctrl+V で貼り付けてください。",
-        "optionalPasteTool": "自動貼り付けには {{tool}} をインストールしてください:\n\n{{installCmd}}{{waylandNote}}\n\nインストールしなくても OpenWhispr は使用できます。テキストがクリップボードにコピーされるので、Ctrl+V で貼り付けてください。"
+        "waylandClipboardMode": "この Wayland セッションでは自動貼り付けが利用できません。ScottySpeaks はテキストをクリップボードにコピーしますので、Ctrl+V で貼り付けてください。",
+        "optionalPasteTool": "自動貼り付けには {{tool}} をインストールしてください:\n\n{{installCmd}}{{waylandNote}}\n\nインストールしなくても ScottySpeaks は使用できます。テキストがクリップボードにコピーされるので、Ctrl+V で貼り付けてください。"
       },
       "alerts": {
         "accessibilityNeeded": "アクセシビリティの権限が必要です！システム設定で許可してください。"
@@ -421,7 +428,7 @@
         "defaultPasteTool": "xdotool",
         "xdotoolXwayland": "xdotool（XWayland アプリ）"
       },
-      "accessibilityTestText": "OpenWhispr アクセシビリティテスト",
+      "accessibilityTestText": "ScottySpeaks アクセシビリティテスト",
       "warning": {
         "messages": {
           "macos": "サウンド設定で入力デバイスを確認してください",
@@ -492,7 +499,7 @@
       "continueWithGoogle": "Google で続ける"
     },
     "welcomeSubtitle": "音声でどこでもディクテーション",
-    "welcomeTitle": "OpenWhispr へようこそ"
+    "welcomeTitle": "ScottySpeaks へようこそ"
   },
   "cleanupPrompt": "クリーンアップ",
   "developerSection": {
@@ -697,10 +704,10 @@
     "recheckChecking": "確認中...",
     "title": "自動貼り付け",
     "usingMethodPrefix": "使用中:",
-    "waylandClipboardDescription": "この Wayland セッションでは自動貼り付けが利用できません。OpenWhispr はテキストをクリップボードにコピーしますので、Ctrl+V で手動で貼り付けてください。",
+    "waylandClipboardDescription": "この Wayland セッションでは自動貼り付けが利用できません。ScottySpeaks はテキストをクリップボードにコピーしますので、Ctrl+V で手動で貼り付けてください。",
     "waylandClipboardTitle": "Wayland でのクリップボードモード",
     "windowsReady": "Windows は自動貼り付けに標準対応しています。設定は不要です！",
-    "withoutToolPrefix": "このツールがない場合、OpenWhispr はテキストをクリップボードにコピーします。Ctrl+V で手動で貼り付けてください。",
+    "withoutToolPrefix": "このツールがない場合、ScottySpeaks はテキストをクリップボードにコピーします。Ctrl+V で手動で貼り付けてください。",
     "xwaylandAppsOnly": "自動貼り付けは XWayland アプリのみで動作します"
   },
   "promptStudio": {
@@ -920,7 +927,11 @@
         "enterprise": {
           "name": "Enterprise",
           "price": "カスタム",
-          "features": ["クラウド同期", "チーム機能（近日公開）", "SSO & コンプライアンス"],
+          "features": [
+            "クラウド同期",
+            "チーム機能（近日公開）",
+            "SSO & コンプライアンス"
+          ],
           "cta": "お問い合わせ"
         },
         "currentPlan": "現在のプラン"
@@ -979,6 +990,13 @@
       "customSetupDescription": "独自のプロバイダーと API キーを使用。",
       "description": "文字起こしのクリーンアップ、コマンド処理、エラー修正を行いながら、あなたの話し方を維持します。",
       "enableTextCleanup": "テキスト補正を有効にする",
+      "polishStyle": {
+        "label": "編集スタイル",
+        "balanced": "バランス",
+        "verbatim": "逐語",
+        "balancedDescription": "フィラーを削除し、文法を整え、段落を追加します。推奨。",
+        "verbatimDescription": "話した言葉とフィラーをそのまま保持し、句読点と大文字小文字のみ追加します。"
+      },
       "enableTextCleanupDescription": "AI が文字起こしの品質を向上",
       "openwhisprCloud": "OpenWhispr Cloud",
       "openwhisprCloudDescription": "設定不要ですぐに使えます。",
@@ -1049,7 +1067,7 @@
       "appearance": {
         "auto": "自動",
         "dark": "ダーク",
-        "description": "OpenWhispr の外観を設定",
+        "description": "ScottySpeaks の外観を設定",
         "light": "ライト",
         "theme": "テーマ",
         "themeDescription": "ライト、ダーク、またはシステムに合わせる",
@@ -1078,7 +1096,7 @@
       },
       "startup": {
         "launchAtLogin": "ログイン時に起動",
-        "launchAtLoginDescription": "ログイン時に OpenWhispr を自動的に起動",
+        "launchAtLoginDescription": "ログイン時に ScottySpeaks を自動的に起動",
         "title": "起動設定"
       },
       "updates": {
@@ -1110,7 +1128,7 @@
           },
           "installUpdate": {
             "confirmText": "インストールして再起動",
-            "description": "OpenWhispr はアップデートを適用するために再起動します。",
+            "description": "ScottySpeaks はアップデートを適用するために再起動します。",
             "title": "アップデートをインストール"
           },
           "noUpdates": {
@@ -1141,13 +1159,13 @@
     "permissions": {
       "accessibilityDescription": "文字起こし後の自動貼り付けに必要",
       "accessibilityTitle": "アクセシビリティ",
-      "description": "OpenWhispr の正常動作に必要なシステム権限をテスト・管理",
+      "description": "ScottySpeaks の正常動作に必要なシステム権限をテスト・管理",
       "microphoneDescription": "音声録音とディクテーションに必要",
       "microphoneTitle": "マイク",
       "resetAccessibility": {
-        "description": "OpenWhispr をアクセシビリティの権限から削除します。システム設定 > プライバシーとセキュリティ > アクセシビリティ で再度許可する必要があります。",
+        "description": "ScottySpeaks をアクセシビリティの権限から削除します。システム設定 > プライバシーとセキュリティ > アクセシビリティ で再度許可する必要があります。",
         "label": "アクセシビリティの権限をリセット",
-        "rowDescription": "アプリの再インストールや再ビルド後の問題を修正するために、システム設定で OpenWhispr を削除してから再追加",
+        "rowDescription": "アプリの再インストールや再ビルド後の問題を修正するために、システム設定で ScottySpeaks を削除してから再追加",
         "title": "アクセシビリティの権限をリセット"
       },
       "test": "テスト",
@@ -1162,7 +1180,7 @@
       "description": "デバイスからのデータ送信を管理します。初期設定ではすべてオフです。",
       "title": "プライバシー",
       "usageAnalytics": "使用状況の分析",
-      "usageAnalyticsDescription": "匿名のパフォーマンスデータを共有して OpenWhispr の改善にご協力ください。文字起こしの内容は送信されません。タイミングとエラーデータのみです。"
+      "usageAnalyticsDescription": "匿名のパフォーマンスデータを共有して ScottySpeaks の改善にご協力ください。文字起こしの内容は送信されません。タイミングとエラーデータのみです。"
     },
     "prompts": {
       "description": "テキスト補正と指示検出を行う統合システムプロンプトの表示、カスタマイズ、テスト",
@@ -1171,7 +1189,7 @@
     "transcription": {
       "customSetup": "カスタム設定",
       "customSetupDescription": "独自のプロバイダーと API キーを使用。",
-      "description": "OpenWhispr の音声文字起こし方法を選択",
+      "description": "ScottySpeaks の音声文字起こし方法を選択",
       "openwhisprCloud": "OpenWhispr Cloud",
       "openwhisprCloudDescription": "設定不要ですぐに使えます。",
       "title": "音声テキスト変換",
@@ -1426,7 +1444,32 @@
     "description": "AIに語彙を学習させましょう — 名前、専門用語、見落とされがちな表現など",
     "clearTitle": "辞書をクリアしますか？",
     "clearDescription": "カスタム辞書のすべての単語が削除されます。この操作は元に戻せません。",
-    "addPlaceholder": "単語やフレーズを追加..."
+    "addPlaceholder": "単語やフレーズを追加...",
+    "soundsLike": "こう聞こえる",
+    "soundsLikeHint": "認識エンジンがその単語の代わりに聞き取る語です。ここにある語は、文字どおりの意味で言った場合でも常にその単語に置き換えられます。",
+    "teachWord": "{{word}} の言い方を教える",
+    "removeAlias": "「{{alias}}」の修正をやめる",
+    "teach": {
+      "title": "「{{word}}」の言い方を教える",
+      "intro": "マイクを押して単語だけを言い、停止を押します。{{count}} 回ほど繰り返してください。聞き間違えたものは今後自動的に修正されます。",
+      "record": "録音を開始",
+      "stop": "録音を停止",
+      "listening": "聞き取り中…",
+      "processing": "聞き取った内容を確認中…",
+      "take": "テイク {{number}}",
+      "takes": "テイク",
+      "heard": "「{{heard}}」と聞こえました — 修正されます",
+      "heardCorrect": "正しく聞き取れました",
+      "heardNothing": "何も聞こえませんでした — もう少し大きな声で",
+      "heardTooMuch": "「{{heard}}」と聞こえました — 単語だけを言ってください",
+      "willFix": "{{word}} に置き換えられます",
+      "none": "まだありません。録音するか、聞こえ方を入力してください。",
+      "manualPlaceholder": "または聞こえ方を入力: bravo, a rather",
+      "manualLabel": "追加する似た語",
+      "add": "追加",
+      "hint": "文字どおりの意味で言った場合でも、すべての口述で置き換えられます。",
+      "save": "保存"
+    }
   },
   "referral": {
     "title": "紹介して特典をゲット",
@@ -1493,7 +1536,7 @@
     },
     "tryAgain": "再試行",
     "card": {
-      "brand": "OpenWhispr",
+      "brand": "ScottySpeaks",
       "signalId": "Signal ID",
       "audioSignature": "あなたの音声シグネチャー",
       "stop": "停止",
@@ -1595,5 +1638,335 @@
       "redirectTitle": "アプリにリダイレクト中...",
       "closeTab": "このタブを閉じてください。"
     }
+  },
+  "meetings": {
+    "title": "通話メモ",
+    "subtitle": "会話を記録し、作業と一緒に保管します。",
+    "settings": "通話メモの設定",
+    "importTranscript": "文字起こしを読み込む",
+    "new": "新しい通話",
+    "dismiss": "メッセージを閉じる",
+    "recording": "マイクとシステム音声を録音中",
+    "stop": "録音を停止",
+    "provider": "文字起こし",
+    "local": "このMac上",
+    "cloud": "MAI · OpenRouter",
+    "localEngine": "ローカルエンジン",
+    "apiKey": "OpenRouter APIキー",
+    "keySaved": "キーは安全に保存されました",
+    "keyPlaceholder": "OpenRouterキーを貼り付け",
+    "saveKey": "キーを保存",
+    "removeKey": "キーを削除",
+    "localHelp": "音声と文字起こしはこのMac上に残ります。ダウンロード済みのモデルを使用し、クラウドへのフォールバックは行いません。",
+    "cloudHelp": "「文字起こし」を選択すると、通話音声がMAI-Transcribe 2の処理のためOpenRouterとMicrosoft Azureに送信されます。録音自体はローカルに保存されます。",
+    "captureUnavailable": "録音にはmacOS 15以降と同梱のレコーダーが必要です。文字起こしや音声の読み込みは引き続き利用できます。",
+    "recent": "通話一覧",
+    "importAudio": "音声を読み込む",
+    "untitled": "無題の通話",
+    "emptyTitle": "会話のためのノート",
+    "emptyBody": "通話を録音するか、既存の文字起こしを読み込みます。自分のメモを追加し、Markdownをプロジェクトや人物のフォルダに直接保存できます。",
+    "callTitle": "通話タイトル",
+    "titlePlaceholder": "この通話の内容は？",
+    "saving": "保存中…",
+    "unsaved": "未保存の変更",
+    "saved": "下書きをこのMacに保存しました",
+    "resume": "録音を再開",
+    "record": "通話を録音",
+    "transcribe": "音声を文字起こし",
+    "cancel": "文字起こしをキャンセル",
+    "processing": "音声を文字起こし中 · {{completed}} / {{total}} パート",
+    "notes": "自分のメモ",
+    "transcript": "文字起こし",
+    "notesPlaceholder": "考え、質問、フォローアップ…\n\nMarkdownに対応しています。入力中にメモが保存されます。",
+    "speakerHelp": "文字起こし内の話者名を選択して、その声に名前を付けてください。",
+    "localSpeakerHelp": "ローカル文字起こしでは、重複を防ぐためマイク音声と通話音声を1つの時間軸にまとめます。再生と音声の書き出しでは、引き続き各トラックを選択できます。個々のリモート話者は識別しません。",
+    "readTranscript": "文字起こしを読む",
+    "editTranscript": "文字起こしを編集",
+    "editedTranscriptHelp": "この文字起こしは編集されています。元の単語のタイミングはソースデータに保持されますが、書き換えたテキストには適用されません。",
+    "noTranscript": "文字起こしを読み込むか、保存済み音声を文字起こしすると、ここに表示されます。",
+    "renameSpeaker": "{{speaker}}に名前を付ける",
+    "speakerName": "話者名",
+    "destination": "保存先",
+    "chooseFolder": "固定したフォルダを選択…",
+    "pinFolder": "フォルダを固定",
+    "file": "Markdownを保存",
+    "reveal": "Finderで表示",
+    "draftHelp": "保存先を選ぶまで、下書きはScottySpeaksに残ります。",
+    "draftStorageError": "復元用コピーを保存できませんでした。このウィンドウを開いたまま、移動する前にメモを保存してください。",
+    "you": "あなた",
+    "callAudio": "通話音声",
+    "unknownSpeaker": "話者",
+    "speakerLabel": "話者 {{id}}",
+    "saveCopy": "コピーを保存",
+    "unpinFolder": "選択したフォルダの固定を解除",
+    "recordingBadge": "通話録音",
+    "transcribeCloud": "MAIで文字起こし",
+    "importSpeakerHelp": "話者ラベルと時刻は読み込んだ文字起こしから取得されます。話者名の変更やテキストの編集ができます。",
+    "status": {
+      "draft": "下書き",
+      "recording": "録音中",
+      "recorded": "音声を保存済み",
+      "transcribing": "文字起こし中",
+      "ready": "準備完了",
+      "interrupted": "確認が必要",
+      "queued": "待機中"
+    },
+    "keyStored": "APIキーをこのMacに保存しました",
+    "keyNotVerified": "安全に保存されています。文字起こし時にOpenRouterが確認します。",
+    "replaceKey": "キーを変更",
+    "cancelKeyChange": "キャンセル",
+    "addFolder": "フォルダを追加…",
+    "pinnedFolders": "固定したフォルダ",
+    "deleteCall": "通話を削除",
+    "deleteTitle": "「{{title}}」を削除しますか？",
+    "deleteDescription": "この通話のメモ、文字起こし、保存済み音声、エージェントの下書きをこのMacから完全に削除し、エージェントのアクセスを取り消します。書き出したファイルと読み込み元のファイルは元の場所に残ります。この操作は取り消せません。",
+    "confirmDelete": "完全に削除",
+    "microphoneSource": "マイク",
+    "speakersTitle": "話者（{{count}}）",
+    "renameHelp": "抜粋を読むか音声を聞いて話者を確認してください。名前はこの文字起こし内の同じ話者のすべての発言に適用されます。音声の異なる部分の話者は別々に扱われるため、それぞれ聞いて確認してください。",
+    "listenAt": "{{time}} から聞く",
+    "listenSpeaker": "{{time}} から{{speaker}}の声を聞く",
+    "exportAudio": "音声を書き出す…",
+    "audioExported": "音声を保存しました。",
+    "transcribeAgain": "もう一度文字起こし",
+    "retranscribeTitle": "この通話をもう一度文字起こししますか？",
+    "retranscribeDescription": "新しい文字起こしが成功するまでは、現在の文字起こしが保持されます。成功すると文字起こしと話者名が置き換わりますが、メモと保存済み音声は変更されません。通話メモ設定で現在選択されているプロバイダーとモデルを使用します。",
+    "replaceTranscript": "文字起こしを置き換える",
+    "openrouterAuthError": "OpenRouter が API キーを拒否しました（{{status}}）。通話メモ設定でキーを置き換えて、もう一度お試しください。",
+    "openrouterCreditError": "この通話を文字起こしするには、OpenRouter アカウントにクレジットが必要です。",
+    "openrouterEmptyError": "OpenRouter から使用できる文字起こしが返されませんでした。もう一度試すか、ローカルモデルを選択してください。",
+    "openrouterFailedError": "OpenRouter の文字起こしに失敗しました（{{status}}）。接続を確認して、もう一度お試しください。"
+  },
+  "replay": {
+    "open": "再生と修正",
+    "title": "再生と修正",
+    "description": "もう一度聴いてテキストを比較し、元の内容を変更せずに修正を保存できます。",
+    "retention": "音声入力の録音を保持",
+    "days_one": "{{count}}日",
+    "days_other": "{{count}}日",
+    "off": "オフ",
+    "retentionHelp": "音声はこのMacに保存されます。保持期間を短くすると古い音声はすぐに削除されますが、文字起こしは残ります。保存した修正例は別に保持されます。",
+    "loading": "録音を読み込み中…",
+    "recording": "録音",
+    "noCapture": "録音が選択されていません",
+    "noCaptureHelp": "この項目に関連付けられた保存済み音声はありません。再生機能を有効にする前の録音にはテキストのみが保存されています。",
+    "state": {
+      "processing": "処理中",
+      "ready": "準備完了",
+      "failed": "確認が必要です"
+    },
+    "preparingAudio": "音声を準備中…",
+    "originalAudio": "音声入力の元の録音",
+    "audioError": "音声を再生できませんでした。この録音を開き直して、もう一度お試しください。",
+    "audioDisabled": "音声の保持がオフになりました。テキストは引き続き利用できます。",
+    "audioExpired": "この音声の保持期間が終了しました。テキストは引き続き利用できます。",
+    "settings": {
+      "provider": "文字起こしプロバイダー",
+      "model": "文字起こしモデル",
+      "language": "言語",
+      "styleId": "スタイル",
+      "polishModel": "テキスト整形モデル",
+      "exact": "発言どおりの表現",
+      "removeFillers": "言いよどみの音を削除",
+      "resolveCorrections": "発言中の訂正を反映",
+      "preserveTechnical": "専門用語を保持"
+    },
+    "enabled": "オン",
+    "disabled": "オフ",
+    "raw": "元の認識結果",
+    "final": "最初に出力されたテキスト",
+    "savedRetry": "保存した再試行",
+    "retryTitle": "別の文字起こしを試す",
+    "retryHelp": "インストール済みのローカルモデルまたはMAIを選択してください。保存する前に結果を確認できます。元のテキストや他のアプリ内のテキストは変更されません。",
+    "model": "再試行モデル",
+    "cloudConsent": "この録音をOpenRouterとMicrosoft Azureに送信し、MAIで文字起こしします。プロバイダーの料金が発生する場合があります。",
+    "preview": "プレビューを作成",
+    "retrying": "プレビューを文字起こし中…",
+    "previousAttempts": "以前のプレビュー",
+    "choosePreview": "プレビューを選択",
+    "previewResult": "再試行のプレビュー",
+    "keepRetry": "この再試行を保存",
+    "copy": "テキストをコピー",
+    "copied": "クリップボードにコピーしました。",
+    "copyFailed": "テキストをコピーできませんでした。",
+    "retrySaved": "再試行を別に保存しました。元の内容は変更されていません。",
+    "wrong": "誤っていた内容",
+    "corrected": "正しい内容",
+    "fixtureConsent": "利用可能な元の音声を含め、この修正例を自分で削除するまでこのMacに保持します。音声の保持期間とは別に保存され、自動的にアップロードされたり、学習に使用されたりすることはありません。",
+    "saveExample": "修正例を保存",
+    "exampleSaved": "修正例をローカルに保存しました。",
+    "callAudio": "通話音声",
+    "source": "再生する音声",
+    "sources": {
+      "all": "マイク＋システム",
+      "microphone": "マイク",
+      "system": "システム音声",
+      "audio": "インポートした音声"
+    },
+    "textOnly": "この文字起こしはテキストのみです。再生できる音声はありません。",
+    "stopToListen": "録音を停止すると、聴き直すことができます。",
+    "editedAlignment": "この文字起こしは編集されています。テキストは元のタイムスタンプと一致しなくなっています。",
+    "seek": "{{time}}から再生",
+    "playManually": "再生ボタンを押すと、選択したタイムスタンプから聴くことができます。",
+    "delete": "保存した録音を削除",
+    "deleteHelp": "この録音と再生用のテキストを削除します。別に保存した修正例はこのMacに残ります。",
+    "deleted": "録音を削除しました。",
+    "examples": "保存した修正例",
+    "examplesHelp": "これらの例は音声も含め、ここで削除するまでローカルに保持されます。",
+    "noExamples": "保存した修正例はありません。",
+    "deleteExample": "例を削除",
+    "exampleDeleted": "修正例とその保存済み音声を削除しました。"
+  },
+  "dictationCleanup": {
+    "dictationExact": {
+      "label": "正確な文言",
+      "description": "文字起こしを変更しません。スタイル、スニペット、整形より優先されます。明示的な音声コマンドは引き続き使えます。"
+    },
+    "dictationRemoveFillers": {
+      "label": "ためらい音を除去",
+      "description": "um/uh などのためらい音だけを除き、意味のある言葉は残します。"
+    },
+    "dictationResolveCorrections": {
+      "label": "数値の言い直しを反映",
+      "description": "「15, sorry, 50」のように隣接する明確な数値の言い直しを反映します。曖昧な修正は変更しません。"
+    },
+    "dictationPreserveTechnical": {
+      "label": "技術的な表記を保持",
+      "description": "識別子、略語、技術名の大文字小文字やアンダースコアを保護します。"
+    },
+    "stages": {
+      "queued": "待機中",
+      "transcribing": "文字起こし中",
+      "refining": "整形中",
+      "failed": "失敗",
+      "preparing": "音声を準備中",
+      "idle": "準備完了",
+      "recording": "録音中"
+    },
+    "polishUnavailable": "AI 整形を利用できませんでした。選択した規則による整形結果は保持されます。",
+    "polishUnavailableTitle": "AI 整形を利用できません",
+    "aiRefinement": {
+      "label": "AI 整形",
+      "description": "下記の整形後に選択した AI モデルを使用します。これらの選択は AI をオフにしても機能します。正確な文言は AI 整形より優先されます。"
+    }
+  },
+  "recordingTarget": {
+    "manualTitle": "コピーできるテキストがあります",
+    "manualDescription": "元の入力欄を確認できませんでした。結果は履歴に保存されています。履歴の「コピー」を使って手動で貼り付けてください。",
+    "selectionReplaced": "選択したテキストを置き換えました。",
+    "dictationReplaced": "前回の音声入力を置き換えました。"
+  },
+  "callAgent": {
+    "tab": "エージェント",
+    "title": "この通話へのエージェントアクセス",
+    "help": "保存済みのメモと文字起こしの証拠を共有します。エージェントが接続を使用する間は SS2 を開いておいてください。",
+    "ready": "準備完了 · SS2 を開いたままにしてください",
+    "unavailable": "接続を利用できません",
+    "lastConnected": "最終エージェントリクエスト：{{time}}",
+    "notConnected": "エージェントからのリクエストはまだありません",
+    "revoke": "アクセスを取り消す",
+    "share": "この通話を共有",
+    "refresh": "更新",
+    "previewHandoff": "Markdown 引き継ぎをプレビュー",
+    "sharedHelp": "エージェントはこの通話を読み取り、下書きを送信できます。取り消すと今後のアクセスが停止しますが、受信済みのコピーは残ります。",
+    "privateHelp": "この通話は非公開です。共有すると、現在と今後保存されるメモと文字起こしにアクセスできます。",
+    "actionFailed": "操作を完了できませんでした。共有、保存済みの変更、保存先を確認し、更新して再試行してください。",
+    "copied": "コピーしました",
+    "filed": "新しい Markdown コピーを保存しました。既存のファイルと元のメモは変更されていません。",
+    "configure": "エージェントを設定",
+    "configHelp": "設定をエージェントにコピーしてください。外部設定は変更されません。Codex、Claude Code、および JSON を使用する MCP クライアントに対応しています。SS2 を移動した後は設定を更新してください。",
+    "json": "MCP JSON",
+    "codex": "Codex コマンド",
+    "claude": "Claude Code コマンド",
+    "copyConfig": "設定をコピー",
+    "handoff": "Markdown 引き継ぎプレビュー",
+    "copyHandoff": "Markdown 引き継ぎをコピー",
+    "handoffHelp": "エージェントに貼り付ける前に確認してください。テキストのみを書き出します。取り消してもコピー済みのテキストは回収できません。 この一度限りのエクスポートでは共有は不要で、エージェントに継続的なアクセス権を付与しません。",
+    "drafts": "エージェントの下書き",
+    "draftHelp": "下書きは元のメモとは別に保存されます。保存前に提案と保存済みの証拠を確認してください。証拠は以前のバージョンの可能性があります。",
+    "noDrafts": "まだ下書きはありません。接続中のエージェントに引用付きの下書きを依頼してください。",
+    "review": "下書きを確認",
+    "evidence": "引用された証拠",
+    "untimed": "時刻情報のない証拠",
+    "timed": "{{start}}–{{end}} 秒",
+    "notes": "メモ",
+    "original": "元の文字起こし",
+    "edited": "編集済みまたは読み込み済みの文字起こし",
+    "file": "確認済み Markdown コピーを保存",
+    "close": "確認を閉じる",
+    "chooseFolder": "保存前に下の固定フォルダーを選択してください。",
+    "evidenceSaved": "この下書きと共に保存された証拠：{{time}}"
+  },
+  "speech": {
+    "title": "ローカル読み上げ",
+    "stop": "読み上げを停止",
+    "unavailable": "システム音声はmacOSで利用できます",
+    "recording": "録音中は読み上げを停止しています",
+    "agentSpeaking": "エージェントの更新を読み上げ中",
+    "speaking": "読み上げ中",
+    "ready": "ローカル読み上げ準備完了",
+    "settings": "音声設定",
+    "help": "インストール済みのmacOS音声を使用します。テキストはこのMac内に留まります。録音すると読み上げと音声再生が停止します。",
+    "voice": "インストール済み音声",
+    "defaultVoice": "システムの既定",
+    "rate": "1分あたりの単語数（100～350）",
+    "agentEnabled": "エージェントの音声更新を許可",
+    "agentHelp": "既定ではオフです。共有通話のエージェントは録音していないときだけ短い更新を読み上げられます。通話の共有を解除すると、その音声が停止します。",
+    "error": "操作を完了できませんでした。音声設定を確認して再試行してください。",
+    "readSelection": "選択範囲を読み上げ",
+    "readAll": "全体を読み上げ：{{source}}",
+    "readError": "このセクションのテキストを選択するか、フィールド全体を読み上げてください。上限は20 KBです。先に録音を停止してください。",
+    "notes": "ノート",
+    "transcript": "文字起こし",
+    "draft": "エージェントの下書き"
+  },
+  "historyHome": {
+    "welcome": "おかえりなさい、Scott",
+    "description": "話した内容を見つけて、中断したところから再開しましょう。",
+    "usage": "{{dictations}} 件の音声入力 · {{words}} 語",
+    "tools": "音声入力ツール",
+    "copyLatest": "最新の内容をコピー",
+    "searchLabel": "すべての音声入力を検索",
+    "searchPlaceholder": "すべての音声入力を検索…",
+    "searchHelp": "編集前の元の言葉を含む全履歴を検索します。⌘/Ctrl F で検索欄に移動。",
+    "clear": "クリア",
+    "loadError": "履歴を読み込めませんでした。保存済みの音声入力はこの Mac に残っています。",
+    "retry": "再試行",
+    "results": "検索結果",
+    "history": "音声入力の履歴",
+    "shown": "{{count}} 件を表示",
+    "noResults": "一致する音声入力がありません",
+    "tryAnother": "別の言葉を試すか、検索をクリアしてください。",
+    "loadMore": "以前の音声入力を読み込む"
+  },
+  "workspace": {
+    "workspace": "ワークスペース",
+    "personalize": "自分好みに",
+    "navigation": "メインナビゲーション",
+    "dictation": "音声入力",
+    "snippets": "定型文",
+    "style": "文章スタイル",
+    "callsSubtitle": "会話を録音して、大切な部分を残しましょう。",
+    "recordNew": "通話を録音",
+    "stopping": "停止中…",
+    "searchCalls": "通話とノートを検索",
+    "noCalls": "一致する通話がありません。別の語句を試してください。",
+    "markMoment": "この瞬間をマーク",
+    "actionItem": "アクション項目",
+    "useTemplate": "会議のアウトラインを使う",
+    "notesTemplate": "## 決定事項\n\n- \n\n## アクション項目\n\n- [ ] \n\n## 未解決の質問\n\n- ",
+    "notesPlaceholder": "この会話で大切なことは？\n\n決定事項、次のステップ、覚えておきたいことを記録しましょう。",
+    "addToNotes": "ノートに追加",
+    "saveFailed": "保存できませんでした。編集内容はここに残っています。再試行してください。",
+    "learnFailed": "編集内容は保存されましたが、スタイルの学習に失敗しました。",
+    "editDictation": "音声入力を編集",
+    "copyText": "テキストをコピー",
+    "saveAndLearn": "保存して学習",
+    "learned": "学習済み",
+    "editHint": "修正内容から文章調整エンジンがあなたのスタイルを学習します。"
+  },
+  "workspacePreview": {
+    "banner": "インタラクティブプレビュー · サンプルデータ · 録音はシミュレーションです",
+    "desktopOnly": "この機能はデスクトップアプリで利用できます。"
   }
 }

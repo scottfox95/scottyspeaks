@@ -35,6 +35,12 @@ interface LocalModel {
   downloaded?: boolean;
 }
 
+interface ParakeetEngineInfo {
+  engine: string;
+  coremlAvailable: boolean;
+  coremlModelDownloaded: boolean;
+}
+
 interface LocalModelCardProps {
   modelId: string;
   name: string;
@@ -293,12 +299,44 @@ export default function TranscriptionModelPicker({
     percentage: 0,
   });
   const [cudaDismissed, setCudaDismissed] = useState(false);
+  const [parakeetEngineInfo, setParakeetEngineInfo] = useState<ParakeetEngineInfo | null>(null);
 
   useEffect(() => {
     if (selectedLocalProvider !== internalLocalProvider) {
       setInternalLocalProvider(selectedLocalProvider);
     }
   }, [selectedLocalProvider]);
+
+  // The Neural Engine backend only exists on Apple Silicon builds, so the
+  // selector is driven by what the main process reports rather than assumed.
+  useEffect(() => {
+    if (internalLocalProvider !== "nvidia") return;
+    let cancelled = false;
+    window.electronAPI
+      ?.getParakeetEngineInfo?.()
+      .then((info) => {
+        if (!cancelled && info) setParakeetEngineInfo(info);
+      })
+      .catch((error) => logger.error("Failed to read Parakeet engine info", { error }, "models"));
+    return () => {
+      cancelled = true;
+    };
+  }, [internalLocalProvider]);
+
+  const handleParakeetEngineSelect = async (engine: string) => {
+    if (engine === parakeetEngineInfo?.engine) return;
+    setParakeetEngineInfo((prev) => (prev ? { ...prev, engine } : prev));
+    try {
+      const result = await window.electronAPI?.setParakeetEngine?.(engine);
+      if (result?.engine) {
+        setParakeetEngineInfo((prev) => (prev ? { ...prev, engine: result.engine } : prev));
+      }
+    } catch (error) {
+      logger.error("Failed to set Parakeet engine", { error }, "models");
+      const info = await window.electronAPI?.getParakeetEngineInfo?.();
+      if (info) setParakeetEngineInfo(info);
+    }
+  };
   const isLoadingRef = useRef(false);
   const isLoadingParakeetRef = useRef(false);
   const loadLocalModelsRef = useRef<(() => Promise<void>) | null>(null);
@@ -808,6 +846,35 @@ export default function TranscriptionModelPicker({
             />
           );
         })}
+
+        {parakeetEngineInfo?.coremlAvailable && (
+          <div className="pt-2 space-y-1.5">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-xs font-medium text-foreground">
+                {t("transcription.parakeet.engine.label")}
+              </span>
+              {!parakeetEngineInfo.coremlModelDownloaded &&
+                parakeetEngineInfo.engine === "coreml" && (
+                  <span className="text-xs text-muted-foreground/60">
+                    {t("transcription.parakeet.engine.downloadPending")}
+                  </span>
+                )}
+            </div>
+            <ProviderTabs
+              providers={[
+                { id: "coreml", name: t("transcription.parakeet.engine.neuralEngine") },
+                { id: "onnx", name: t("transcription.parakeet.engine.cpu") },
+              ]}
+              selectedId={parakeetEngineInfo.engine}
+              onSelect={handleParakeetEngineSelect}
+              renderIcon={() => null}
+              colorScheme="purple"
+            />
+            <p className="text-xs text-muted-foreground/60 leading-snug">
+              {t("transcription.parakeet.engine.description")}
+            </p>
+          </div>
+        )}
       </div>
     );
   };
