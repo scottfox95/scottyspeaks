@@ -1735,7 +1735,29 @@
     "openrouterAuthError": "OpenRouter rechazó la clave API ({{status}}). Reemplázala en la configuración de notas de llamadas e inténtalo de nuevo.",
     "openrouterCreditError": "Tu cuenta de OpenRouter necesita saldo antes de poder transcribir esta llamada.",
     "openrouterEmptyError": "OpenRouter no devolvió una transcripción utilizable. Inténtalo de nuevo o elige un modelo local.",
-    "openrouterFailedError": "La transcripción de OpenRouter falló ({{status}}). Comprueba la conexión e inténtalo de nuevo."
+    "openrouterFailedError": "La transcripción de OpenRouter falló ({{status}}). Comprueba la conexión e inténtalo de nuevo.",
+    "autoStop": {
+      "label": "Detener tras silencio",
+      "off": "Desactivado",
+      "minutes_one": "{{count}} minuto",
+      "minutes_other": "{{count}} minutos",
+      "stopped_one": "La grabación se detuvo automáticamente tras {{count}} minuto sin voz.",
+      "stopped_other": "La grabación se detuvo automáticamente tras {{count}} minutos sin voz."
+    },
+    "trim": {
+      "button": "Recortar",
+      "title": "Recortar grabación",
+      "help": "Elimina el final de una grabación que siguió después de la llamada. SS2 busca dónde terminó la conversación.",
+      "analyzing": "Buscando dónde terminó la conversación…",
+      "length": "Duración de la grabación: {{length}}.",
+      "noSuggestions": "No se detectó un silencio largo; introduce un tiempo de corte.",
+      "quietToEnd": "después silencio durante {{minutes}} min hasta el final",
+      "quietThenResumes": "después silencio durante {{minutes}} min (vuelve a haber sonido en {{resumes}})",
+      "endAt": "Terminar la grabación en",
+      "apply": "Recortar a {{time}}",
+      "cancel": "Cancelar",
+      "warning": "Los últimos {{removed}} de audio se eliminarán de forma permanente. Habrá que volver a transcribir la llamada."
+    }
   },
   "replay": {
     "open": "Reproducir y corregir",

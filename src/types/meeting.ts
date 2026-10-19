@@ -26,6 +26,13 @@ export interface Meeting {
   recordedDuration?: number;
   needsTranscription?: boolean;
   progress?: { completed: number; total: number };
+  autoStopped?: boolean;
+  autoStopSeconds?: number;
+}
+export interface SpeechAnalysis {
+  duration: number;
+  segments: { start: number; end: number }[];
+  suggestions: { end: number; quietSeconds: number; resumesAt: number | null }[];
 }
 export interface MeetingFolder {
   id: string;
@@ -49,6 +56,7 @@ export interface MeetingConfig {
   localEngine: "whisper" | "nvidia";
   localModel: string;
   hasKey: boolean;
+  autoStopMinutes: number;
   captureAvailable: boolean;
 }
 export interface CaptureStatus {
@@ -96,4 +104,6 @@ export interface MeetingAPI {
   captureStatus(args?: unknown): Promise<MeetingResult<CaptureStatus>>;
   transcribe(args: { id: string; force?: boolean }): Promise<MeetingResult<Meeting>>;
   cancelTranscription(args: { id: string }): Promise<MeetingResult<void>>;
+  analyzeSpeech(args: { id: string }): Promise<MeetingResult<SpeechAnalysis>>;
+  trim(args: { id: string; end: number }): Promise<MeetingResult<Meeting>>;
 }

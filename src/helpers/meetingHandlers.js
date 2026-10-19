@@ -3,6 +3,8 @@ const { playbackInputs, confinedFile } = require("./audioEvidence");
 const { inferenceScheduler } = require("./inferenceScheduler");
 const path = require("path");
 const crypto = require("crypto");
+const { execFile } = require("child_process");
+const { promisify } = require("util");
 const { MeetingStore, parseTranscript } = require("./meetingStore");
 const { MeetingRecorder } = require("./meetingRecorder");
 const {
@@ -20,6 +22,9 @@ const {
   microphoneSpeaker,
 } = require("./meetingDiarization");
 const debugLogger = require("./debugLogger");
+const { analyzeFile, mergeSegments, trimSuggestions } = require("./speechActivity");
+const AUTO_STOP_MINUTES = [0, 1, 2, 5, 10];
+const DEFAULT_AUTO_STOP_MINUTES = 2;
 const TRANSCRIPTION_CACHE_VERSION = 3;
 function isTransientCloudError(error) {
   const status = Number(error?.status);
@@ -67,9 +72,7 @@ function registerMeetingHandlers({
     }
     keyLoaded = true;
     try {
-      cachedKey = fs.existsSync(keyPath)
-        ? safeStorage.decryptString(fs.readFileSync(keyPath))
-        : "";
+      cachedKey = fs.existsSync(keyPath) ? safeStorage.decryptString(fs.readFileSync(keyPath)) : "";
       return cachedKey;
     } catch (error) {
       cachedKeyError =
@@ -85,6 +88,7 @@ function registerMeetingHandlers({
     keyLoaded = true;
   };
   const config = () => ({
+    autoStopMinutes: DEFAULT_AUTO_STOP_MINUTES,
     ...store.index.config,
     hasKey: fs.existsSync(keyPath),
     captureAvailable:
@@ -314,6 +318,13 @@ function registerMeetingHandlers({
                       },
                     });
               } catch (error) {
+                // A quiet stretch (an hour of dead air after a call ended) comes
+                // back empty. That is "no speech", not a failure, as long as some
+                // other part of the call produced text; checked after the loop.
+                if (error?.code === "openrouterEmpty" && chunks.length > 1) {
+                  cache.results[chunk.key] = { text: "", segments: [], words: [], empty: true };
+                  break;
+                }
                 if (
                   !controller.signal.aborted &&
                   settings.provider === "openrouter" &&
@@ -336,6 +347,14 @@ function registerMeetingHandlers({
         if (controller.signal.aborted)
           throw new Error("Transcription cancelled; saved audio is retained");
         const raw = chunks.map((c) => cache.results[c.key]);
+        if (raw.every((r) => r.empty || !r.text?.trim()) && raw.some((r) => r.empty)) {
+          for (const chunk of chunks)
+            if (cache.results[chunk.key]?.empty) delete cache.results[chunk.key];
+          store.update(id, { transcriptionCache: cache });
+          const error = new Error("OpenRouter returned no usable transcript.");
+          error.code = "openrouterEmpty";
+          throw error;
+        }
         const results =
           settings.provider === "local"
             ? await attributeSpeakers({
@@ -418,7 +437,9 @@ function registerMeetingHandlers({
       if (meeting.exportPath) shell.showItemInFolder(meeting.exportPath);
     },
     getConfig: config,
-    setConfig: ({ provider, localEngine, localModel, apiKey }) => {
+    setConfig: ({ provider, localEngine, localModel, apiKey, autoStopMinutes }) => {
+      if (autoStopMinutes != null && !AUTO_STOP_MINUTES.includes(autoStopMinutes))
+        throw new Error("Invalid auto-stop setting");
       if (provider && !["local", "openrouter"].includes(provider))
         throw new Error("Invalid provider");
       if (localEngine && !["whisper", "nvidia"].includes(localEngine))
@@ -446,6 +467,7 @@ function registerMeetingHandlers({
         ...(provider ? { provider } : {}),
         ...(localEngine ? { localEngine } : {}),
         ...(localModel ? { localModel } : {}),
+        ...(autoStopMinutes != null ? { autoStopMinutes } : {}),
       };
       store.persistIndex();
       return config();
@@ -503,7 +525,7 @@ function registerMeetingHandlers({
       try {
         if (!(await systemPreferences.askForMediaAccess("microphone")))
           throw new Error("Microphone permission is required");
-        return await recorder.start(id);
+        return await recorder.start(id, { autoStopSeconds: config().autoStopMinutes * 60 });
       } finally {
         starting.delete(id);
       }
@@ -554,6 +576,116 @@ function registerMeetingHandlers({
         if (result.canceled || !result.filePath) return null;
         await fs.promises.copyFile(file, result.filePath);
         return { path: result.filePath };
+      } finally {
+        reading.delete(id);
+      }
+    },
+    analyzeSpeech: async ({ id }) => {
+      if (recorder.status().id === id) throw new Error("Stop recording before trimming");
+      const original = store.get(id);
+      const audio = (original.audio || []).filter((entry) =>
+        fs.existsSync(path.join(store.directory(id), entry.file))
+      );
+      if (!audio.length) throw new Error("No saved audio is available for this call");
+      if (reading.has(id)) throw new Error("Audio is already being prepared");
+      reading.add(id);
+      try {
+        const results = [];
+        for (const entry of audio) {
+          const result = await analyzeFile(confinedFile(store.directory(id), entry.file));
+          const offset = entry.offset || 0;
+          results.push({
+            end: offset + result.duration,
+            segments: result.segments.map((s) => ({
+              start: s.start + offset,
+              end: s.end + offset,
+            })),
+          });
+        }
+        const duration = Math.max(...results.map((r) => r.end));
+        const segments = mergeSegments(results.flatMap((r) => r.segments));
+        return { duration, segments, suggestions: trimSuggestions(segments, duration) };
+      } finally {
+        reading.delete(id);
+      }
+    },
+    // Destructive: rewrites the saved audio so playback, export, transcription
+    // and later takes all see one consistent, shorter recording.
+    trim: async ({ id, end }) => {
+      if (!Number.isFinite(end) || end < 1) throw new Error("Invalid trim point");
+      if (recorder.status().id === id || starting.has(id))
+        throw new Error("Stop recording before trimming");
+      if (jobs.has(id) || ["queued", "transcribing", "recording"].includes(store.get(id).status))
+        throw new Error("Wait for transcription to finish before trimming");
+      if (reading.has(id)) throw new Error("Audio is already being prepared");
+      reading.add(id);
+      try {
+        const original = store.get(id);
+        const directory = store.directory(id);
+        const ffmpeg = require("ffmpeg-static").replace("app.asar/", "app.asar.unpacked/");
+        const keep = [];
+        const remove = [];
+        for (const entry of original.audio || []) {
+          const file = confinedFile(directory, entry.file);
+          const length = end - (entry.offset || 0);
+          if (length <= 0) {
+            remove.push(file);
+            continue;
+          }
+          keep.push(entry);
+          if ((await audioDuration(file)) <= length + 0.05) continue;
+          const extension = path.extname(file);
+          const temporary = path.join(
+            path.dirname(file),
+            `trim-${crypto.randomUUID()}${extension}`
+          );
+          try {
+            await promisify(execFile)(
+              ffmpeg,
+              ["-hide_banner", "-loglevel", "error", "-nostdin", "-i", file].concat([
+                "-t",
+                length.toFixed(3),
+                "-map",
+                "0:a",
+                "-c",
+                "copy",
+                temporary,
+              ]),
+              { timeout: 300000, maxBuffer: 512 * 1024 }
+            );
+            fs.renameSync(temporary, file);
+          } finally {
+            fs.rmSync(temporary, { force: true });
+          }
+        }
+        if (!keep.length) throw new Error("The trim point is before any saved audio");
+        for (const file of remove) fs.rmSync(file, { force: true });
+        for (const name of fs.readdirSync(directory)) {
+          const full = path.join(directory, name);
+          if (/^playback-[a-f0-9]{64}\.mp3$/.test(name)) fs.rmSync(full, { force: true });
+          else if (
+            /^take-/.test(name) &&
+            fs.statSync(full).isDirectory() &&
+            !fs.readdirSync(full).length
+          )
+            fs.rmdirSync(full);
+        }
+        return store.update(id, {
+          audio: keep,
+          ...(Number.isFinite(original.recordedDuration)
+            ? { recordedDuration: Math.min(original.recordedDuration, end) }
+            : {}),
+          // The audio list is unchanged for a same-file trim, so cached chunk
+          // results would otherwise be reused against different audio.
+          transcriptionCache: null,
+          needsTranscription: true,
+          autoStopped: false,
+          lastError: null,
+          lastErrorCode: null,
+          lastErrorStatus: null,
+          lastErrorDetail: null,
+          trimmedAt: new Date().toISOString(),
+        });
       } finally {
         reading.delete(id);
       }

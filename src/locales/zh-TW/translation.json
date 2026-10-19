@@ -1735,7 +1735,27 @@
     "openrouterAuthError": "OpenRouter 拒絕了 API 金鑰（{{status}}）。請在通話筆記設定中更換金鑰，然後重試。",
     "openrouterCreditError": "您的 OpenRouter 帳戶需要餘額才能轉錄此通話。",
     "openrouterEmptyError": "OpenRouter 未傳回可用的轉錄。請重試或選擇本機模型。",
-    "openrouterFailedError": "OpenRouter 轉錄失敗（{{status}}）。請檢查連線後重試。"
+    "openrouterFailedError": "OpenRouter 轉錄失敗（{{status}}）。請檢查連線後重試。",
+    "autoStop": {
+      "label": "靜音後自動停止",
+      "off": "關閉",
+      "minutes_other": "{{count}} 分鐘",
+      "stopped_other": "已連續 {{count}} 分鐘無人說話,錄音已自動停止。"
+    },
+    "trim": {
+      "button": "裁剪",
+      "title": "裁剪錄音",
+      "help": "刪除通話結束後仍在繼續的錄音結尾。SS2 會尋找對話結束的位置。",
+      "analyzing": "正在尋找對話結束的位置…",
+      "length": "錄音長度:{{length}}。",
+      "noSuggestions": "未偵測到較長的靜音;請輸入裁剪時間。",
+      "quietToEnd": "之後靜音 {{minutes}} 分鐘直到結束",
+      "quietThenResumes": "之後靜音 {{minutes}} 分鐘({{resumes}} 再次出現聲音)",
+      "endAt": "錄音結束於",
+      "apply": "裁剪到 {{time}}",
+      "cancel": "取消",
+      "warning": "最後 {{removed}} 的音訊將被永久刪除。需要重新轉寫該通話。"
+    }
   },
   "replay": {
     "open": "重播與修正",

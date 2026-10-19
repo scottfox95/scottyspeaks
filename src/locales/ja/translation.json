@@ -1735,7 +1735,27 @@
     "openrouterAuthError": "OpenRouter が API キーを拒否しました（{{status}}）。通話メモ設定でキーを置き換えて、もう一度お試しください。",
     "openrouterCreditError": "この通話を文字起こしするには、OpenRouter アカウントにクレジットが必要です。",
     "openrouterEmptyError": "OpenRouter から使用できる文字起こしが返されませんでした。もう一度試すか、ローカルモデルを選択してください。",
-    "openrouterFailedError": "OpenRouter の文字起こしに失敗しました（{{status}}）。接続を確認して、もう一度お試しください。"
+    "openrouterFailedError": "OpenRouter の文字起こしに失敗しました（{{status}}）。接続を確認して、もう一度お試しください。",
+    "autoStop": {
+      "label": "無音で自動停止",
+      "off": "オフ",
+      "minutes_other": "{{count}} 分",
+      "stopped_other": "{{count}} 分間発話がなかったため、録音を自動停止しました。"
+    },
+    "trim": {
+      "button": "トリム",
+      "title": "録音をトリム",
+      "help": "通話後も続いていた録音の末尾を削除します。SS2 が会話の終わった位置を探します。",
+      "analyzing": "会話の終わりを探しています…",
+      "length": "録音の長さ: {{length}}。",
+      "noSuggestions": "長い無音は見つかりませんでした。トリムする時刻を入力してください。",
+      "quietToEnd": "その後 {{minutes}} 分間、最後まで無音",
+      "quietThenResumes": "その後 {{minutes}} 分間無音({{resumes}} に再び音あり)",
+      "endAt": "録音の終了位置",
+      "apply": "{{time}} でトリム",
+      "cancel": "キャンセル",
+      "warning": "最後の {{removed}} の音声は完全に削除されます。通話はもう一度文字起こしが必要です。"
+    }
   },
   "replay": {
     "open": "再生と修正",

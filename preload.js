@@ -71,6 +71,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     stopCapture: (args) => ipcRenderer.invoke("meetings:stopCapture", args),
     captureStatus: (args) => ipcRenderer.invoke("meetings:captureStatus", args),
     transcribe: (args) => ipcRenderer.invoke("meetings:transcribe", args),
+    analyzeSpeech: (args) => ipcRenderer.invoke("meetings:analyzeSpeech", args),
+    trim: (args) => ipcRenderer.invoke("meetings:trim", args),
     cancelTranscription: (args) => ipcRenderer.invoke("meetings:cancelTranscription", args),
   },
   captureRecordingTarget: () => ipcRenderer.invoke("recording-target:capture"),

@@ -1735,7 +1735,29 @@
     "openrouterAuthError": "OpenRouter ha rifiutato la chiave API ({{status}}). Sostituiscila nelle impostazioni delle note chiamata e riprova.",
     "openrouterCreditError": "Il tuo account OpenRouter deve avere credito prima di poter trascrivere questa chiamata.",
     "openrouterEmptyError": "OpenRouter non ha restituito una trascrizione utilizzabile. Riprova o scegli un modello locale.",
-    "openrouterFailedError": "La trascrizione OpenRouter non è riuscita ({{status}}). Controlla la connessione e riprova."
+    "openrouterFailedError": "La trascrizione OpenRouter non è riuscita ({{status}}). Controlla la connessione e riprova.",
+    "autoStop": {
+      "label": "Stop automatico dopo silenzio",
+      "off": "Disattivato",
+      "minutes_one": "{{count}} minuto",
+      "minutes_other": "{{count}} minuti",
+      "stopped_one": "Registrazione interrotta automaticamente dopo {{count}} minuto senza voce.",
+      "stopped_other": "Registrazione interrotta automaticamente dopo {{count}} minuti senza voce."
+    },
+    "trim": {
+      "button": "Taglia",
+      "title": "Taglia registrazione",
+      "help": "Rimuove la parte finale di una registrazione proseguita dopo la chiamata. SS2 individua dove si è fermata la conversazione.",
+      "analyzing": "Ricerca della fine della conversazione…",
+      "length": "Durata della registrazione: {{length}}.",
+      "noSuggestions": "Nessun silenzio lungo rilevato; inserisci un punto di taglio.",
+      "quietToEnd": "poi silenzio per {{minutes}} min fino alla fine",
+      "quietThenResumes": "poi silenzio per {{minutes}} min (di nuovo audio a {{resumes}})",
+      "endAt": "Termina la registrazione a",
+      "apply": "Taglia a {{time}}",
+      "cancel": "Annulla",
+      "warning": "Gli ultimi {{removed}} di audio verranno eliminati definitivamente. La chiamata dovrà essere trascritta di nuovo."
+    }
   },
   "replay": {
     "open": "Riascolta e correggi",

@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { spawn } = require("child_process");
+const { SpeechActivity } = require("./speechActivity");
 class MeetingRecorder {
   constructor(store, options = {}) {
     this.store = store;
@@ -12,10 +13,18 @@ class MeetingRecorder {
   }
   status() {
     return this.active
-      ? { id: this.active.id, startedAt: this.active.startedAt, stopping: this.active.stopping }
+      ? {
+          id: this.active.id,
+          startedAt: this.active.startedAt,
+          stopping: this.active.stopping,
+          autoStopSeconds: this.active.autoStopSeconds,
+          lastSpeech: this.active.lastSpeech,
+        }
       : { id: null };
   }
-  async start(id) {
+  // autoStopSeconds: stop once no speech has been heard on either track for this
+  // long. Armed only after the first speech, so waiting in a lobby never stops.
+  async start(id, { autoStopSeconds = 0 } = {}) {
     if (this.active) throw new Error("A call is already recording");
     const item = this.store.get(id);
     if (["queued", "transcribing"].includes(item.status))
@@ -64,6 +73,11 @@ class MeetingRecorder {
       child: null,
       error: null,
       duration: 0,
+      autoStopSeconds: autoStopSeconds > 0 ? autoStopSeconds : 0,
+      autoStopped: false,
+      lastSpeech: null,
+      activity: { microphone: new SpeechActivity(), system: new SpeechActivity() },
+      clock: 0,
     };
     this.active = active;
     let settled = false,
@@ -88,6 +102,8 @@ class MeetingRecorder {
           lastError: error,
           lastErrorCode: null,
           lastErrorStatus: null,
+          autoStopped: !error && active.autoStopped,
+          ...(active.autoStopped ? { autoStopSeconds: active.autoStopSeconds } : {}),
         });
       } finally {
         if (active.speechToken) this.speech.endRecording(active.speechToken, "native-call");
@@ -124,6 +140,7 @@ class MeetingRecorder {
           }
           if (event.event === "error")
             active.error = String(event.message || "Call capture failed").slice(0, 500);
+          if (event.event === "level") this.level(active, event);
           if (event.event === "stopped" && Number.isFinite(event.duration))
             active.duration = Math.max(0, Math.min(event.duration, 6 * 3600));
         }
@@ -158,6 +175,22 @@ class MeetingRecorder {
       finish();
     }
     return started;
+  }
+  level(active, event) {
+    const detector = active.activity[event.source];
+    if (!detector || !Number.isFinite(event.t)) return;
+    active.clock = Math.max(active.clock, event.t);
+    if (detector.push(event.t, event.db))
+      active.lastSpeech = Math.max(active.lastSpeech ?? 0, event.t);
+    if (
+      active.autoStopSeconds &&
+      active.lastSpeech != null &&
+      !active.stopping &&
+      active.clock - active.lastSpeech >= active.autoStopSeconds
+    ) {
+      active.autoStopped = true;
+      this.stop(active.id).catch(() => {});
+    }
   }
   async stop(id) {
     const active = this.active;

@@ -1735,7 +1735,29 @@
     "openrouterAuthError": "OpenRouter hat den API-Schlüssel abgelehnt ({{status}}). Ersetze ihn in den Anrufnotizen-Einstellungen und versuche es erneut.",
     "openrouterCreditError": "Dein OpenRouter-Konto benötigt Guthaben, bevor dieser Anruf transkribiert werden kann.",
     "openrouterEmptyError": "OpenRouter hat kein verwendbares Transkript zurückgegeben. Versuche es erneut oder wähle ein lokales Modell.",
-    "openrouterFailedError": "Die OpenRouter-Transkription ist fehlgeschlagen ({{status}}). Prüfe die Verbindung und versuche es erneut."
+    "openrouterFailedError": "Die OpenRouter-Transkription ist fehlgeschlagen ({{status}}). Prüfe die Verbindung und versuche es erneut.",
+    "autoStop": {
+      "label": "Auto-Stopp nach Stille",
+      "off": "Aus",
+      "minutes_one": "{{count}} Minute",
+      "minutes_other": "{{count}} Minuten",
+      "stopped_one": "Aufnahme nach {{count}} Minute ohne Sprache automatisch beendet.",
+      "stopped_other": "Aufnahme nach {{count}} Minuten ohne Sprache automatisch beendet."
+    },
+    "trim": {
+      "button": "Kürzen",
+      "title": "Aufnahme kürzen",
+      "help": "Schneidet das Ende einer Aufnahme ab, die nach dem Anruf weiterlief. SS2 sucht, wo das Gespräch endete.",
+      "analyzing": "Suche nach dem Gesprächsende…",
+      "length": "Aufnahmelänge: {{length}}.",
+      "noSuggestions": "Keine längere Stille erkannt; gib einen Zeitpunkt zum Kürzen ein.",
+      "quietToEnd": "danach {{minutes}} Min. still bis zum Ende",
+      "quietThenResumes": "danach {{minutes}} Min. still (wieder Ton bei {{resumes}})",
+      "endAt": "Aufnahme enden lassen bei",
+      "apply": "Auf {{time}} kürzen",
+      "cancel": "Abbrechen",
+      "warning": "Die letzten {{removed}} Audio werden dauerhaft gelöscht. Der Anruf muss erneut transkribiert werden."
+    }
   },
   "replay": {
     "open": "Wiedergabe & Korrektur",
