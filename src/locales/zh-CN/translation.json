@@ -1516,7 +1516,32 @@
     "description": "教 AI 学习你的词汇 — 名字、行话和它可能遗漏的术语",
     "clearTitle": "清空词典？",
     "clearDescription": "这将删除自定义词典中的所有词汇，此操作无法撤销。",
-    "addPlaceholder": "添加词语或短语..."
+    "addPlaceholder": "添加词语或短语...",
+    "soundsLike": "听起来像",
+    "soundsLikeHint": "识别器把某个词听成了什么。此处列出的内容总是会被替换成该词，即使你是按字面意思说的。",
+    "teachWord": "教它你怎么说 {{word}}",
+    "removeAlias": "不再修正“{{alias}}”",
+    "teach": {
+      "title": "教它你怎么说“{{word}}”",
+      "intro": "按下麦克风，只说这个词，然后按停止。重复大约 {{count}} 次。它听错的内容今后会自动修正。",
+      "record": "开始录音",
+      "stop": "停止录音",
+      "listening": "正在聆听…",
+      "processing": "正在分析听到的内容…",
+      "take": "第 {{number}} 次",
+      "takes": "录音记录",
+      "heard": "听到“{{heard}}” — 将被修正",
+      "heardCorrect": "听对了",
+      "heardNothing": "没听到 — 请再大声一点",
+      "heardTooMuch": "听到“{{heard}}” — 请只说这个词",
+      "willFix": "将替换为 {{word}}",
+      "none": "还没有内容。录一次，或输入它听到的内容。",
+      "manualPlaceholder": "或输入它听到的内容：bravo, a rather",
+      "manualLabel": "要添加的相似词",
+      "add": "添加",
+      "hint": "每次听写都会替换，即使你是按字面意思说的。",
+      "save": "保存"
+    }
   },
   "sidebar": {
     "home": "首页",

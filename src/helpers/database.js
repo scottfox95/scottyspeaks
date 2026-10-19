@@ -4,6 +4,17 @@ const fs = require("fs");
 const debugLogger = require("./debugLogger");
 const { app } = require("electron");
 
+// Same normalization as correctionLearner.normalizeAlias, kept local so this
+// module stays free of imports (tests load it in isolation).
+function normalizeAlias(value) {
+  if (typeof value !== "string") return "";
+  return value
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}\p{M}'’\s-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 class DatabaseManager {
   constructor() {
     this.db = null;
@@ -217,6 +228,22 @@ class DatabaseManager {
         debugLogger.warn("Dictionary dedupe migration failed", { error: e.message }, "database");
       }
 
+      // "Sounds like" aliases: what the recognizer tends to hear for a
+      // dictionary word ("bravo", "a rather" → Aravo). Replaced verbatim in
+      // transcripts; one alias can belong to only one word.
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS dictionary_aliases (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          word TEXT NOT NULL,
+          alias TEXT NOT NULL,
+          source TEXT NOT NULL DEFAULT 'manual',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      this.db.exec(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_dictionary_aliases_alias_nocase ON dictionary_aliases (alias COLLATE NOCASE)"
+      );
+
       // raw_text: the pre-polish transcript, kept so user edits can teach the
       // polish pass (raw → preferred output pairs)
       try {
@@ -332,6 +359,78 @@ class DatabaseManager {
     } catch (error) {
       debugLogger.error("Error saving transcription", { error: error.message }, "database");
       throw error;
+    }
+  }
+
+  getTranscription(id) {
+    if (!this.db) throw new Error("Database not initialized");
+    return this.db.prepare("SELECT * FROM transcriptions WHERE id = ?").get(id) || null;
+  }
+
+  // --- "Sounds like" aliases -------------------------------------------------
+
+  getDictionaryAliases() {
+    if (!this.db) throw new Error("Database not initialized");
+    return this.db
+      .prepare("SELECT word, alias, source FROM dictionary_aliases ORDER BY id ASC")
+      .all()
+      .map((row) => ({ word: row.word, alias: row.alias, source: row.source }));
+  }
+
+  /** Replaces every alias of `word`. Returns the full alias list afterwards. */
+  setWordAliases(word, aliases, source = "manual") {
+    if (!this.db) throw new Error("Database not initialized");
+    const canonical = this._canonicalDictionaryWord(word);
+    if (!canonical) throw new Error("Aliases need a dictionary word");
+    this.db.exec("BEGIN");
+    try {
+      this.db.prepare("DELETE FROM dictionary_aliases WHERE lower(word) = lower(?)").run(canonical);
+      this._insertAliases(canonical, aliases, source);
+      this.db.exec("COMMIT");
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
+    return this.getDictionaryAliases();
+  }
+
+  /** Adds aliases to `word`, taking them over from any other word. */
+  addDictionaryAliases(word, aliases, source = "manual") {
+    if (!this.db) throw new Error("Database not initialized");
+    const canonical = this._canonicalDictionaryWord(word);
+    if (!canonical) throw new Error("Aliases need a dictionary word");
+    this._insertAliases(canonical, aliases, source);
+    return this.getDictionaryAliases();
+  }
+
+  removeDictionaryAlias(alias) {
+    if (!this.db) throw new Error("Database not initialized");
+    const normalized = normalizeAlias(alias);
+    if (normalized)
+      this.db.prepare("DELETE FROM dictionary_aliases WHERE alias = ? COLLATE NOCASE").run(normalized);
+    return this.getDictionaryAliases();
+  }
+
+  _canonicalDictionaryWord(word) {
+    const trimmed = typeof word === "string" ? word.trim() : "";
+    if (!trimmed) return null;
+    const row = this.db
+      .prepare("SELECT word FROM custom_dictionary WHERE word = ? COLLATE NOCASE")
+      .get(trimmed);
+    return row ? row.word : null;
+  }
+
+  _insertAliases(canonical, aliases, source) {
+    const dictionary = new Set(this.getDictionary().map((entry) => normalizeAlias(entry)));
+    const insert = this.db.prepare(
+      "INSERT OR REPLACE INTO dictionary_aliases (word, alias, source) VALUES (?, ?, ?)"
+    );
+    for (const value of Array.isArray(aliases) ? aliases : []) {
+      const alias = normalizeAlias(value);
+      // Never rewrite the word itself or another dictionary word.
+      if (!alias || alias.length > 120 || alias === normalizeAlias(canonical)) continue;
+      if (dictionary.has(alias)) continue;
+      insert.run(canonical, alias, typeof source === "string" ? source : "manual");
     }
   }
 
@@ -469,6 +568,12 @@ class DatabaseManager {
             insert.run(trimmed);
           }
         }
+        // Aliases follow their word; a removed word must stop rewriting text.
+        this.db
+          .prepare(
+            "DELETE FROM dictionary_aliases WHERE lower(word) NOT IN (SELECT lower(word) FROM custom_dictionary)"
+          )
+          .run();
       });
       transaction(words);
       return { success: true };

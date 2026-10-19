@@ -106,6 +106,7 @@ app.whenReady().then(async () => {
       "db-set-dictionary": [],
       "db-get-transcriptions": [],
       "db-query-transcriptions": { items: [], hasMore: false, nextCursor: null },
+      "db-get-dictionary-aliases": [],
       "db-get-dictionary": [],
       "get-update-status": { isDevelopment: true },
       "get-update-info": null,

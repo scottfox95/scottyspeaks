@@ -8,6 +8,12 @@ export interface TranscriptionItem {
   raw_text?: string | null;
 }
 
+export interface DictionaryAlias {
+  word: string;
+  alias: string;
+  source: string;
+}
+
 export interface TranscriptionCursor {
   timestamp: string;
   id: number;
@@ -391,6 +397,11 @@ declare global {
       getDictionary: () => Promise<string[]>;
       setDictionary: (words: string[]) => Promise<{ success: boolean }>;
       onDictionaryUpdated?: (callback: (words: string[]) => void) => () => void;
+      // "Sounds like" aliases: what the recognizer hears for a dictionary word
+      getDictionaryAliases: () => Promise<DictionaryAlias[]>;
+      setWordAliases: (word: string, aliases: string[]) => Promise<DictionaryAlias[]>;
+      removeDictionaryAlias: (alias: string) => Promise<DictionaryAlias[]>;
+      onDictionaryAliasesUpdated?: (callback: (aliases: DictionaryAlias[]) => void) => () => void;
       setAutoLearnEnabled?: (enabled: boolean) => void;
       onCorrectionsLearned?: (callback: (words: string[]) => void) => () => void;
       undoLearnedCorrections?: (words: string[]) => Promise<{ success: boolean }>;

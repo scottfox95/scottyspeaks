@@ -285,9 +285,177 @@ function undoDictionaryCorrections(currentDictionary, undoEntries) {
   return dictionary;
 }
 
+// ---------------------------------------------------------------------------
+// "Sounds like" aliases
+//
+// The local recognizer cannot be taught a pronunciation, so names it keeps
+// mishearing ("Aravo" → "bravo", "a rather") are fixed at the text level: each
+// dictionary word may carry aliases, and any whole-word match of an alias is
+// replaced by the word's exact spelling before polish and again before paste.
+// Aliases are learned from the user's edits and from the "teach it" recorder.
+// ---------------------------------------------------------------------------
+
+const ALIAS_MAX_WORDS = 4;
+
+/** Lowercase, punctuation-free, single-spaced form used to match an alias. */
+function normalizeAlias(value) {
+  if (typeof value !== "string") return "";
+  return value
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}\p{M}'’\s-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeAliasEntries(aliases) {
+  const seen = new Set();
+  const entries = [];
+  for (const entry of Array.isArray(aliases) ? aliases : []) {
+    if (!entry || typeof entry.word !== "string") continue;
+    const word = entry.word.trim();
+    const alias = normalizeAlias(entry.alias);
+    if (!word || !alias || alias === word.toLocaleLowerCase() || seen.has(alias)) continue;
+    seen.add(alias);
+    entries.push({ word, alias });
+  }
+  return entries;
+}
+
+/**
+ * Replaces every whole-word occurrence of an alias with its dictionary word.
+ * Longer aliases win over shorter ones ("a rather" before "rather").
+ */
+function applyDictionaryAliases(text, aliases) {
+  if (typeof text !== "string" || !text) return text;
+  const entries = normalizeAliasEntries(aliases);
+  if (entries.length === 0) return text;
+
+  const wordByAlias = new Map(entries.map(({ word, alias }) => [alias, word]));
+  const alternatives = [...wordByAlias.keys()]
+    .sort((a, b) => b.length - a.length)
+    .map((alias) =>
+      alias
+        .split(" ")
+        .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+        .join("\\s+")
+    );
+  const pattern = new RegExp(
+    `(?<![\\p{L}\\p{N}\\p{M}_])(?:${alternatives.join("|")})(?![\\p{L}\\p{N}\\p{M}_])`,
+    "giu"
+  );
+  return text.replace(pattern, (match) => wordByAlias.get(normalizeAlias(match)) ?? match);
+}
+
+/** Word-level diff hunks: consecutive removed/added tokens between equal runs. */
+function diffHunks(before, after) {
+  const m = before.length;
+  const n = after.length;
+  const lcs = Array.from({ length: m + 1 }, () => new Uint16Array(n + 1));
+  for (let i = m - 1; i >= 0; i--) {
+    for (let j = n - 1; j >= 0; j--) {
+      lcs[i][j] = before[i] === after[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+    }
+  }
+  const hunks = [];
+  let current = null;
+  let i = 0;
+  let j = 0;
+  const flush = () => {
+    if (current) hunks.push(current);
+    current = null;
+  };
+  while (i < m || j < n) {
+    if (i < m && j < n && before[i] === after[j]) {
+      flush();
+      i++;
+      j++;
+    } else {
+      if (!current) current = { removed: [], added: [] };
+      if (j >= n || (i < m && lcs[i + 1][j] >= lcs[i][j + 1])) current.removed.push(i++);
+      else current.added.push(j++);
+    }
+  }
+  flush();
+  return hunks;
+}
+
+/**
+ * Finds spans the user replaced with a dictionary word, e.g. "a rather" →
+ * "Aravo", and returns them as `{ word, alias }` pairs to store. Only learns
+ * when the replacement is a known dictionary word, so unrelated edits never
+ * become substitutions.
+ */
+function extractAliasCorrections(originalText, editedText, dictionary, existingAliases = []) {
+  if (typeof originalText !== "string" || typeof editedText !== "string") return [];
+  if (!originalText.trim() || !editedText.trim() || originalText === editedText) return [];
+
+  const words = normalizeDictionaryWords(dictionary);
+  if (words.length === 0) return [];
+  const canonicalByLower = new Map();
+  for (const word of words) {
+    const key = normalizeAlias(word);
+    if (key && !canonicalByLower.has(key)) canonicalByLower.set(key, word);
+  }
+  const known = new Set(normalizeAliasEntries(existingAliases).map((entry) => entry.alias));
+
+  const original = tokenize(originalText);
+  const edited = tokenize(editedText);
+  if (original.length === 0 || edited.length === 0) return [];
+  const hunks = diffHunks(
+    original.map((token) => normalizeAlias(token)),
+    edited.map((token) => normalizeAlias(token))
+  );
+  const changed = hunks.reduce((sum, hunk) => sum + hunk.removed.length, 0);
+  // A wholesale rewrite is not a set of pronunciation fixes.
+  if (original.length > 1 && changed > original.length * 0.5) return [];
+
+  const results = [];
+  const seen = new Set();
+  const span = (tokens, from, to) =>
+    normalizeAlias(tokens.slice(from, to).map((token) => token).join(" "));
+  for (const hunk of hunks) {
+    if (!hunk.removed.length || !hunk.added.length) continue;
+    if (hunk.removed.length > ALIAS_MAX_WORDS || hunk.added.length > ALIAS_MAX_WORDS) continue;
+    // "six point tombs" → "Six Points Homes" aligns "six" as unchanged, so the
+    // hunk alone is "point tombs" → "points homes". Grow the hunk over the
+    // unchanged neighbours (identical on both sides) until the edited span is
+    // a dictionary word.
+    let match = null;
+    const removedStart = hunk.removed[0];
+    const removedEnd = hunk.removed[hunk.removed.length - 1] + 1;
+    const addedStart = hunk.added[0];
+    const addedEnd = hunk.added[hunk.added.length - 1] + 1;
+    for (let left = 0; left <= ALIAS_MAX_WORDS && !match; left++) {
+      if (removedStart - left < 0 || addedStart - left < 0) break;
+      for (let right = 0; right <= ALIAS_MAX_WORDS; right++) {
+        if (removedEnd + right > original.length || addedEnd + right > edited.length) break;
+        if (addedEnd - addedStart + left + right > ALIAS_MAX_WORDS) break;
+        const replacement = span(edited, addedStart - left, addedEnd + right);
+        const word = canonicalByLower.get(replacement);
+        if (word) {
+          match = { word, replacement, alias: span(original, removedStart - left, removedEnd + right) };
+          break;
+        }
+      }
+    }
+    if (!match) continue;
+    const { word, replacement, alias } = match;
+    if (!alias || alias === replacement || seen.has(alias) || known.has(alias)) continue;
+    if ((alias.match(/\p{L}/gu) || []).length < 3) continue;
+    if (canonicalByLower.has(alias)) continue;
+    if (alias.split(" ").includes(replacement)) continue;
+    seen.add(alias);
+    results.push({ word, alias });
+  }
+  return results;
+}
+
 module.exports = {
   extractCorrections,
   applyDictionaryCorrections,
   mergeDictionaryCorrections,
   undoDictionaryCorrections,
+  normalizeAlias,
+  applyDictionaryAliases,
+  extractAliasCorrections,
 };

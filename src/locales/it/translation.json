@@ -1516,7 +1516,32 @@
     "description": "Insegna all'IA il tuo vocabolario — nomi, gergo e termini che potrebbe altrimenti non riconoscere",
     "clearTitle": "Svuotare il dizionario?",
     "clearDescription": "Verranno rimossi tutti i termini dal tuo dizionario personalizzato. Questa azione non può essere annullata.",
-    "addPlaceholder": "Aggiungi una parola o una frase..."
+    "addPlaceholder": "Aggiungi una parola o una frase...",
+    "soundsLike": "Suona come",
+    "soundsLikeHint": "Ciò che il riconoscimento sente al posto di una parola. Tutto ciò che è elencato qui viene sempre sostituito con la parola, anche quando la intendi letteralmente.",
+    "teachWord": "Insegnagli come dici {{word}}",
+    "removeAlias": "Smetti di correggere “{{alias}}”",
+    "teach": {
+      "title": "Insegnagli come dici “{{word}}”",
+      "intro": "Premi il microfono, di' solo la parola, poi premi stop. Fallo circa {{count}} volte. Ciò che sente male verrà corretto automaticamente d'ora in poi.",
+      "record": "Avvia registrazione",
+      "stop": "Ferma registrazione",
+      "listening": "In ascolto…",
+      "processing": "Sto analizzando ciò che ha sentito…",
+      "take": "Ripresa {{number}}",
+      "takes": "Riprese",
+      "heard": "Ha sentito “{{heard}}” — verrà corretto",
+      "heardCorrect": "Ha sentito bene",
+      "heardNothing": "Non ha sentito nulla — riprova un po' più forte",
+      "heardTooMuch": "Ha sentito “{{heard}}” — di' solo la parola",
+      "willFix": "Verrà sostituito con {{word}}",
+      "none": "Ancora niente. Registra una ripresa o scrivi ciò che sente.",
+      "manualPlaceholder": "Oppure scrivi ciò che sente: bravo, a rather",
+      "manualLabel": "Parole simili da aggiungere",
+      "add": "Aggiungi",
+      "hint": "Vengono sostituite in ogni dettatura, anche quando le intendi letteralmente.",
+      "save": "Salva"
+    }
   },
   "sidebar": {
     "home": "Home",

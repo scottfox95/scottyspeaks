@@ -1516,7 +1516,32 @@
     "description": "Bringe der KI dein Vokabular bei – Namen, Fachbegriffe und Ausdrücke, die sie sonst übersehen könnte",
     "clearTitle": "Wörterbuch leeren?",
     "clearDescription": "Dadurch werden alle Wörter aus deinem benutzerdefinierten Wörterbuch entfernt. Diese Aktion kann nicht rückgängig gemacht werden.",
-    "addPlaceholder": "Ein Wort oder eine Phrase hinzufügen..."
+    "addPlaceholder": "Ein Wort oder eine Phrase hinzufügen...",
+    "soundsLike": "Klingt wie",
+    "soundsLikeHint": "Was die Erkennung statt eines Wortes hört. Alles hier wird immer durch das Wort ersetzt, auch wenn du es wörtlich meinst.",
+    "teachWord": "Bring ihm bei, wie du {{word}} sagst",
+    "removeAlias": "„{{alias}}“ nicht mehr korrigieren",
+    "teach": {
+      "title": "Bring ihm bei, wie du „{{word}}“ sagst",
+      "intro": "Drücke das Mikrofon, sage nur das Wort und drücke Stopp. Mache das etwa {{count}} Mal. Was es falsch hört, wird ab jetzt automatisch korrigiert.",
+      "record": "Aufnahme starten",
+      "stop": "Aufnahme stoppen",
+      "listening": "Höre zu…",
+      "processing": "Werte aus, was gehört wurde…",
+      "take": "Aufnahme {{number}}",
+      "takes": "Aufnahmen",
+      "heard": "Gehört: „{{heard}}“ — wird korrigiert",
+      "heardCorrect": "Richtig gehört",
+      "heardNothing": "Nichts gehört — versuche es etwas lauter",
+      "heardTooMuch": "Gehört: „{{heard}}“ — sage nur das Wort",
+      "willFix": "Wird ersetzt durch {{word}}",
+      "none": "Noch nichts. Nimm etwas auf oder tippe, was es hört.",
+      "manualPlaceholder": "Oder tippe, was es hört: bravo, a rather",
+      "manualLabel": "Ähnlich klingende Wörter hinzufügen",
+      "add": "Hinzufügen",
+      "hint": "Sie werden in jedem Diktat ersetzt, auch wenn du sie wörtlich meinst.",
+      "save": "Speichern"
+    }
   },
   "sidebar": {
     "home": "Startseite",

@@ -1552,7 +1552,32 @@
     "howItWorks": "How it works",
     "howItWorksDetail": "Words are fed as context hints to the speech model, helping it recognize uncommon terms. For difficult words, try adding context like \"The word is Synty\" alongside the word itself.",
     "autoManaged": "Auto-managed — synced from agent name",
-    "inputHint": "Separate multiple words with commas. Add context phrases like \"The word is Synty\" for better recognition."
+    "inputHint": "Separate multiple words with commas. Add context phrases like \"The word is Synty\" for better recognition.",
+    "soundsLike": "Sounds like",
+    "soundsLikeHint": "What the recognizer hears for a word. Anything listed here is always replaced with the word, even when you mean it literally.",
+    "teachWord": "Teach it how you say {{word}}",
+    "removeAlias": "Stop fixing “{{alias}}”",
+    "teach": {
+      "title": "Teach it how you say “{{word}}”",
+      "intro": "Press the microphone, say just the word, then press stop. Do it about {{count}} times. Whatever it hears wrong will be fixed automatically from now on.",
+      "record": "Start recording",
+      "stop": "Stop recording",
+      "listening": "Listening…",
+      "processing": "Working out what it heard…",
+      "take": "Take {{number}}",
+      "takes": "Takes",
+      "heard": "Heard “{{heard}}” — will be fixed",
+      "heardCorrect": "Heard it right",
+      "heardNothing": "Heard nothing — try again a little louder",
+      "heardTooMuch": "Heard “{{heard}}” — say only the word",
+      "willFix": "Will be replaced with {{word}}",
+      "none": "Nothing yet. Record a take or type what it hears.",
+      "manualPlaceholder": "Or type what it hears: bravo, a rather",
+      "manualLabel": "Sounds-like words to add",
+      "add": "Add",
+      "hint": "These are swapped in every dictation, even when you mean them literally.",
+      "save": "Save"
+    }
   },
   "support": {
     "joinDiscord": "Join Discord",

@@ -825,8 +825,18 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       if (data?.requestId === requestId && this._evidenceOperation === operation && !operation?.cancelled)
         this.setPipelineStage("transcribing");
     });
-    try { return await window.electronAPI[provider](audio, { ...options, requestId }); }
+    const aliasOptions = this.aliasSubstitution === false ? { skipAliases: true } : {};
+    try { return await window.electronAPI[provider](audio, { ...options, ...aliasOptions, requestId }); }
     finally { remove?.(); }
+  }
+
+  /**
+   * Local transcription normally rewrites known mishearings ("a rather" →
+   * Aravo) before the text reaches the renderer. The "teach it" recorder turns
+   * that off so it can see exactly what the recognizer heard.
+   */
+  setAliasSubstitution(enabled) {
+    this.aliasSubstitution = enabled !== false;
   }
 
   async processWithLocalWhisper(audioBlob, model = "base", metadata = {}) {

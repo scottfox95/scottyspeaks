@@ -1444,7 +1444,32 @@
     "description": "AIに語彙を学習させましょう — 名前、専門用語、見落とされがちな表現など",
     "clearTitle": "辞書をクリアしますか？",
     "clearDescription": "カスタム辞書のすべての単語が削除されます。この操作は元に戻せません。",
-    "addPlaceholder": "単語やフレーズを追加..."
+    "addPlaceholder": "単語やフレーズを追加...",
+    "soundsLike": "こう聞こえる",
+    "soundsLikeHint": "認識エンジンがその単語の代わりに聞き取る語です。ここにある語は、文字どおりの意味で言った場合でも常にその単語に置き換えられます。",
+    "teachWord": "{{word}} の言い方を教える",
+    "removeAlias": "「{{alias}}」の修正をやめる",
+    "teach": {
+      "title": "「{{word}}」の言い方を教える",
+      "intro": "マイクを押して単語だけを言い、停止を押します。{{count}} 回ほど繰り返してください。聞き間違えたものは今後自動的に修正されます。",
+      "record": "録音を開始",
+      "stop": "録音を停止",
+      "listening": "聞き取り中…",
+      "processing": "聞き取った内容を確認中…",
+      "take": "テイク {{number}}",
+      "takes": "テイク",
+      "heard": "「{{heard}}」と聞こえました — 修正されます",
+      "heardCorrect": "正しく聞き取れました",
+      "heardNothing": "何も聞こえませんでした — もう少し大きな声で",
+      "heardTooMuch": "「{{heard}}」と聞こえました — 単語だけを言ってください",
+      "willFix": "{{word}} に置き換えられます",
+      "none": "まだありません。録音するか、聞こえ方を入力してください。",
+      "manualPlaceholder": "または聞こえ方を入力: bravo, a rather",
+      "manualLabel": "追加する似た語",
+      "add": "追加",
+      "hint": "文字どおりの意味で言った場合でも、すべての口述で置き換えられます。",
+      "save": "保存"
+    }
   },
   "referral": {
     "title": "紹介して特典をゲット",

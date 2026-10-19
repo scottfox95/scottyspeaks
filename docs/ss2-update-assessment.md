@@ -30,6 +30,20 @@ Plain-language notes on the speaker labels, since that is the risky one:
 - Microphone and call audio are still mixed before labelling (there is no echo cancellation), so with speakers instead of headphones the far side can bleed into your microphone. The code handles that by comparing loudness per track; if it is ambiguous, nobody gets the "Microphone" label and everyone stays numbered.
 - Your own notes in CLAUDE.md say this measured 98.75% agreement with the cloud transcript on a real 22-minute two-person call.
 
+## Added after the Studio try-out: "sounds like" words (October 19)
+
+You asked for a way to teach the app names it keeps mishearing ("Aravo" comes out as "bravo" or "a rather"; "Echad" similarly). The honest limit: the speech model cannot learn a pronunciation from a recording. What works is fixing the text after recognition, deterministically, and that is what was built:
+
+- **Each dictionary word can have "sounds like" aliases.** "Aravo: bravo, a rather". Any time the recognizer produces one of those, it is replaced with the right spelling in every dictation, long or short, before the polish step runs.
+- **Learned automatically.** Edit a dictation in History (or in the target app with auto-learn on) and replace a mishearing with a dictionary word, and the alias is saved for next time. Two- and three-word mishearings count ("six point tombs" to "Six Points Homes").
+- **Teach it.** In Dictionary, hover a word and click the microphone icon. Say the word, stop, repeat about three times. Each take shows what was heard; anything wrong becomes an alias when you press Save. You can also type aliases by hand in the same dialog.
+- **Manage.** A "Sounds like" list under the dictionary shows every alias with an x to remove it. Removing a dictionary word removes its aliases.
+- **Caveat, shown in the UI:** an alias is always replaced, even when you mean it literally. If "bravo" is on Aravo's list, you can no longer dictate the word "bravo".
+
+Not covered: call-notes transcripts (the words there carry timestamps that would drift) and the live streaming cloud transcription path, which is caught at paste time instead of before polish.
+
+To try it: add "Aravo" and "Echad" to the dictionary if they are not there, click the mic next to each, say the name three times, save. Then dictate a sentence with the name in it.
+
 ## What I fixed
 
 1. **Flaky Electron test, not an app bug.** `npm run test:workspace-ui` failed about one run in three with "Unobscured meetings.resume". The test clicked a call in the list and immediately hit-tested the next button; while the call opens, every button is briefly disabled, so a single sample could fail. A screenshot from a failing run showed a clean screen with nothing covering the button. The test now waits until the button is enabled and unobscured. 8 of 8 runs pass afterwards.

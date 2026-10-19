@@ -121,6 +121,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Dictionary functions
   getDictionary: () => ipcRenderer.invoke("db-get-dictionary"),
   setDictionary: (words) => ipcRenderer.invoke("db-set-dictionary", words),
+  // "Sounds like" aliases: what the recognizer hears for a dictionary word
+  getDictionaryAliases: () => ipcRenderer.invoke("db-get-dictionary-aliases"),
+  setWordAliases: (word, aliases) => ipcRenderer.invoke("db-set-word-aliases", word, aliases),
+  removeDictionaryAlias: (alias) => ipcRenderer.invoke("db-remove-dictionary-alias", alias),
+  onDictionaryAliasesUpdated: (callback) => {
+    const listener = (_event, aliases) => callback?.(aliases);
+    ipcRenderer.on("dictionary-aliases-updated", listener);
+    return () => ipcRenderer.removeListener("dictionary-aliases-updated", listener);
+  },
   onDictionaryUpdated: (callback) => {
     const listener = (_event, words) => callback?.(words);
     ipcRenderer.on("dictionary-updated", listener);

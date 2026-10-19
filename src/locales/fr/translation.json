@@ -1552,7 +1552,32 @@
     "howItWorks": "Comment ça marche",
     "howItWorksDetail": "Les mots sont transmis comme indices contextuels au modèle vocal, l'aidant à reconnaître les termes peu courants. Pour les mots difficiles, essayez d'ajouter du contexte comme « Le mot est Synty » en plus du mot lui-même.",
     "autoManaged": "Géré automatiquement — synchronisé depuis le nom de l'agent",
-    "inputHint": "Séparez les mots par des virgules. Ajoutez des phrases de contexte comme « Le mot est Synty » pour une meilleure reconnaissance."
+    "inputHint": "Séparez les mots par des virgules. Ajoutez des phrases de contexte comme « Le mot est Synty » pour une meilleure reconnaissance.",
+    "soundsLike": "Ressemble à",
+    "soundsLikeHint": "Ce que la reconnaissance entend à la place d'un mot. Tout ce qui figure ici est toujours remplacé par le mot, même si vous le dites littéralement.",
+    "teachWord": "Apprenez-lui comment vous dites {{word}}",
+    "removeAlias": "Ne plus corriger « {{alias}} »",
+    "teach": {
+      "title": "Apprenez-lui comment vous dites « {{word}} »",
+      "intro": "Appuyez sur le micro, dites seulement le mot, puis arrêtez. Faites-le environ {{count}} fois. Ce qu'il entend mal sera corrigé automatiquement désormais.",
+      "record": "Démarrer l'enregistrement",
+      "stop": "Arrêter l'enregistrement",
+      "listening": "Écoute…",
+      "processing": "Analyse de ce qui a été entendu…",
+      "take": "Prise {{number}}",
+      "takes": "Prises",
+      "heard": "Entendu « {{heard}} » — sera corrigé",
+      "heardCorrect": "Bien entendu",
+      "heardNothing": "Rien entendu — réessayez un peu plus fort",
+      "heardTooMuch": "Entendu « {{heard}} » — dites seulement le mot",
+      "willFix": "Sera remplacé par {{word}}",
+      "none": "Rien pour l'instant. Enregistrez une prise ou tapez ce qu'il entend.",
+      "manualPlaceholder": "Ou tapez ce qu'il entend : bravo, a rather",
+      "manualLabel": "Mots ressemblants à ajouter",
+      "add": "Ajouter",
+      "hint": "Ils sont remplacés dans chaque dictée, même si vous les dites littéralement.",
+      "save": "Enregistrer"
+    }
   },
   "support": {
     "joinDiscord": "Rejoindre Discord",

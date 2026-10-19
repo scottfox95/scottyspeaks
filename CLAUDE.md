@@ -642,6 +642,13 @@ Local call transcripts are split into speaker paragraphs by NVIDIA Nemotron 3 Di
 - `scripts/ensure-signing.js` + `scripts/sign-mac-app.js` (postpack) re-sign the packed app with the self-signed "ScottySpeaks Local Signing" identity so Accessibility/Mic permissions survive rebuilds. Do not regenerate `~/.scottyspeaks-signing/identity.p12`.
 - electron-builder has `npmRebuild: false`; `prepack` rebuilds only better-sqlite3 (`electron-rebuild --only better-sqlite3`). node-hid uses its bundled N-API prebuilds (source build breaks on the space in the repo path).
 
+### "Sounds like" aliases (teaching names the recognizer mishears)
+The speech model cannot be taught a pronunciation (no fine-tuning; CTC boosting measured harmful), so names it keeps mishearing are fixed at the text level. Each custom-dictionary word may carry aliases (`dictionary_aliases` table, one alias → one word, case-insensitive). `applyDictionaryAliases` in `src/utils/correctionLearner.js` replaces whole-word matches (multi-word allowed, longest first) with the word's exact spelling.
+- Applied in the main process: on local transcription results (`transcribe-local-whisper` / `transcribe-local-parakeet`, so polish already sees "Aravo"; short dictations that skip polish are covered too) and again in `paste-text` for the cloud paths. Call-notes transcripts are **not** rewritten (word timings would drift).
+- Learned from edits: `extractAliasCorrections` diffs original vs edited text and learns a replaced span only when the replacement is a dictionary word ("a rather" → Aravo). Runs on History edits (`db-update-transcription`) and the Accessibility auto-learn path. Grows a hunk over unchanged neighbours so "six point tombs" → "Six Points Homes" is learned whole.
+- Taught: Dictionary → mic icon on a word opens `TeachWordDialog`. It records with an `AudioManager` in `notes` context with `setAliasSubstitution(false)` (sends `skipAliases: true` so the handler returns what the recognizer heard), normalizes each take, and saves mishearings as aliases. Manual "sounds like" entry is on the same dialog.
+- An alias is swapped even when meant literally ("bravo"); the UI says so. Tests: `tests/dictionary-aliases.test.cjs`.
+
 ### Improvement Loop
 - `transcriptions.raw_text` stores the pre-polish transcript. Editing an entry in History (pencil icon) saves a `style_examples` row (raw → preferred) that is injected as few-shot context into future polish prompts (max 4, newest first, 50 kept).
 - Style profiles gained `instructions` (free-text AI directives) and `aiPolish: false` (bypass, used by "Raw" profile).

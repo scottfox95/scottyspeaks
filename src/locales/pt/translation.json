@@ -1516,7 +1516,32 @@
     "description": "Ensine a IA o seu vocabulário — nomes, jargões e termos que ela poderia não reconhecer",
     "clearTitle": "Limpar o dicionário?",
     "clearDescription": "Isso removerá todas as palavras do seu dicionário personalizado. Esta ação não pode ser desfeita.",
-    "addPlaceholder": "Adicionar uma palavra ou frase..."
+    "addPlaceholder": "Adicionar uma palavra ou frase...",
+    "soundsLike": "Soa como",
+    "soundsLikeHint": "O que o reconhecedor ouve no lugar de uma palavra. Tudo listado aqui é sempre substituído pela palavra, mesmo quando você a diz literalmente.",
+    "teachWord": "Ensine como você diz {{word}}",
+    "removeAlias": "Parar de corrigir “{{alias}}”",
+    "teach": {
+      "title": "Ensine como você diz “{{word}}”",
+      "intro": "Toque no microfone, diga apenas a palavra e toque em parar. Faça isso cerca de {{count}} vezes. O que ele ouvir errado será corrigido automaticamente daqui em diante.",
+      "record": "Começar a gravar",
+      "stop": "Parar a gravação",
+      "listening": "Ouvindo…",
+      "processing": "Analisando o que foi ouvido…",
+      "take": "Tomada {{number}}",
+      "takes": "Tomadas",
+      "heard": "Ouviu “{{heard}}” — será corrigido",
+      "heardCorrect": "Ouviu certo",
+      "heardNothing": "Não ouviu nada — tente um pouco mais alto",
+      "heardTooMuch": "Ouviu “{{heard}}” — diga apenas a palavra",
+      "willFix": "Será substituído por {{word}}",
+      "none": "Nada ainda. Grave uma tomada ou digite o que ele ouve.",
+      "manualPlaceholder": "Ou digite o que ele ouve: bravo, a rather",
+      "manualLabel": "Palavras parecidas para adicionar",
+      "add": "Adicionar",
+      "hint": "São substituídas em todo ditado, mesmo quando você as diz literalmente.",
+      "save": "Salvar"
+    }
   },
   "sidebar": {
     "home": "Início",

@@ -13,6 +13,8 @@ const { i18nMain, changeLanguage } = require("./i18nMain");
 const DeepgramStreaming = require("./deepgramStreaming");
 const {
   applyDictionaryCorrections,
+  applyDictionaryAliases,
+  extractAliasCorrections,
   extractCorrections,
   mergeDictionaryCorrections,
   undoDictionaryCorrections,
@@ -135,6 +137,44 @@ class IPCHandlers {
     }
   }
 
+  _getAliasesSafe() {
+    try {
+      return this.databaseManager.getDictionaryAliases();
+    } catch {
+      return [];
+    }
+  }
+
+  /** Rewrites known mishearings ("a rather" → Aravo) in recognizer output. */
+  _applyAliases(text) {
+    if (typeof text !== "string" || !text) return text;
+    try {
+      return applyDictionaryAliases(text, this._getAliasesSafe());
+    } catch {
+      return text;
+    }
+  }
+
+  /**
+   * Learns "sounds like" aliases from an edit: spans the user replaced with a
+   * dictionary word become substitutions for future dictations.
+   */
+  _learnAliases(originalText, editedText, source, dictionary = this._getDictionarySafe()) {
+    try {
+      const found = extractAliasCorrections(originalText, editedText, dictionary, this._getAliasesSafe());
+      if (found.length === 0) return [];
+      let aliases = null;
+      for (const { word, alias } of found)
+        aliases = this.databaseManager.addDictionaryAliases(word, [alias], source);
+      if (aliases) this.broadcastToWindows("dictionary-aliases-updated", aliases);
+      debugLogger.debug("[AutoLearn] Learned sounds-like aliases", { source, found });
+      return found;
+    } catch (error) {
+      debugLogger.debug("[AutoLearn] Alias learning failed", { error: error.message });
+      return [];
+    }
+  }
+
   _cleanupTextEditMonitor() {
     if (this._autoLearnStartTimer) clearTimeout(this._autoLearnStartTimer);
     this._autoLearnStartTimer = null;
@@ -204,6 +244,7 @@ class IPCHandlers {
         dictSize: currentDict.length,
       });
 
+      let dictionaryForAliases = currentDict;
       if (corrections.length > 0) {
         const merged = mergeDictionaryCorrections(currentDict, corrections);
         if (merged.learned.length === 0) return;
@@ -214,6 +255,7 @@ class IPCHandlers {
           debugLogger.debug("[AutoLearn] Failed to save dictionary", { error: saveResult.error });
           return;
         }
+        dictionaryForAliases = updatedDict;
 
         this.broadcastToWindows("dictionary-updated", updatedDict);
         for (const entry of merged.undoEntries) {
@@ -225,6 +267,9 @@ class IPCHandlers {
         this.broadcastToWindows("corrections-learned", merged.learned);
         debugLogger.debug("[AutoLearn] Saved corrections", { corrections: merged.learned });
       }
+      // Multi-word mishearings ("a rather" → Aravo) are not single-word
+      // corrections; learn them as sounds-like aliases of dictionary words.
+      this._learnAliases(originalText, newFieldValue, "auto-learn", dictionaryForAliases);
     } catch (error) {
       debugLogger.debug("[AutoLearn] Error processing corrections", { error: error.message });
     }
@@ -393,8 +438,16 @@ class IPCHandlers {
     });
 
     ipcMain.handle("db-update-transcription", async (event, id, text) => {
+      let previous = null;
+      try {
+        previous = this.databaseManager.getTranscription(id);
+      } catch {}
       const result = this.databaseManager.updateTranscription(id, text);
       if (result?.success && result?.transcription) {
+        // A History edit that swaps a mishearing for a dictionary word teaches
+        // the substitution for every future dictation.
+        if (previous && typeof text === "string")
+          this._learnAliases(previous.raw_text || previous.text, text, "history-edit");
         setImmediate(() => {
           this.broadcastToWindows("transcription-updated", result.transcription);
         });
@@ -458,7 +511,30 @@ class IPCHandlers {
       if (!Array.isArray(words)) {
         throw new Error("words must be an array");
       }
-      return this.databaseManager.setDictionary(words);
+      const result = this.databaseManager.setDictionary(words);
+      // Removing a word drops its aliases; let open views refresh.
+      this.broadcastToWindows("dictionary-aliases-updated", this._getAliasesSafe());
+      return result;
+    });
+
+    ipcMain.handle("db-get-dictionary-aliases", async () => {
+      return this.databaseManager.getDictionaryAliases();
+    });
+
+    ipcMain.handle("db-set-word-aliases", async (event, word, aliases) => {
+      if (typeof word !== "string" || !Array.isArray(aliases) || aliases.length > 50) {
+        throw new Error("Invalid alias update");
+      }
+      const list = this.databaseManager.setWordAliases(word, aliases, "manual");
+      this.broadcastToWindows("dictionary-aliases-updated", list);
+      return list;
+    });
+
+    ipcMain.handle("db-remove-dictionary-alias", async (event, alias) => {
+      if (typeof alias !== "string") throw new Error("Invalid alias");
+      const list = this.databaseManager.removeDictionaryAlias(alias);
+      this.broadcastToWindows("dictionary-aliases-updated", list);
+      return list;
     });
 
     ipcMain.handle("undo-learned-corrections", async (_event, words) => {
@@ -952,7 +1028,9 @@ class IPCHandlers {
           await new Promise((resolve) => setTimeout(resolve, 80));
         }
       }
-      const canonicalText = options?.exact ? text : applyDictionaryCorrections(text, this._getDictionarySafe());
+      const canonicalText = options?.exact
+        ? text
+        : applyDictionaryCorrections(this._applyAliases(text), this._getDictionarySafe());
       const result = await this.clipboardManager.pasteText(canonicalText, {
         ...options,
         webContents: event.sender,
@@ -1042,6 +1120,8 @@ class IPCHandlers {
           message: result.message,
           error: result.error,
         });
+        if (result?.success && result.text && !options.skipAliases)
+          result.text = this._applyAliases(result.text);
 
         // Check if no audio was detected and send appropriate event
         if (!result.success && result.message === "No audio detected") {
@@ -1251,6 +1331,8 @@ class IPCHandlers {
           message: result.message,
           error: result.error,
         });
+        if (result?.success && result.text && !options.skipAliases)
+          result.text = this._applyAliases(result.text);
 
         if (!result.success && result.message === "No audio detected") {
           debugLogger.log("Sending no-audio-detected event to renderer");

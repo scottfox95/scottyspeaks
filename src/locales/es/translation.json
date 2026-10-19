@@ -1516,7 +1516,32 @@
     "description": "Enseña a la IA tu vocabulario: nombres, jerga y términos que podría pasar por alto",
     "clearTitle": "¿Borrar el diccionario?",
     "clearDescription": "Esto eliminará todas las palabras de tu diccionario personalizado. Esta acción no se puede deshacer.",
-    "addPlaceholder": "Añadir una palabra o frase..."
+    "addPlaceholder": "Añadir una palabra o frase...",
+    "soundsLike": "Suena como",
+    "soundsLikeHint": "Lo que el reconocedor oye en lugar de una palabra. Todo lo que aparece aquí se sustituye siempre por la palabra, aunque lo digas literalmente.",
+    "teachWord": "Enséñale cómo dices {{word}}",
+    "removeAlias": "Dejar de corregir “{{alias}}”",
+    "teach": {
+      "title": "Enséñale cómo dices “{{word}}”",
+      "intro": "Pulsa el micrófono, di solo la palabra y pulsa detener. Hazlo unas {{count}} veces. Lo que oiga mal se corregirá automáticamente a partir de ahora.",
+      "record": "Empezar a grabar",
+      "stop": "Detener la grabación",
+      "listening": "Escuchando…",
+      "processing": "Analizando lo que oyó…",
+      "take": "Toma {{number}}",
+      "takes": "Tomas",
+      "heard": "Oyó “{{heard}}” — se corregirá",
+      "heardCorrect": "Lo oyó bien",
+      "heardNothing": "No oyó nada — inténtalo un poco más alto",
+      "heardTooMuch": "Oyó “{{heard}}” — di solo la palabra",
+      "willFix": "Se sustituirá por {{word}}",
+      "none": "Nada todavía. Graba una toma o escribe lo que oye.",
+      "manualPlaceholder": "O escribe lo que oye: bravo, a rather",
+      "manualLabel": "Palabras parecidas que añadir",
+      "add": "Añadir",
+      "hint": "Se sustituyen en cada dictado, aunque las digas literalmente.",
+      "save": "Guardar"
+    }
   },
   "sidebar": {
     "home": "Inicio",
