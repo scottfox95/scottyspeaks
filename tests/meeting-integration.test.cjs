@@ -739,3 +739,134 @@ for (const editTiming of ["before", "during"]) {
     assert.equal(fs.existsSync(path.join(a.service.store.directory(id), "input.wav")), true);
   });
 }
+function shapedWav(seconds, amplitudeAt) {
+  const samples = seconds * 16000;
+  const b = wav(0);
+  const out = Buffer.alloc(44 + samples * 2);
+  b.copy(out, 0, 0, 44);
+  out.writeUInt32LE(out.length - 8, 4);
+  out.writeUInt32LE(samples * 2, 40);
+  let seed = 7;
+  for (let i = 0; i < samples; i++) {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    const noise = (seed / 0x7fffffff - 0.5) * 2;
+    const tone = Math.sin((i * 2 * Math.PI * 220) / 16000);
+    const amplitude = amplitudeAt(i / 16000);
+    out.writeInt16LE(
+      Math.round(amplitude > 100 ? tone * amplitude : noise * amplitude),
+      44 + i * 2
+    );
+  }
+  return out;
+}
+test("a silent cloud chunk does not discard the parts of the call that were transcribed", async (t) => {
+  const a = setup(t);
+  const directory = a.service.store.directory(a.meeting.id);
+  for (const take of ["take-a", "take-b"]) {
+    fs.mkdirSync(path.join(directory, take));
+    fs.writeFileSync(path.join(directory, take, "microphone.wav"), wav(1));
+  }
+  a.service.store.update(a.meeting.id, {
+    audio: [
+      { file: "take-a/microphone.wav", source: "microphone", offset: 0 },
+      { file: "take-b/microphone.wav", source: "microphone", offset: 1 },
+    ],
+  });
+  const original = global.fetch;
+  let requests = 0;
+  global.fetch = async () => {
+    requests++;
+    return requests === 1
+      ? {
+          ok: true,
+          json: async () => ({
+            text: "Bye guys",
+            segments: [{ start: 0, end: 0.5, text: "Bye guys" }],
+          }),
+        }
+      : { ok: true, json: async () => ({ text: "" }) };
+  };
+  t.after(() => (global.fetch = original));
+  await a.invoke("setConfig", { provider: "openrouter", apiKey: "synthetic-key" });
+  await a.invoke("transcribe", { id: a.meeting.id });
+  const result = await finished(a.service.store, a.meeting.id);
+  assert.equal(result.status, "ready", result.lastError);
+  assert.equal(requests, 2);
+  assert.equal(result.transcript, "Bye guys");
+});
+test("a call whose every cloud chunk is empty still reports no usable transcript and retries cleanly", async (t) => {
+  const a = setup(t);
+  const directory = a.service.store.directory(a.meeting.id);
+  for (const take of ["take-a", "take-b"]) {
+    fs.mkdirSync(path.join(directory, take));
+    fs.writeFileSync(path.join(directory, take, "microphone.wav"), wav(1));
+  }
+  a.service.store.update(a.meeting.id, {
+    audio: [
+      { file: "take-a/microphone.wav", source: "microphone", offset: 0 },
+      { file: "take-b/microphone.wav", source: "microphone", offset: 1 },
+    ],
+  });
+  const original = global.fetch;
+  global.fetch = async () => ({ ok: true, json: async () => ({ text: "" }) });
+  t.after(() => (global.fetch = original));
+  await a.invoke("setConfig", { provider: "openrouter", apiKey: "synthetic-key" });
+  await a.invoke("transcribe", { id: a.meeting.id });
+  const result = await finished(a.service.store, a.meeting.id);
+  assert.equal(result.lastErrorCode, "openrouterEmpty");
+  assert.deepEqual(result.transcriptionCache.results, {});
+});
+test("speech analysis suggests trimming where the conversation went quiet", async (t) => {
+  const a = setup(t);
+  const directory = a.service.store.directory(a.meeting.id);
+  // 30s room noise, 40s of talking, then 180s of room noise.
+  fs.writeFileSync(
+    path.join(directory, "input.wav"),
+    shapedWav(250, (time) => (time >= 30 && time < 70 ? 8000 : 300))
+  );
+  const analysis = await a.invoke("analyzeSpeech", { id: a.meeting.id });
+  assert.ok(Math.abs(analysis.duration - 250) < 1, String(analysis.duration));
+  assert.equal(analysis.segments.length, 1);
+  assert.ok(analysis.segments[0].start >= 25 && analysis.segments[0].start <= 35);
+  assert.ok(Math.abs(analysis.segments[0].end - 70) <= 1);
+  assert.equal(analysis.suggestions.length, 1);
+  assert.ok(Math.abs(analysis.suggestions[0].end - 75) <= 1);
+  assert.equal(analysis.suggestions[0].resumesAt, null);
+});
+test("trimming shortens saved audio, drops later takes, and invalidates cached transcription", async (t) => {
+  const a = setup(t, 10);
+  const directory = a.service.store.directory(a.meeting.id);
+  fs.mkdirSync(path.join(directory, "take-late"));
+  fs.writeFileSync(path.join(directory, "take-late", "microphone.wav"), wav(2));
+  fs.writeFileSync(path.join(directory, `playback-${"a".repeat(64)}.mp3`), "stale");
+  a.service.store.update(a.meeting.id, {
+    audio: [
+      { file: "input.wav", source: "system", offset: 0 },
+      { file: "take-late/microphone.wav", source: "microphone", offset: 10 },
+    ],
+    recordedDuration: 12,
+    status: "interrupted",
+    lastError: "OpenRouter returned no usable transcript.",
+    lastErrorCode: "openrouterEmpty",
+    transcriptionCache: { version: 3, signature: "x", results: { "0:0": { text: "old" } } },
+  });
+  await assert.rejects(a.invoke("trim", { id: a.meeting.id, end: 0 }), /Invalid trim point/);
+  const result = await a.invoke("trim", { id: a.meeting.id, end: 4 });
+  assert.deepEqual(result.audio, [{ file: "input.wav", source: "system", offset: 0 }]);
+  assert.equal(result.recordedDuration, 4);
+  assert.equal(result.transcriptionCache, null);
+  assert.equal(result.needsTranscription, true);
+  assert.equal(result.lastErrorCode, null);
+  assert.equal(fs.existsSync(path.join(directory, "take-late")), false);
+  assert.equal(fs.existsSync(path.join(directory, `playback-${"a".repeat(64)}.mp3`)), false);
+  const { audioDuration } = require("../src/helpers/meetingTranscriber");
+  assert.ok(Math.abs((await audioDuration(path.join(directory, "input.wav"))) - 4) < 0.2);
+  await a.invoke("transcribe", { id: a.meeting.id });
+  assert.equal((await finished(a.service.store, a.meeting.id)).status, "ready");
+});
+test("auto-stop is a validated call setting that defaults to two minutes", async (t) => {
+  const a = setup(t);
+  assert.equal((await a.invoke("getConfig")).autoStopMinutes, 2);
+  assert.equal((await a.invoke("setConfig", { autoStopMinutes: 0 })).autoStopMinutes, 0);
+  await assert.rejects(a.invoke("setConfig", { autoStopMinutes: 3 }), /auto-stop/);
+});

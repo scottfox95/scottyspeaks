@@ -243,6 +243,23 @@ app.whenReady().then(async () => {
     await click("Export audio…");
     await waitFor(() => fs.existsSync(exportedAudio), "audio export");
     assert.ok(fs.statSync(exportedAudio).size > 100);
+    fs.writeFileSync(path.join(service.store.directory(imported.id), "call.wav"), wav(10));
+    await click("Trim");
+    await waitFor(
+      () => js(`document.body.textContent.includes('Recording length: 00:10.')`),
+      "trim analysis"
+    );
+    await type('section[aria-label="Trim recording"] input', "00:05");
+    await click("Trim to 00:05");
+    await waitFor(() => !!service.store.get(imported.id).trimmedAt, "trim applied");
+    await waitFor(
+      () => js(`!document.querySelector('section[aria-label="Trim recording"]')`),
+      "trim panel closed"
+    );
+    assert.equal(
+      fs.statSync(path.join(service.store.directory(imported.id), "call.wav")).size < 44 + 6 * 32000,
+      true
+    );
     await click("Transcribe again");
     await waitFor(() => js("!!document.querySelector('[role=dialog]')"), "retry confirmation");
     assert.equal(

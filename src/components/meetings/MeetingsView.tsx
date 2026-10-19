@@ -1,6 +1,7 @@
 import { ReadAloud } from "../speech/ReadAloud";
 import { CallAgentPanel } from "./CallAgentPanel";
 import { MeetingAudioPlayer, type MeetingAudioHandle } from "./MeetingAudioPlayer";
+import { TrimRecording } from "./TrimRecording";
 import { editable, changedFields, rebaseDraft } from "./meetingDraft";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { describeSpeakers, speakerLabels } from "../../utils/meetingSpeakers.mjs";
@@ -22,6 +23,7 @@ import {
   ListChecks,
   Quote,
   ChevronLeft,
+  Scissors,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from "../ui/dialog";
@@ -71,6 +73,7 @@ export default function MeetingsView() {
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [editTranscript, setEditTranscript] = useState(false);
+  const [trimming, setTrimming] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [query, setQuery] = useState("");
   const queryRef = useRef(query);
@@ -311,6 +314,7 @@ export default function MeetingsView() {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, [capture.id]);
+  useEffect(() => setTrimming(false), [meeting?.id]);
   const addFolder = async () => {
     const pin = await unwrap(api.pinFolder());
     if (pin) {
@@ -543,6 +547,24 @@ export default function MeetingsView() {
               >
                 <option value="local">{t("meetings.local")}</option>
                 <option value="openrouter">{t("meetings.cloud")}</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs">
+              {t("meetings.autoStop.label")}
+              <select
+                className="rounded border border-border bg-background p-2 text-sm"
+                value={config.autoStopMinutes}
+                disabled={busy || recording}
+                onChange={(e) =>
+                  act(() => updateConfig({ autoStopMinutes: Number(e.target.value) }))
+                }
+              >
+                <option value={0}>{t("meetings.autoStop.off")}</option>
+                {[1, 2, 5, 10].map((minutes) => (
+                  <option key={minutes} value={minutes}>
+                    {t("meetings.autoStop.minutes", { count: minutes })}
+                  </option>
+                ))}
               </select>
             </label>
             {config.provider === "local" && (
@@ -836,6 +858,17 @@ export default function MeetingsView() {
                         )}
                       </Button>
                     )}
+                    {meeting.audio.length > 0 && !thisRecording && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={busy || transcribing || trimming}
+                        onClick={() => setTrimming(true)}
+                      >
+                        <Scissors />
+                        {t("meetings.trim.button")}
+                      </Button>
+                    )}
                     {transcribing && (
                       <Button
                         size="sm"
@@ -861,6 +894,31 @@ export default function MeetingsView() {
                           total: meeting.progress?.total || "…",
                         })}
                   </p>
+                )}
+                {meeting.autoStopped && meeting.status === "recorded" && (
+                  <p role="status" className="text-sm text-muted-foreground">
+                    {t("meetings.autoStop.stopped", {
+                      count: Math.round((meeting.autoStopSeconds || 120) / 60),
+                    })}
+                  </p>
+                )}
+                {trimming && !thisRecording && !transcribing && (
+                  <TrimRecording
+                    key={meeting.id}
+                    meeting={meeting}
+                    api={api}
+                    onClose={() => setTrimming(false)}
+                    onTrimmed={(trimmed) =>
+                      act(async () => {
+                        setTrimming(false);
+                        // Same as stopping a recording: keep any unsaved note edits.
+                        await flush();
+                        if (current.current?.id === trimmed.id)
+                          adopt(await unwrap(api.get({ id: trimmed.id })));
+                        await refreshList();
+                      })
+                    }
+                  />
                 )}
                 {meetingError && (
                   <p role="alert" className="text-sm text-destructive">

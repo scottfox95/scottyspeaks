@@ -1735,7 +1735,29 @@
     "openrouterAuthError": "OpenRouter a refusé la clé API ({{status}}). Remplacez-la dans les réglages des notes d’appel, puis réessayez.",
     "openrouterCreditError": "Votre compte OpenRouter doit être crédité avant de pouvoir transcrire cet appel.",
     "openrouterEmptyError": "OpenRouter n’a renvoyé aucune transcription exploitable. Réessayez ou choisissez un modèle local.",
-    "openrouterFailedError": "La transcription OpenRouter a échoué ({{status}}). Vérifiez votre connexion et réessayez."
+    "openrouterFailedError": "La transcription OpenRouter a échoué ({{status}}). Vérifiez votre connexion et réessayez.",
+    "autoStop": {
+      "label": "Arrêt auto après silence",
+      "off": "Désactivé",
+      "minutes_one": "{{count}} minute",
+      "minutes_other": "{{count}} minutes",
+      "stopped_one": "Enregistrement arrêté automatiquement après {{count}} minute sans parole.",
+      "stopped_other": "Enregistrement arrêté automatiquement après {{count}} minutes sans parole."
+    },
+    "trim": {
+      "button": "Couper",
+      "title": "Couper l’enregistrement",
+      "help": "Supprime la fin d’un enregistrement qui a continué après l’appel. SS2 repère l’endroit où la conversation s’est arrêtée.",
+      "analyzing": "Recherche de la fin de la conversation…",
+      "length": "Durée de l’enregistrement : {{length}}.",
+      "noSuggestions": "Aucun long silence détecté ; saisissez un moment de coupe.",
+      "quietToEnd": "puis silence pendant {{minutes}} min jusqu’à la fin",
+      "quietThenResumes": "puis silence pendant {{minutes}} min (son à nouveau à {{resumes}})",
+      "endAt": "Terminer l’enregistrement à",
+      "apply": "Couper à {{time}}",
+      "cancel": "Annuler",
+      "warning": "Les dernières {{removed}} d’audio seront définitivement supprimées. L’appel devra être transcrit à nouveau."
+    }
   },
   "replay": {
     "open": "Réécouter et corriger",

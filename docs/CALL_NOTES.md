@@ -20,6 +20,14 @@ Editing the draft does not automatically overwrite an already filed Markdown fil
 
 MAI is speech-to-text and requests speaker diarization plus segment/word timestamps. The adapter follows the [OpenRouter STT contract](https://openrouter.ai/docs/guides/overview/multimodal/stt). [Model pricing](https://openrouter.ai/microsoft/mai-transcribe-2) was listed as $0.10/audio-hour when checked September 6, 2026. Cloud calls are sent as one compressed request so speaker identities remain consistent across the recording. Up to 50 custom-dictionary entries are forwarded as Azure phrase hints; the complete dictionary remains available to local transcription. A transient timeout or provider error retries that complete request once; it never subdivides the call into independently numbered speaker sets. Provider failures retain a short sanitized diagnostic message while excluding credentials, audio, and unrelated response fields. Actual recognition and speaker accuracy still require review against the retained audio.
 
+## Forgot to stop recording?
+
+**Auto-stop.** Call notes settings has **Auto-stop after silence** (Off, 1, 2, 5 or 10 minutes; default 2). Once someone has spoken, the recording stops itself when neither the microphone nor call audio has carried speech for that long. It never triggers before the first speech, so waiting in a lobby is safe. Speech is judged against each track's own background noise rather than a fixed volume, because a laptop microphone's room noise can be nearly as loud as quiet remote voices.
+
+**Trim.** For a recording that ran on anyway, choose **Trim**. SS2 scans the saved audio and suggests where the talking stopped: each stretch of speech followed by at least two quiet minutes, earliest first. Pick a suggestion or type a time (`17:31`, `1:02:05`), then trim. Trimming permanently deletes the audio after that point and clears cached transcription parts; transcribe the call again afterwards.
+
+Cloud transcription treats an hour-long chunk that comes back empty as silence instead of failing the whole call, as long as some other part produced text.
+
 ## Recovery and portability
 
 Drafts and original audio are kept under the app's user-data directory in `call-notes/`. Quitting or a failed request does not intentionally discard them. Completed transcription parts are checkpointed for retry. Cancelling local transcription takes effect after the active preparation/inference operation finishes. Recordings stop automatically after six hours.

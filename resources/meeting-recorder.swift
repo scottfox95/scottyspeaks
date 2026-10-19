@@ -17,8 +17,25 @@ final class AudioTrack {
     var converter: AVAudioConverter?
     var inputFormat: AVAudioFormat?
     var written: Int64 = 0
+    // Half-second loudness windows let the app detect when a call has gone quiet.
+    var levelSum: Double = 0
+    var levelFrames = 0
     let url: URL
-    init(url: URL) { self.url = url }
+    let source: String
+    init(url: URL, source: String = "audio") { self.url = url; self.source = source }
+    func meter(_ buffer: AVAudioPCMBuffer) {
+        guard let samples = buffer.floatChannelData?[0] else { return }
+        let base = written - Int64(buffer.frameLength)
+        for index in 0..<Int(buffer.frameLength) {
+            let value = Double(samples[index])
+            levelSum += value * value; levelFrames += 1
+            if levelFrames == 8000 {
+                let db = 10 * log10(levelSum / 8000 + 1e-12)
+                emit(["event": "level", "source": source, "t": Double(base + Int64(index) + 1) / 16000, "db": (db * 10).rounded() / 10])
+                levelSum = 0; levelFrames = 0
+            }
+        }
+    }
     func append(_ sample: CMSampleBuffer, origin: Double) throws {
         guard let description = sample.formatDescription, let format = AVAudioFormat(cmAudioFormatDescription: description) as AVAudioFormat? else { return }
         let frames = CMSampleBufferGetNumSamples(sample)
@@ -54,7 +71,7 @@ final class AudioTrack {
                 }
             }
         }
-        if output.frameLength > 0 { try file?.write(from: output); written += Int64(output.frameLength) }
+        if output.frameLength > 0 { try file?.write(from: output); written += Int64(output.frameLength); meter(output) }
     }
     func close() { file = nil }
 }
@@ -71,8 +88,8 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sen
     var stopping = false
     var failed = false
     init(directory: String) {
-        microphone = AudioTrack(url: URL(fileURLWithPath: directory).appendingPathComponent("microphone.caf"))
-        system = AudioTrack(url: URL(fileURLWithPath: directory).appendingPathComponent("system.caf"))
+        microphone = AudioTrack(url: URL(fileURLWithPath: directory).appendingPathComponent("microphone.caf"), source: "microphone")
+        system = AudioTrack(url: URL(fileURLWithPath: directory).appendingPathComponent("system.caf"), source: "system")
     }
     func start() async throws {
         let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)

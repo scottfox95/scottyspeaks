@@ -127,3 +127,51 @@ test("stop during speech acquisition prevents native spawn and releases late lea
   await stop;
   assert.deepEqual(events, ["release"]);
 });
+function levels(child, source, from, to, db) {
+  for (let time = from; time < to; time += 0.5)
+    child.stdout.write(JSON.stringify({ event: "level", source, t: time + 0.5, db }) + "\n");
+}
+test("recording stops itself after the configured silence once someone has spoken", async (t) => {
+  const { store, child, recorder } = setup(t);
+  const a = store.create();
+  let stopRequested = false;
+  child.stdin.on("data", (data) => {
+    if (String(data).includes("stop")) {
+      stopRequested = true;
+      child.stdout.write('{"event":"stopped","duration":200}\n');
+      queueMicrotask(() => child.emit("close", 0));
+    }
+  });
+  const starting = recorder.start(a.id, { autoStopSeconds: 120 });
+  child.stdout.write('{"event":"started"}\n');
+  await starting;
+  levels(child, "microphone", 0, 20, -52);
+  levels(child, "microphone", 20, 60, -30);
+  levels(child, "system", 0, 60, -120);
+  levels(child, "microphone", 60, 170, -52);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(stopRequested, false, "two minutes have not passed since the last speech");
+  levels(child, "microphone", 170, 185, -52);
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(stopRequested, true);
+  const item = store.get(a.id);
+  assert.equal(item.status, "recorded");
+  assert.equal(item.autoStopped, true);
+  assert.equal(item.autoStopSeconds, 120);
+});
+test("auto-stop waits for the first speech, so a quiet lobby keeps recording", async (t) => {
+  const { store, child, recorder } = setup(t);
+  const a = store.create();
+  let stopRequested = false;
+  child.stdin.on("data", () => (stopRequested = true));
+  const starting = recorder.start(a.id, { autoStopSeconds: 60 });
+  child.stdout.write('{"event":"started"}\n');
+  await starting;
+  levels(child, "microphone", 0, 600, -52);
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(stopRequested, false);
+  assert.equal(recorder.status().lastSpeech, null);
+  const stop = recorder.stop(a.id);
+  child.emit("close", 0);
+  await stop;
+});

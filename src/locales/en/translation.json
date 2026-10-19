@@ -1735,7 +1735,29 @@
     "openrouterAuthError": "OpenRouter rejected the API key ({{status}}). Replace it in Call note settings and try again.",
     "openrouterCreditError": "Your OpenRouter account needs credit before it can transcribe this call.",
     "openrouterEmptyError": "OpenRouter returned no usable transcript. Try again or choose a local model.",
-    "openrouterFailedError": "OpenRouter transcription failed ({{status}}). Check your connection and try again."
+    "openrouterFailedError": "OpenRouter transcription failed ({{status}}). Check your connection and try again.",
+    "autoStop": {
+      "label": "Auto-stop after silence",
+      "off": "Off",
+      "minutes_one": "{{count}} minute",
+      "minutes_other": "{{count}} minutes",
+      "stopped_one": "Recording stopped automatically after {{count}} minute without speech.",
+      "stopped_other": "Recording stopped automatically after {{count}} minutes without speech."
+    },
+    "trim": {
+      "button": "Trim",
+      "title": "Trim recording",
+      "help": "Cut off the end of a recording that kept running after the call. SS2 looks for where the talking stopped.",
+      "analyzing": "Finding where the conversation ended…",
+      "length": "Recording length: {{length}}.",
+      "noSuggestions": "No long silence was detected; enter a time to trim to.",
+      "quietToEnd": "then quiet for {{minutes}} min until the end",
+      "quietThenResumes": "then quiet for {{minutes}} min (sound again at {{resumes}})",
+      "endAt": "End recording at",
+      "apply": "Trim to {{time}}",
+      "cancel": "Cancel",
+      "warning": "The last {{removed}} of audio will be permanently deleted. The call will need to be transcribed again."
+    }
   },
   "replay": {
     "open": "Replay & repair",
