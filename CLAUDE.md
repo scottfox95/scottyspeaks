@@ -634,6 +634,14 @@ Local call transcripts are split into speaker paragraphs by NVIDIA Nemotron 3 Di
 
 **Local vs cloud transcription accuracy** (same call, disagreement with the Azure transcript; real content errors judged in context): Parakeet v3 6.5% (~40 content errors), Whisper large-v3-turbo 5.8% (similar), Parakeet **Ultra** (FluidAudio 0.17.3 `AsrModelVersion.ultra`) 5.7% (~28), Azure ~7. Ultra emits `<unk>` for "&" and once invented a name. CTC vocabulary boosting at its default weight is net-harmful (rewrote "FedEx"→"Codex", "always"→"Railway"). OpenRouter stays the default until a local model closes the gap.
 
+### Screen recording
+Screen recordings page (sidebar / ⌘4) → `src/components/screen/ScreenRecordingsView.tsx`, IPC `screenRecordings:*` (`src/helpers/screenRecordingHandlers.js`), manager `src/helpers/screenRecorder.js`, native helper `resources/screen-recorder.swift` → `resources/bin/screen-recorder-<arch>` (`npm run compile:screen-recorder`, part of `compile:native`).
+- The helper drives its own `AVAssetWriter` rather than `SCRecordingOutput`, because the latter can't set a bitrate and leaves an unplayable file on a crash. It writes a **fragmented .mov** (`movieFragmentInterval` 5s): memory stays flat over hours, and if the process dies the file still plays up to the last fragment. HEVC, 15 fps, long side ≤1920 px, 1.2 Mbps average; system audio and mic are separate AAC tracks.
+- Idle ScreenCaptureKit frames (static screen) carry no image and are skipped, which keeps static sessions tiny.
+- On stop, ffmpeg copies the video and `amix`es the audio tracks into one `.mp4` (`finalizeArgs`); on any failure the `.mov` is kept and listed with an "audio tracks not mixed" note. Output folder is `~/Movies/SS2 Screen Recordings/`.
+- Guards: refuses to start with <2 GB free, stops itself below 1 GB (checked every 30s), `powerSaveBlocker("prevent-app-suspension")` while recording, `before-quit` finalizes first. If SS2 crashes, the helper sees stdin EOF and finalizes on its own.
+- Permission: TCC refusal surfaces as `SCStreamError.userDeclined` → `code: "permission"` → the page shows guidance and opens `Privacy_ScreenCapture`. Running the helper from a terminal fails with that error; TCC belongs to the signed SS2 app, so real tests go through a packed build.
+
 ### Stream Deck Pedal
 - `src/helpers/pedalManager.js` (@elgato-stream-deck/node). Default: left=tap-toggle, middle=hold-to-talk, right=voice command. Config: `userData/pedal-config.json`, UI in Settings → Hotkeys + onboarding.
 - Voice command mode: spoken instruction applied to selected text (Cmd+C capture via `clipboard.captureSelection`) or last dictation; `src/services/polish/voiceCommand.ts`.

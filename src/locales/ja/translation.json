@@ -1988,5 +1988,40 @@
   "workspacePreview": {
     "banner": "インタラクティブプレビュー · サンプルデータ · 録音はシミュレーションです",
     "desktopOnly": "この機能はデスクトップアプリで利用できます。"
+  },
+  "screenRecordings": {
+    "title": "画面収録",
+    "subtitle": "画面を音声付きで収録します。数時間の収録にも対応。",
+    "source": "収録対象",
+    "entireScreen": "画面全体",
+    "display": "ディスプレイ {{index}}（{{width}}×{{height}}）",
+    "windows": "ウインドウ",
+    "refreshSources": "画面とウインドウを更新",
+    "systemAudio": "システムオーディオ",
+    "microphone": "マイク",
+    "start": "収録を開始",
+    "stop": "収録を停止",
+    "saving": "保存中…",
+    "finalizing": "最後の収録を保存中…",
+    "recordingDetail": "収録中 · 現在 {{size}}",
+    "recordingBadge": "画面収録",
+    "help": "圧縮 MP4（HEVC、15 fps、最大 1920 px）で保存され、1 時間あたり約 0.3〜0.6 GB です。収録中に書き込まれるため、クラッシュしても直前数秒までは残ります。",
+    "unavailable": "画面収録には macOS 15 以降が必要です。",
+    "lowDisk": "空き容量が 2 GB 未満です。収録前に空きを作ってください。",
+    "stoppedForDisk": "ディスクがほぼ満杯になったため収録を停止しました。それまでの内容は保存されています。",
+    "endedEarly": "収録が途中で終了しました（{{error}}）。収録済みの内容は保存されています。",
+    "saved": "保存済みの収録",
+    "openFolder": "フォルダを開く",
+    "empty": "画面収録はまだありません。",
+    "unmixed": "音声トラック未ミックス",
+    "play": "再生",
+    "reveal": "Finder で表示",
+    "delete": "ゴミ箱に入れる",
+    "permission": {
+      "title": "画面収録の権限がオフです",
+      "body": "macOS が SS2 の画面収録をブロックしました。システム設定 → プライバシーとセキュリティ → 画面とシステムオーディオの収録 で SS2 をオンにし、SS2 を再起動してください。",
+      "open": "システム設定を開く",
+      "retry": "再確認"
+    }
   }
 }

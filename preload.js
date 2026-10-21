@@ -40,6 +40,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ["create", "complete", "delete", "list", "get", "forHistory", "getConfig", "setConfig", "playback", "releasePlayback", "retry", "cancelRetry", "acceptAttempt", "saveFixture", "listFixtures", "deleteFixture"]
       .map((name) => [name, (args) => ipcRenderer.invoke(`captures:${name}`, args)])
   ),
+  screenRecordings: Object.fromEntries(
+    ["status", "config", "sources", "list", "start", "stop", "open", "reveal", "openFolder", "delete", "openPermissionSettings"]
+      .map((name) => [name, (args) => ipcRenderer.invoke(`screenRecordings:${name}`, args)])
+  ),
   callAgent: {
     state: (args) => ipcRenderer.invoke("callAgent:state", args),
     grant: (args) => ipcRenderer.invoke("callAgent:grant", args),

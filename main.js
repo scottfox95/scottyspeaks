@@ -148,6 +148,14 @@ function initializeCoreManagers() {
       localSpeech,
       callDiarizer: new (require("./src/helpers/callDiarizer").CallDiarizer)(),
     });
+  require("./src/helpers/screenRecordingHandlers").registerScreenRecordingHandlers({
+    app,
+    ipcMain,
+    shell: require("electron").shell,
+    systemPreferences,
+    powerSaveBlocker: require("electron").powerSaveBlocker,
+    windowManager,
+  });
   require("./src/helpers/callAgentHandlers").registerCallAgentHandlers({
     app, ipcMain, windowManager, meetingStore: meetings.store, localSpeech,
   });

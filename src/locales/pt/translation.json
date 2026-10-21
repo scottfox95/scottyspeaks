@@ -1990,5 +1990,40 @@
   "workspacePreview": {
     "banner": "Prévia interativa · Dados de exemplo · Gravação simulada",
     "desktopOnly": "Este recurso está disponível no aplicativo para computador."
+  },
+  "screenRecordings": {
+    "title": "Gravações de tela",
+    "subtitle": "Grave sua tela com o áudio. Sessões de várias horas funcionam bem.",
+    "source": "Gravar",
+    "entireScreen": "Tela inteira",
+    "display": "Tela {{index}} ({{width}}×{{height}})",
+    "windows": "Janelas",
+    "refreshSources": "Atualizar telas e janelas",
+    "systemAudio": "Áudio do sistema",
+    "microphone": "Microfone",
+    "start": "Iniciar gravação",
+    "stop": "Parar gravação",
+    "saving": "Salvando…",
+    "finalizing": "Salvando a última gravação…",
+    "recordingDetail": "Gravando · {{size}} até agora",
+    "recordingBadge": "Gravação de tela",
+    "help": "Salvo como MP4 compactado (HEVC, 15 fps, até 1920 px), cerca de 0,3–0,6 GB por hora. O arquivo é gravado em tempo real; se algo travar, tudo até os últimos segundos é mantido.",
+    "unavailable": "A gravação de tela requer macOS 15 ou posterior.",
+    "lowDisk": "Menos de 2 GB livres. Libere espaço antes de gravar.",
+    "stoppedForDisk": "A gravação parou porque o disco estava quase cheio. Tudo até ali foi salvo.",
+    "endedEarly": "A gravação terminou antes ({{error}}). O que foi capturado foi salvo.",
+    "saved": "Gravações salvas",
+    "openFolder": "Abrir pasta",
+    "empty": "Nenhuma gravação de tela ainda.",
+    "unmixed": "faixas de áudio não mixadas",
+    "play": "Reproduzir",
+    "reveal": "Mostrar no Finder",
+    "delete": "Mover para o Lixo",
+    "permission": {
+      "title": "A permissão de Gravação de Tela está desativada",
+      "body": "O macOS impediu o SS2 de capturar a tela. Abra Ajustes do Sistema → Privacidade e Segurança → Gravação de Tela e Áudio do Sistema, ative o SS2 e reabra o SS2.",
+      "open": "Abrir Ajustes do Sistema",
+      "retry": "Verificar novamente"
+    }
   }
 }

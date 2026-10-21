@@ -1988,5 +1988,40 @@
   "workspacePreview": {
     "banner": "互動預覽 · 範例資料 · 模擬錄音",
     "desktopOnly": "此功能可在桌面應用程式中使用。"
+  },
+  "screenRecordings": {
+    "title": "螢幕錄影",
+    "subtitle": "錄製螢幕與聲音，支援長達數小時的錄影。",
+    "source": "錄製",
+    "entireScreen": "整個螢幕",
+    "display": "顯示器 {{index}}（{{width}}×{{height}}）",
+    "windows": "視窗",
+    "refreshSources": "重新整理螢幕與視窗",
+    "systemAudio": "系統音訊",
+    "microphone": "麥克風",
+    "start": "開始錄影",
+    "stop": "停止錄影",
+    "saving": "正在儲存…",
+    "finalizing": "正在儲存上一段錄影…",
+    "recordingDetail": "錄影中 · 已錄 {{size}}",
+    "recordingBadge": "螢幕錄影",
+    "help": "儲存為壓縮 MP4（HEVC，15 fps，最長邊 1920 px），每小時約 0.3–0.6 GB。檔案邊錄邊寫，即使當機也會保留到最後幾秒。",
+    "unavailable": "螢幕錄影需要 macOS 15 或以上版本。",
+    "lowDisk": "可用空間不足 2 GB，請先釋放空間。",
+    "stoppedForDisk": "磁碟幾乎已滿，錄影已停止。之前的內容已儲存。",
+    "endedEarly": "錄影提前結束（{{error}}）。已錄內容已儲存。",
+    "saved": "已儲存的錄影",
+    "openFolder": "打開檔案夾",
+    "empty": "還沒有螢幕錄影。",
+    "unmixed": "音軌未混音",
+    "play": "播放",
+    "reveal": "在 Finder 中顯示",
+    "delete": "丟到垃圾桶",
+    "permission": {
+      "title": "螢幕錄影權限已關閉",
+      "body": "macOS 阻擋了 SS2 錄製螢幕。請打開 系統設定 → 隱私權與安全性 → 螢幕與系統錄音，開啟 SS2，然後重新打開 SS2。",
+      "open": "打開系統設定",
+      "retry": "重新檢查"
+    }
   }
 }

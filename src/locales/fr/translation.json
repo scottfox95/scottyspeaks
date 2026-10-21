@@ -1990,5 +1990,40 @@
   "workspacePreview": {
     "banner": "Aperçu interactif · Données d’exemple · Enregistrement simulé",
     "desktopOnly": "Cette fonctionnalité est disponible dans l’application de bureau."
+  },
+  "screenRecordings": {
+    "title": "Enregistrements d'écran",
+    "subtitle": "Enregistrez votre écran avec son audio. Les sessions de plusieurs heures sont possibles.",
+    "source": "Enregistrer",
+    "entireScreen": "Écran entier",
+    "display": "Écran {{index}} ({{width}}×{{height}})",
+    "windows": "Fenêtres",
+    "refreshSources": "Actualiser les écrans et fenêtres",
+    "systemAudio": "Audio du système",
+    "microphone": "Microphone",
+    "start": "Démarrer l'enregistrement",
+    "stop": "Arrêter l'enregistrement",
+    "saving": "Enregistrement…",
+    "finalizing": "Enregistrement du dernier fichier…",
+    "recordingDetail": "Enregistrement · {{size}} pour l'instant",
+    "recordingBadge": "Enregistrement d'écran",
+    "help": "Enregistré en MP4 compressé (HEVC, 15 i/s, jusqu'à 1920 px), environ 0,3–0,6 Go par heure. Le fichier est écrit au fil de l'eau : en cas de plantage, tout est conservé jusqu'aux dernières secondes.",
+    "unavailable": "L'enregistrement d'écran nécessite macOS 15 ou ultérieur.",
+    "lowDisk": "Moins de 2 Go d'espace libre. Libérez de l'espace avant d'enregistrer.",
+    "stoppedForDisk": "L'enregistrement s'est arrêté car le disque était presque plein. Tout ce qui précède a été conservé.",
+    "endedEarly": "L'enregistrement s'est terminé plus tôt ({{error}}). Ce qui a été capturé est conservé.",
+    "saved": "Enregistrements",
+    "openFolder": "Ouvrir le dossier",
+    "empty": "Aucun enregistrement d'écran pour l'instant.",
+    "unmixed": "pistes audio non mixées",
+    "play": "Lire",
+    "reveal": "Afficher dans le Finder",
+    "delete": "Placer dans la corbeille",
+    "permission": {
+      "title": "L'autorisation d'enregistrement de l'écran est désactivée",
+      "body": "macOS a empêché SS2 de capturer l'écran. Ouvrez Réglages Système → Confidentialité et sécurité → Enregistrement de l'écran et de l'audio du système, activez SS2, puis relancez SS2.",
+      "open": "Ouvrir Réglages Système",
+      "retry": "Vérifier à nouveau"
+    }
   }
 }

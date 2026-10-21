@@ -1988,5 +1988,40 @@
   "workspacePreview": {
     "banner": "交互预览 · 示例数据 · 模拟录音",
     "desktopOnly": "此功能可在桌面应用中使用。"
+  },
+  "screenRecordings": {
+    "title": "屏幕录制",
+    "subtitle": "录制屏幕及其声音，支持长达数小时的录制。",
+    "source": "录制",
+    "entireScreen": "整个屏幕",
+    "display": "显示器 {{index}}（{{width}}×{{height}}）",
+    "windows": "窗口",
+    "refreshSources": "刷新屏幕和窗口",
+    "systemAudio": "系统音频",
+    "microphone": "麦克风",
+    "start": "开始录制",
+    "stop": "停止录制",
+    "saving": "正在保存…",
+    "finalizing": "正在保存上一段录制…",
+    "recordingDetail": "录制中 · 已录 {{size}}",
+    "recordingBadge": "屏幕录制",
+    "help": "保存为压缩 MP4（HEVC，15 fps，最长边 1920 px），每小时约 0.3–0.6 GB。文件边录边写，即使崩溃也会保留到最后几秒。",
+    "unavailable": "屏幕录制需要 macOS 15 或更高版本。",
+    "lowDisk": "可用空间不足 2 GB，请先释放空间。",
+    "stoppedForDisk": "磁盘几乎已满，录制已停止。之前的内容已保存。",
+    "endedEarly": "录制提前结束（{{error}}）。已录内容已保存。",
+    "saved": "已保存的录制",
+    "openFolder": "打开文件夹",
+    "empty": "还没有屏幕录制。",
+    "unmixed": "音轨未混合",
+    "play": "播放",
+    "reveal": "在访达中显示",
+    "delete": "移到废纸篓",
+    "permission": {
+      "title": "屏幕录制权限已关闭",
+      "body": "macOS 阻止了 SS2 录制屏幕。请打开 系统设置 → 隐私与安全性 → 屏幕与系统录音，打开 SS2，然后重新打开 SS2。",
+      "open": "打开系统设置",
+      "retry": "重新检查"
+    }
   }
 }

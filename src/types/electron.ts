@@ -329,6 +329,7 @@ declare global {
       callAgent: import("./callAgent").CallAgentAPI;
       meetings: import("./meeting").MeetingAPI;
       captures: import("./capture").CaptureAPI;
+      screenRecordings: import("./screenRecording").ScreenRecordingAPI;
       // Basic window operations
       captureRecordingTarget: () => Promise<{ available: boolean; token: string | null; reason?: string }>;
       releaseRecordingTarget: (token: string) => Promise<void>;

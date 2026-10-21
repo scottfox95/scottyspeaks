@@ -1990,5 +1990,40 @@
   "workspacePreview": {
     "banner": "Interactive preview · Sample data · Recording is simulated",
     "desktopOnly": "This feature is available in the desktop app."
+  },
+  "screenRecordings": {
+    "title": "Screen recordings",
+    "subtitle": "Record your screen with its audio. Hours-long sessions are fine.",
+    "source": "Record",
+    "entireScreen": "Entire screen",
+    "display": "Display {{index}} ({{width}}×{{height}})",
+    "windows": "Windows",
+    "refreshSources": "Refresh screens and windows",
+    "systemAudio": "System audio",
+    "microphone": "Microphone",
+    "start": "Start recording",
+    "stop": "Stop recording",
+    "saving": "Saving…",
+    "finalizing": "Saving the last recording…",
+    "recordingDetail": "Recording · {{size}} so far",
+    "recordingBadge": "Screen recording",
+    "help": "Saved as compressed MP4 (HEVC, 15 fps, up to 1920 px) at roughly 0.3–0.6 GB per hour. The file is written as it records, so a crash keeps everything up to the last few seconds.",
+    "unavailable": "Screen recording needs macOS 15 or later.",
+    "lowDisk": "Less than 2 GB of disk space is free. Free up space before recording.",
+    "stoppedForDisk": "The recording stopped because the disk was almost full. Everything up to that point was saved.",
+    "endedEarly": "The recording ended early ({{error}}). What was captured has been saved.",
+    "saved": "Saved recordings",
+    "openFolder": "Open folder",
+    "empty": "No screen recordings yet.",
+    "unmixed": "audio tracks not mixed",
+    "play": "Play",
+    "reveal": "Show in Finder",
+    "delete": "Move to Trash",
+    "permission": {
+      "title": "Screen Recording permission is off",
+      "body": "macOS blocked SS2 from capturing the screen. Open System Settings → Privacy & Security → Screen & System Audio Recording, turn on SS2, then quit and reopen SS2.",
+      "open": "Open System Settings",
+      "retry": "Check again"
+    }
   }
 }

@@ -19,6 +19,7 @@ import HomeView from "./HomeView";
 
 const SettingsModal = React.lazy(() => import("./SettingsModal"));
 const MeetingsView = React.lazy(() => import("./meetings/MeetingsView"));
+const ScreenRecordingsView = React.lazy(() => import("./screen/ScreenRecordingsView"));
 const PersonalNotesView = React.lazy(() => import("./notes/PersonalNotesView"));
 const DictionaryView = React.lazy(() => import("./DictionaryView"));
 const SnippetsView = React.lazy(() => import("./SnippetsView"));
@@ -35,7 +36,7 @@ export default function ControlPanel() {
   );
   const [activeView, setActiveView] = useState<ControlPanelView>(() => {
     const saved = localStorage.getItem("controlPanelView");
-    return ["home", "meetings", "personal-notes", "dictionary", "snippets", "style"].includes(
+    return ["home", "meetings", "screen", "personal-notes", "dictionary", "snippets", "style"].includes(
       saved || ""
     )
       ? (saved as ControlPanelView)
@@ -81,7 +82,7 @@ export default function ControlPanel() {
         document.querySelector('[role="dialog"]')
       )
         return;
-      const view = { "1": "home", "2": "meetings", "3": "personal-notes" }[event.key];
+      const view = { "1": "home", "2": "meetings", "3": "personal-notes", "4": "screen" }[event.key];
       if (view) {
         event.preventDefault();
         setActiveView(view as ControlPanelView);
@@ -336,6 +337,11 @@ export default function ControlPanel() {
             {activeView === "meetings" && (
               <Suspense fallback={null}>
                 <MeetingsView />
+              </Suspense>
+            )}
+            {activeView === "screen" && (
+              <Suspense fallback={null}>
+                <ScreenRecordingsView />
               </Suspense>
             )}
             {activeView === "dictionary" && (
