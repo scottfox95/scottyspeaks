@@ -7,6 +7,7 @@ import {
   Paintbrush,
   Settings,
   Headphones,
+  MonitorPlay,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "./lib/utils";
@@ -15,6 +16,7 @@ export type ControlPanelView =
   | "home"
   | "personal-notes"
   | "meetings"
+  | "screen"
   | "dictionary"
   | "snippets"
   | "style";
@@ -34,6 +36,7 @@ export default function ControlPanelSidebar({
 }: ControlPanelSidebarProps) {
   const { t } = useTranslation();
   const [callRecording, setCallRecording] = useState(false);
+  const [screenRecording, setScreenRecording] = useState(false);
   useEffect(() => {
     let mounted = true;
     const refresh = () =>
@@ -41,6 +44,12 @@ export default function ControlPanelSidebar({
         ?.captureStatus()
         .then((result) => {
           if (mounted && result.success) setCallRecording(!!result.data.id);
+        })
+        .catch(() => {});
+      window.electronAPI.screenRecordings
+        ?.status()
+        .then((result) => {
+          if (mounted && result.success) setScreenRecording(result.data.recording);
         })
         .catch(() => {});
     refresh();
@@ -57,6 +66,7 @@ export default function ControlPanelSidebar({
       items: [
         { id: "home", label: t("workspace.dictation"), icon: AudioLines },
         { id: "meetings", label: t("meetings.title"), icon: Headphones },
+        { id: "screen", label: t("screenRecordings.title"), icon: MonitorPlay },
         { id: "personal-notes", label: t("sidebar.notes"), icon: NotebookPen },
       ],
     },
@@ -109,7 +119,8 @@ export default function ControlPanelSidebar({
                 >
                   <Icon size={17} className="shrink-0" />
                   <span className="max-[700px]:hidden">{item.label}</span>
-                  {item.id === "meetings" && callRecording && (
+                  {((item.id === "meetings" && callRecording) ||
+                    (item.id === "screen" && screenRecording)) && (
                     <span className="size-1.5 rounded-full bg-destructive" />
                   )}
                 </button>
@@ -128,6 +139,17 @@ export default function ControlPanelSidebar({
         >
           <span className="size-2 shrink-0 rounded-full bg-destructive" />
           {t("meetings.recordingBadge")}
+        </button>
+      )}
+      {screenRecording && (
+        <button
+          type="button"
+          onClick={() => onViewChange("screen")}
+          className="press-tactile mx-2 mt-2 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-left text-xs text-foreground max-[700px]:hidden"
+          aria-live="polite"
+        >
+          <span className="size-2 shrink-0 rounded-full bg-destructive" />
+          {t("screenRecordings.recordingBadge")}
         </button>
       )}
       <div className="flex-1" />

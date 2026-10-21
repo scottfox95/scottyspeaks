@@ -1990,5 +1990,40 @@
   "workspacePreview": {
     "banner": "Vista previa interactiva · Datos de ejemplo · Grabación simulada",
     "desktopOnly": "Esta función está disponible en la aplicación de escritorio."
+  },
+  "screenRecordings": {
+    "title": "Grabaciones de pantalla",
+    "subtitle": "Graba tu pantalla con su audio. Las sesiones de varias horas no son problema.",
+    "source": "Grabar",
+    "entireScreen": "Pantalla completa",
+    "display": "Pantalla {{index}} ({{width}}×{{height}})",
+    "windows": "Ventanas",
+    "refreshSources": "Actualizar pantallas y ventanas",
+    "systemAudio": "Audio del sistema",
+    "microphone": "Micrófono",
+    "start": "Empezar a grabar",
+    "stop": "Detener grabación",
+    "saving": "Guardando…",
+    "finalizing": "Guardando la última grabación…",
+    "recordingDetail": "Grabando · {{size}} hasta ahora",
+    "recordingBadge": "Grabación de pantalla",
+    "help": "Se guarda como MP4 comprimido (HEVC, 15 fps, hasta 1920 px), unos 0,3–0,6 GB por hora. El archivo se escribe mientras graba, así que un fallo conserva todo hasta los últimos segundos.",
+    "unavailable": "La grabación de pantalla requiere macOS 15 o posterior.",
+    "lowDisk": "Quedan menos de 2 GB libres. Libera espacio antes de grabar.",
+    "stoppedForDisk": "La grabación se detuvo porque el disco estaba casi lleno. Se guardó todo hasta ese momento.",
+    "endedEarly": "La grabación terminó antes de tiempo ({{error}}). Lo capturado se ha guardado.",
+    "saved": "Grabaciones guardadas",
+    "openFolder": "Abrir carpeta",
+    "empty": "Aún no hay grabaciones de pantalla.",
+    "unmixed": "pistas de audio sin mezclar",
+    "play": "Reproducir",
+    "reveal": "Mostrar en Finder",
+    "delete": "Mover a la papelera",
+    "permission": {
+      "title": "El permiso de Grabación de pantalla está desactivado",
+      "body": "macOS impidió que SS2 capturara la pantalla. Abre Ajustes del Sistema → Privacidad y seguridad → Grabación de pantalla y audio del sistema, activa SS2 y vuelve a abrir SS2.",
+      "open": "Abrir Ajustes del Sistema",
+      "retry": "Comprobar de nuevo"
+    }
   }
 }

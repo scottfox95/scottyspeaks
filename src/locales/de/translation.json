@@ -1990,5 +1990,40 @@
   "workspacePreview": {
     "banner": "Interaktive Vorschau · Beispieldaten · Aufnahme wird simuliert",
     "desktopOnly": "Diese Funktion ist in der Desktop-App verfügbar."
+  },
+  "screenRecordings": {
+    "title": "Bildschirmaufnahmen",
+    "subtitle": "Nimm deinen Bildschirm mit Ton auf. Auch stundenlange Sitzungen sind kein Problem.",
+    "source": "Aufnehmen",
+    "entireScreen": "Ganzer Bildschirm",
+    "display": "Bildschirm {{index}} ({{width}}×{{height}})",
+    "windows": "Fenster",
+    "refreshSources": "Bildschirme und Fenster aktualisieren",
+    "systemAudio": "Systemaudio",
+    "microphone": "Mikrofon",
+    "start": "Aufnahme starten",
+    "stop": "Aufnahme beenden",
+    "saving": "Wird gespeichert…",
+    "finalizing": "Letzte Aufnahme wird gespeichert…",
+    "recordingDetail": "Aufnahme · bisher {{size}}",
+    "recordingBadge": "Bildschirmaufnahme",
+    "help": "Gespeichert als komprimiertes MP4 (HEVC, 15 fps, bis 1920 px), etwa 0,3–0,6 GB pro Stunde. Die Datei wird während der Aufnahme geschrieben, bei einem Absturz bleibt alles bis auf die letzten Sekunden erhalten.",
+    "unavailable": "Bildschirmaufnahmen erfordern macOS 15 oder neuer.",
+    "lowDisk": "Weniger als 2 GB frei. Schaffe vor der Aufnahme Platz.",
+    "stoppedForDisk": "Die Aufnahme wurde beendet, weil die Festplatte fast voll war. Alles bis dahin wurde gespeichert.",
+    "endedEarly": "Die Aufnahme endete vorzeitig ({{error}}). Das Aufgenommene wurde gespeichert.",
+    "saved": "Gespeicherte Aufnahmen",
+    "openFolder": "Ordner öffnen",
+    "empty": "Noch keine Bildschirmaufnahmen.",
+    "unmixed": "Audiospuren nicht gemischt",
+    "play": "Abspielen",
+    "reveal": "Im Finder zeigen",
+    "delete": "In den Papierkorb",
+    "permission": {
+      "title": "Bildschirmaufnahme-Berechtigung ist aus",
+      "body": "macOS hat SS2 die Bildschirmaufnahme verweigert. Öffne Systemeinstellungen → Datenschutz & Sicherheit → Bildschirm- & Systemaudioaufnahme, aktiviere SS2 und öffne SS2 neu.",
+      "open": "Systemeinstellungen öffnen",
+      "retry": "Erneut prüfen"
+    }
   }
 }

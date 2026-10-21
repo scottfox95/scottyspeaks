@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [SS2 0.3.12] - 2026-10-21
+
+### Added
+
+- **Screen recording**: Screen recordings page records the entire screen, a display or a window with system audio and microphone via a native ScreenCaptureKit helper (`resources/screen-recorder.swift`). Streams HEVC (15 fps, ≤1920 px, ~1.2 Mbps) into a fragmented QuickTime movie so multi-hour sessions use flat memory and survive crashes, then mixes the audio tracks into one `.mp4` in `~/Movies/SS2 Screen Recordings/`. Disk-space guard (2 GB to start, stops below 1 GB), keeps the Mac awake while recording, and shows System Settings guidance when Screen Recording permission is denied. See `docs/releases/0.3.12.md`.
+
 ## [1.5.5] - 2026-03-01
 
 ### Added

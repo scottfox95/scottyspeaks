@@ -1990,5 +1990,40 @@
   "workspacePreview": {
     "banner": "Anteprima interattiva · Dati di esempio · Registrazione simulata",
     "desktopOnly": "Questa funzione è disponibile nell’app desktop."
+  },
+  "screenRecordings": {
+    "title": "Registrazioni dello schermo",
+    "subtitle": "Registra lo schermo con il suo audio. Anche sessioni di ore.",
+    "source": "Registra",
+    "entireScreen": "Schermo intero",
+    "display": "Schermo {{index}} ({{width}}×{{height}})",
+    "windows": "Finestre",
+    "refreshSources": "Aggiorna schermi e finestre",
+    "systemAudio": "Audio di sistema",
+    "microphone": "Microfono",
+    "start": "Avvia registrazione",
+    "stop": "Interrompi registrazione",
+    "saving": "Salvataggio…",
+    "finalizing": "Salvataggio dell'ultima registrazione…",
+    "recordingDetail": "Registrazione · finora {{size}}",
+    "recordingBadge": "Registrazione schermo",
+    "help": "Salvato come MP4 compresso (HEVC, 15 fps, fino a 1920 px), circa 0,3–0,6 GB all'ora. Il file viene scritto durante la registrazione: in caso di crash si conserva tutto fino agli ultimi secondi.",
+    "unavailable": "La registrazione dello schermo richiede macOS 15 o successivo.",
+    "lowDisk": "Meno di 2 GB liberi. Libera spazio prima di registrare.",
+    "stoppedForDisk": "La registrazione si è fermata perché il disco era quasi pieno. Tutto fino a quel punto è stato salvato.",
+    "endedEarly": "La registrazione è terminata prima ({{error}}). Quanto catturato è stato salvato.",
+    "saved": "Registrazioni salvate",
+    "openFolder": "Apri cartella",
+    "empty": "Ancora nessuna registrazione dello schermo.",
+    "unmixed": "tracce audio non mixate",
+    "play": "Riproduci",
+    "reveal": "Mostra nel Finder",
+    "delete": "Sposta nel Cestino",
+    "permission": {
+      "title": "Il permesso di registrazione dello schermo è disattivato",
+      "body": "macOS ha impedito a SS2 di catturare lo schermo. Apri Impostazioni di Sistema → Privacy e sicurezza → Registrazione schermo e audio di sistema, attiva SS2 e riapri SS2.",
+      "open": "Apri Impostazioni di Sistema",
+      "retry": "Controlla di nuovo"
+    }
   }
 }

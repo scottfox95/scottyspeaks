@@ -105,7 +105,9 @@
         "nircmd.exe",
         "*.dylib",
         "meeting-recorder-arm64",
-        "meeting-recorder-x64"
+        "meeting-recorder-x64",
+        "screen-recorder-arm64",
+        "screen-recorder-x64"
       ]
     }
   ],
@@ -125,7 +127,7 @@
       "LSUIElement": false,
       "NSMicrophoneUsageDescription": "ScottySpeaks needs microphone access for speech-to-text transcription.",
       "NSAccessibilityUsageDescription": "ScottySpeaks needs accessibility permissions to paste transcribed text into other applications.",
-      "NSScreenCaptureUsageDescription": "ScottySpeaks captures system audio for calls you choose to record.",
+      "NSScreenCaptureUsageDescription": "ScottySpeaks captures system audio for calls you choose to record, and your screen when you start a screen recording.",
       "NSAudioCaptureUsageDescription": "ScottySpeaks captures call audio when you start recording."
     }
   },
