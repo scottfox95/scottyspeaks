@@ -112,9 +112,14 @@ final class MovieWriter {
     }
 }
 
+// A stream that stops on its own (display sleep, screen lock, display change) does
+// not end the recording: the same movie keeps its session and the recorder
+// reconnects with backoff. A locked screen may record as black; audio carries on.
 @available(macOS 15.0, *)
 final class Recorder: NSObject, SCStreamDelegate, SCStreamOutput, @unchecked Sendable {
-    // All writer access is confined to queue; the stop gate is protected across Tasks.
+    static let maxRetryDelay = 10.0
+    // All writer access is confined to queue; stream, stopping and reconnecting
+    // are protected by stopLock across Tasks.
     let stopLock = NSLock()
     let queue = DispatchQueue(label: "ScottySpeaks.screen.writer")
     let output: URL
@@ -125,32 +130,28 @@ final class Recorder: NSObject, SCStreamDelegate, SCStreamOutput, @unchecked Sen
     var stream: SCStream?
     var movie: MovieWriter?
     var stopping = false
+    var reconnecting = false
     var failed = false
+    var pixelWidth = 0, pixelHeight = 0
     init(output: URL, displayID: CGDirectDisplayID?, windowID: CGWindowID?, systemAudio: Bool, microphone: Bool) {
         self.output = output; self.displayID = displayID; self.windowID = windowID
         self.systemAudio = systemAudio; self.microphone = microphone
     }
-    func start() async throws {
+    func makeFilter() async throws -> SCContentFilter {
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
-        let filter: SCContentFilter
         if let windowID {
             guard let window = content.windows.first(where: { $0.windowID == windowID }) else {
                 throw NSError(domain: "ScreenRecorder", code: 1, userInfo: [NSLocalizedDescriptionKey: "That window is no longer available"])
             }
-            filter = SCContentFilter(desktopIndependentWindow: window)
-        } else {
-            guard let display = content.displays.first(where: { displayID == nil || $0.displayID == displayID }) else {
-                throw NSError(domain: "ScreenRecorder", code: 2, userInfo: [NSLocalizedDescriptionKey: "That display is no longer available"])
-            }
-            filter = SCContentFilter(display: display, excludingApplications: [], exceptingWindows: [])
+            return SCContentFilter(desktopIndependentWindow: window)
         }
-        // Capture at native pixels, then cap the long side: screen text stays legible at 1920.
-        let scale = CGFloat(filter.pointPixelScale)
-        var width = filter.contentRect.width * scale, height = filter.contentRect.height * scale
-        let shrink = max(width, height) / MAX_LONG_SIDE
-        if shrink > 1 { width /= shrink; height /= shrink }
-        let pixelWidth = max(2, Int(width) & ~1), pixelHeight = max(2, Int(height) & ~1)
-
+        guard let display = content.displays.first(where: { displayID == nil || $0.displayID == displayID }) else {
+            throw NSError(domain: "ScreenRecorder", code: 2, userInfo: [NSLocalizedDescriptionKey: "That display is no longer available"])
+        }
+        return SCContentFilter(display: display, excludingApplications: [], exceptingWindows: [])
+    }
+    // Returns false when the recorder began stopping meanwhile (the new stream is discarded).
+    func openStream(_ filter: SCContentFilter) async throws -> Bool {
         let config = SCStreamConfiguration()
         config.width = pixelWidth; config.height = pixelHeight
         config.pixelFormat = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
@@ -160,14 +161,28 @@ final class Recorder: NSObject, SCStreamDelegate, SCStreamOutput, @unchecked Sen
         config.capturesAudio = systemAudio; config.excludesCurrentProcessAudio = true
         config.sampleRate = 48000; config.channelCount = 2
         config.captureMicrophone = microphone
-
-        movie = try MovieWriter(url: output, width: pixelWidth, height: pixelHeight, systemAudio: systemAudio, microphone: microphone)
         let capture = SCStream(filter: filter, configuration: config, delegate: self)
         try capture.addStreamOutput(self, type: .screen, sampleHandlerQueue: queue)
         if systemAudio { try capture.addStreamOutput(self, type: .audio, sampleHandlerQueue: queue) }
         if microphone { try capture.addStreamOutput(self, type: .microphone, sampleHandlerQueue: queue) }
-        stream = capture
         try await capture.startCapture()
+        let kept = stopLock.withLock { () -> Bool in
+            if stopping { return false }
+            stream = capture; return true
+        }
+        if !kept { try? await capture.stopCapture() }
+        return kept
+    }
+    func start() async throws {
+        let filter = try await makeFilter()
+        // Capture at native pixels, then cap the long side: screen text stays legible at 1920.
+        let scale = CGFloat(filter.pointPixelScale)
+        var width = filter.contentRect.width * scale, height = filter.contentRect.height * scale
+        let shrink = max(width, height) / MAX_LONG_SIDE
+        if shrink > 1 { width /= shrink; height /= shrink }
+        pixelWidth = max(2, Int(width) & ~1); pixelHeight = max(2, Int(height) & ~1)
+        movie = try MovieWriter(url: output, width: pixelWidth, height: pixelHeight, systemAudio: systemAudio, microphone: microphone)
+        _ = try await openStream(filter)
         emit(["event": "started", "width": pixelWidth, "height": pixelHeight, "fps": Int(FRAME_RATE)])
     }
     func stream(_ stream: SCStream, didOutputSampleBuffer sample: CMSampleBuffer, of type: SCStreamOutputType) {
@@ -190,11 +205,44 @@ final class Recorder: NSObject, SCStreamDelegate, SCStreamOutput, @unchecked Sen
         Task { await stop() }
     }
     func stream(_ stream: SCStream, didStopWithError error: Error) {
-        emit(describe(error)); Task { await stop() }
+        // Ignore a late callback from a stream that has already been replaced.
+        guard stopLock.withLock({ !stopping && stream === self.stream }) else { return }
+        let ns = error as NSError
+        if ns.domain == SCStreamErrorDomain && ns.code == SCStreamError.Code.userDeclined.rawValue {
+            emit(describe(error)); Task { await stop() }; return
+        }
+        guard stopLock.withLock({ () -> Bool in
+            if reconnecting { return false }
+            reconnecting = true; self.stream = nil; return true
+        }) else { return }
+        emit(["event": "interrupted", "message": error.localizedDescription])
+        Task { await reconnect() }
+    }
+    func reconnect() async {
+        var delay = 1.0
+        while !stopLock.withLock({ stopping }) {
+            do {
+                guard try await openStream(try await makeFilter()) else { return }
+                stopLock.withLock { reconnecting = false }
+                emit(["event": "resumed"])
+                return
+            } catch {
+                let ns = error as NSError
+                let declined = ns.domain == SCStreamErrorDomain && ns.code == SCStreamError.Code.userDeclined.rawValue
+                // A closed window will not come back; a sleeping display will.
+                let windowGone = windowID != nil && ns.domain == "ScreenRecorder" && ns.code == 1
+                if declined || windowGone { emit(describe(error)); await stop(); return }
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                delay = min(delay * 2, Recorder.maxRetryDelay)
+            }
+        }
     }
     func stop() async {
-        guard stopLock.withLock({ if stopping { return false }; stopping = true; return true }) else { return }
-        try? await stream?.stopCapture()
+        guard let current = stopLock.withLock({ () -> SCStream?? in
+            if stopping { return nil }
+            stopping = true; return .some(stream)
+        }) else { return }
+        try? await current?.stopCapture()
         let duration: Double = await withCheckedContinuation { continuation in
             queue.async {
                 guard let movie = self.movie else { continuation.resume(returning: 0); return }

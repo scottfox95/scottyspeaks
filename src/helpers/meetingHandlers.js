@@ -51,13 +51,24 @@ function registerMeetingHandlers({
   localSpeech,
   cloudFetch,
   callDiarizer = null,
+  powerSaveBlocker = null,
 }) {
   const root = path.join(app.getPath("userData"), "call-notes");
   const store = new MeetingStore(root);
   const binary = app.isPackaged
     ? path.join(process.resourcesPath, "bin", `meeting-recorder-${process.arch}`)
     : path.join(__dirname, "../../resources/bin", `meeting-recorder-${process.arch}`);
-  const recorder = new MeetingRecorder(store, { binary, localSpeech });
+  const recorder = new MeetingRecorder(store, {
+    binary,
+    localSpeech,
+    // Keeps the Mac out of idle sleep while a call records. The display is free
+    // to sleep: "prevent-app-suspension" does not hold it on.
+    keepAwake: () => {
+      if (!powerSaveBlocker) return () => {};
+      const id = powerSaveBlocker.start("prevent-app-suspension");
+      return () => powerSaveBlocker.stop(id);
+    },
+  });
   const keyPath = path.join(root, "openrouter-key.enc");
   let keyLoaded = false;
   let cachedKey = "";

@@ -175,3 +175,71 @@ test("auto-stop waits for the first speech, so a quiet lobby keeps recording", a
   child.emit("close", 0);
   await stop;
 });
+test("the Mac is kept awake for the whole call and released when it ends", async (t) => {
+  const { store, child, recorder } = setup(t);
+  const events = [];
+  recorder.keepAwake = () => {
+    events.push("hold");
+    return () => events.push("release");
+  };
+  const a = store.create();
+  const starting = recorder.start(a.id);
+  child.stdout.write('{"event":"started"}\n');
+  await starting;
+  assert.deepEqual(events, ["hold"]);
+  const stop = recorder.stop(a.id);
+  child.stdout.write('{"event":"stopped","duration":5}\n');
+  child.emit("close", 0);
+  await stop;
+  assert.deepEqual(events, ["hold", "release"]);
+});
+test("time the capture stream was down never counts as silence for auto-stop", async (t) => {
+  const { store, child, recorder } = setup(t);
+  const a = store.create();
+  let stopRequested = false;
+  child.stdin.on("data", (data) => {
+    if (String(data).includes("stop")) {
+      stopRequested = true;
+      child.stdout.write('{"event":"stopped","duration":1000}\n');
+      queueMicrotask(() => child.emit("close", 0));
+    }
+  });
+  const starting = recorder.start(a.id, { autoStopSeconds: 120 });
+  child.stdout.write('{"event":"started"}\n');
+  await starting;
+  levels(child, "microphone", 0, 20, -52);
+  levels(child, "microphone", 20, 60, -30);
+  levels(child, "microphone", 60, 100, -52);
+  // Display sleep: the stream drops, restarts, and the first window after waking
+  // lands ten minutes later on the shared timeline.
+  child.stdout.write('{"event":"interrupted","message":"display asleep"}\n');
+  child.stdout.write('{"event":"resumed"}\n');
+  levels(child, "microphone", 700, 760, -52);
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(stopRequested, false, "only ~100s of heard silence since the last speech");
+  assert.equal(recorder.status().interruptions, 1);
+  levels(child, "microphone", 760, 790, -52);
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(stopRequested, true, "real silence after waking still stops the call");
+  assert.equal(store.get(a.id).captureInterruptions, 1);
+});
+test("auto-stop holds while the capture stream is reconnecting", async (t) => {
+  const { store, child, recorder } = setup(t);
+  const a = store.create();
+  let stopRequested = false;
+  child.stdin.on("data", () => (stopRequested = true));
+  const starting = recorder.start(a.id, { autoStopSeconds: 60 });
+  child.stdout.write('{"event":"started"}\n');
+  await starting;
+  levels(child, "microphone", 0, 20, -52);
+  levels(child, "microphone", 20, 30, -30);
+  child.stdout.write('{"event":"interrupted","message":"stream stopped"}\n');
+  // A buffered window still arrives from the old stream, past the threshold.
+  levels(child, "microphone", 30, 100, -52);
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(stopRequested, false);
+  assert.equal(recorder.status().interrupted, true);
+  const stop = recorder.stop(a.id);
+  child.emit("close", 0);
+  await stop;
+});

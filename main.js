@@ -147,6 +147,7 @@ function initializeCoreManagers() {
       audioEvidence,
       localSpeech,
       callDiarizer: new (require("./src/helpers/callDiarizer").CallDiarizer)(),
+      powerSaveBlocker: require("electron").powerSaveBlocker,
     });
   require("./src/helpers/screenRecordingHandlers").registerScreenRecordingHandlers({
     app,

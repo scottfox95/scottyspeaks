@@ -36,7 +36,10 @@ final class AudioTrack {
             }
         }
     }
+    var closed = false
     func append(_ sample: CMSampleBuffer, origin: Double) throws {
+        // A late buffer from a stream being torn down must never recreate (and so truncate) the file.
+        guard !closed else { return }
         guard let description = sample.formatDescription, let format = AVAudioFormat(cmAudioFormatDescription: description) as AVAudioFormat? else { return }
         let frames = CMSampleBufferGetNumSamples(sample)
         guard frames > 0, let pcm = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frames)) else { return }
@@ -73,12 +76,29 @@ final class AudioTrack {
         }
         if output.frameLength > 0 { try file?.write(from: output); written += Int64(output.frameLength); meter(output) }
     }
-    func close() { file = nil }
+    func close() { file = nil; closed = true }
 }
 
 @available(macOS 15.0, *)
+func isDeclined(_ error: Error) -> Bool {
+    let ns = error as NSError
+    return ns.domain == SCStreamErrorDomain && ns.code == SCStreamError.Code.userDeclined.rawValue
+}
+
+func hostSeconds() -> Double { CMTimeGetSeconds(CMClockGetTime(CMClockGetHostTimeClock())) }
+
+// A stream that stops (or silently stops delivering) is not the end of the call:
+// display sleep, a screen lock or a display change can take ScreenCaptureKit down
+// for a while. The recorder keeps its files and host-clock origin, reconnects with
+// backoff, and AudioTrack fills the hole with silence so the timeline stays true.
+@available(macOS 15.0, *)
 final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sendable {
-    // Track writes are confined to queue; the stop gate is protected across Tasks.
+    // The microphone delivers buffers continuously, even in a silent room; this long
+    // without any audio means the stream has stalled.
+    static let stallSeconds = 15.0
+    static let maxRetryDelay = 10.0
+    // Track writes and lastSample are confined to queue; stream, stopping and
+    // reconnecting are protected by stopLock across Tasks.
     let stopLock = NSLock()
     let queue = DispatchQueue(label: "ScottySpeaks.meeting.audio")
     let microphone: AudioTrack
@@ -86,14 +106,20 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sen
     var stream: SCStream?
     var origin: Double = 0
     var stopping = false
+    var reconnecting = false
     var failed = false
+    var lastSample: Double = 0
+    var watchdog: DispatchSourceTimer?
     init(directory: String) {
         microphone = AudioTrack(url: URL(fileURLWithPath: directory).appendingPathComponent("microphone.caf"), source: "microphone")
         system = AudioTrack(url: URL(fileURLWithPath: directory).appendingPathComponent("system.caf"), source: "system")
     }
-    func start() async throws {
-        let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
-        guard let display = content.displays.first else { throw NSError(domain: "NoDisplay", code: 1) }
+    // Returns false when the recorder began stopping meanwhile (the new stream is discarded).
+    func openStream() async throws -> Bool {
+        let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: false)
+        guard let display = content.displays.first else {
+            throw NSError(domain: "NoDisplay", code: 1, userInfo: [NSLocalizedDescriptionKey: "No display is available for audio capture"])
+        }
         let filter = SCContentFilter(display: display, excludingApplications: [], exceptingWindows: [])
         let config = SCStreamConfiguration()
         config.width = 2; config.height = 2; config.minimumFrameInterval = CMTime(value: 1, timescale: 1)
@@ -103,31 +129,84 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sen
         let capture = SCStream(filter: filter, configuration: config, delegate: self)
         try capture.addStreamOutput(self, type: .audio, sampleHandlerQueue: queue)
         try capture.addStreamOutput(self, type: .microphone, sampleHandlerQueue: queue)
-        stream = capture
-        origin = CMTimeGetSeconds(CMClockGetTime(CMClockGetHostTimeClock()))
         try await capture.startCapture()
+        let kept = stopLock.withLock { () -> Bool in
+            if stopping { return false }
+            stream = capture; return true
+        }
+        if !kept { try? await capture.stopCapture() }
+        return kept
+    }
+    func start() async throws {
+        origin = hostSeconds()
+        _ = try await openStream()
+        queue.sync { lastSample = hostSeconds() }
+        let timer = DispatchSource.makeTimerSource(queue: queue)
+        timer.schedule(deadline: .now() + 5, repeating: 5)
+        timer.setEventHandler { [weak self] in
+            guard let self, !self.failed, hostSeconds() - self.lastSample > Recorder.stallSeconds else { return }
+            self.interrupt("Audio capture stalled")
+        }
+        timer.resume(); watchdog = timer
         emit(["event": "started"])
     }
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
         guard !failed, CMSampleBufferDataIsReady(sampleBuffer) else { return }
         do {
-            if type == .audio { try system.append(sampleBuffer, origin: origin) }
-            else if type == .microphone { try microphone.append(sampleBuffer, origin: origin) }
+            if type == .audio { try system.append(sampleBuffer, origin: origin); lastSample = hostSeconds() }
+            else if type == .microphone { try microphone.append(sampleBuffer, origin: origin); lastSample = hostSeconds() }
         } catch {
             failed = true; emit(["event": "error", "message": "Could not save call audio: \(error.localizedDescription)"])
             Task { await stop() }
         }
     }
     func stream(_ stream: SCStream, didStopWithError error: Error) {
-        emit(["event": "error", "message": error.localizedDescription]); Task { await stop() }
+        // Ignore a late callback from a stream that has already been replaced.
+        guard stopLock.withLock({ !stopping && stream === self.stream }) else { return }
+        if isDeclined(error) {
+            emit(["event": "error", "message": error.localizedDescription]); Task { await stop() }; return
+        }
+        interrupt(error.localizedDescription)
+    }
+    func interrupt(_ message: String) {
+        guard stopLock.withLock({ () -> Bool in
+            if stopping || reconnecting { return false }
+            reconnecting = true; return true
+        }) else { return }
+        emit(["event": "interrupted", "message": message])
+        Task { await reconnect() }
+    }
+    func reconnect() async {
+        let old = stopLock.withLock { () -> SCStream? in let current = stream; stream = nil; return current }
+        try? await old?.stopCapture()
+        var delay = 1.0
+        while !stopLock.withLock({ stopping }) {
+            do {
+                guard try await openStream() else { return }
+                queue.sync { lastSample = hostSeconds() }
+                stopLock.withLock { reconnecting = false }
+                emit(["event": "resumed"])
+                return
+            } catch {
+                if isDeclined(error) {
+                    emit(["event": "error", "message": error.localizedDescription]); await stop(); return
+                }
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                delay = min(delay * 2, Recorder.maxRetryDelay)
+            }
+        }
     }
     func stop() async {
-        guard stopLock.withLock({ if stopping { return false }; stopping = true; return true }) else { return }
-        try? await stream?.stopCapture()
+        guard let current = stopLock.withLock({ () -> SCStream?? in
+            if stopping { return nil }
+            stopping = true; return .some(stream)
+        }) else { return }
+        watchdog?.cancel()
+        try? await current?.stopCapture()
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             queue.async { self.microphone.close(); self.system.close(); continuation.resume() }
         }
-        emit(["event": "stopped", "duration": max(0, CMTimeGetSeconds(CMClockGetTime(CMClockGetHostTimeClock())) - origin)])
+        emit(["event": "stopped", "duration": max(0, hostSeconds() - origin)])
         exit(failed ? 1 : 0)
     }
 }
