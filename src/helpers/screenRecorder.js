@@ -90,6 +90,8 @@ class ScreenRecorder {
           name: active.name,
           bytes: this.size(active.file),
           finalizing: this.finalizing.size > 0,
+          interrupted: active.interrupted,
+          interruptions: active.interruptions,
           last: this.lastResult,
         }
       : { recording: false, finalizing: this.finalizing.size > 0, last: this.lastResult };
@@ -154,6 +156,8 @@ class ScreenRecorder {
       reason: null,
       duration: 0,
       hasVideo: true,
+      interrupted: false,
+      interruptions: 0,
     };
     this.active = active;
     const release = this.keepAwake();
@@ -182,6 +186,12 @@ class ScreenRecorder {
           active.error = String(event.message || "Screen recording failed").slice(0, 500);
           active.code = event.code === "permission" ? "permission" : "capture";
         }
+        // The helper reconnects ScreenCaptureKit itself after display sleep or a lock.
+        if (event.event === "interrupted") {
+          active.interrupted = true;
+          active.interruptions++;
+        }
+        if (event.event === "resumed") active.interrupted = false;
         if (event.event === "stopped") {
           if (Number.isFinite(event.duration)) active.duration = event.duration;
           active.hasVideo = event.hasVideo !== false;
