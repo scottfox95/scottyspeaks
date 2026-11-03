@@ -1,4 +1,54 @@
-const { autoUpdater } = require("electron-updater");
+/**
+ * In-app updater for SS2.
+ *
+ * `npm run publish` ships each build as a GitHub Release holding a single
+ * `SS2-<version>.zip` (SS2.app inside). This updater mirrors what
+ * SS2-Update.command does: read the latest release from the GitHub API,
+ * compare versions, download the zip, unpack it with ditto, verify the
+ * signature, and swap the running app bundle in place after quitting.
+ *
+ * electron-updater/Squirrel.Mac is deliberately not used: it needs a
+ * latest-*-mac.yml manifest the publish script doesn't produce, and it
+ * validates update signatures in a way that's unproven with the local
+ * self-signed identity.
+ *
+ * The public method names and renderer events (update-available,
+ * update-download-progress, update-downloaded, update-error, …) are kept
+ * so useUpdater.ts and the Settings UI work unchanged.
+ */
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+const { execFile, spawn } = require("child_process");
+const { promisify } = require("util");
+
+const execFileAsync = promisify(execFile);
+
+const REPO = "scottfox95/scottyspeaks";
+const LATEST_RELEASE_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
+const ZIP_ASSET_PATTERN = /^SS2-.*\.zip$/i;
+
+function parseVersion(v) {
+  return String(v || "")
+    .trim()
+    .replace(/^v/i, "")
+    .split(/[.-]/)
+    .slice(0, 3)
+    .map((n) => parseInt(n, 10) || 0);
+}
+
+function isNewer(candidate, current) {
+  const a = parseVersion(candidate);
+  const b = parseVersion(current);
+  for (let i = 0; i < 3; i++) {
+    if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0);
+  }
+  return false;
+}
+
+function shellQuote(s) {
+  return `'${String(s).replace(/'/g, `'\\''`)}'`;
+}
 
 class UpdateManager {
   constructor() {
@@ -10,9 +60,15 @@ class UpdateManager {
     this.isInstalling = false;
     this.isDownloading = false;
     this.isStartupCheck = false;
-    this.eventListeners = [];
 
-    this.setupAutoUpdater();
+    this.release = null; // { version, asset: { name, url, size } }
+    this.stagedAppPath = null; // unpacked, verified SS2.app ready to swap in
+    this.stagingDir = null;
+    this.quitHookInstalled = false;
+  }
+
+  get isDev() {
+    return process.env.NODE_ENV === "development";
   }
 
   setWindows(mainWindow, controlPanelWindow) {
@@ -20,312 +76,378 @@ class UpdateManager {
     this.controlPanelWindow = controlPanelWindow;
   }
 
-  setupAutoUpdater() {
-    // Only configure auto-updater in production
-    if (process.env.NODE_ENV === "development") {
-      // Auto-updater disabled in development mode
-      return;
-    }
-
-    // Configure auto-updater for GitHub releases
-    autoUpdater.setFeedURL({
-      provider: "github",
-      owner: "scottfox95",
-      repo: "scottyspeaks",
-      private: false,
-    });
-
-    // Use arch-specific update channel on macOS to prevent arm64/x64
-    // from downloading mismatched artifacts. Both builds publish to the
-    // same GitHub release, so without this they race on latest-mac.yml.
-    // Setting channel to e.g. 'latest-arm64' makes the updater look for
-    // 'latest-arm64-mac.yml' instead of the shared 'latest-mac.yml'.
-    if (process.platform === "darwin") {
-      let nativeArch = process.arch;
-
-      // Detect Rosetta: if an x64 build is running on Apple Silicon,
-      // sysctl.proc_translated returns "1". This self-heals users who
-      // got stuck on the x64 build from older releases.
-      if (process.arch === "x64") {
-        try {
-          const { execSync } = require("child_process");
-          const translated = execSync("sysctl -n sysctl.proc_translated", {
-            encoding: "utf8",
-            timeout: 3000,
-          }).trim();
-          if (translated === "1") {
-            console.log("🔄 Rosetta detected — switching update channel to arm64");
-            nativeArch = "arm64";
-          }
-        } catch {
-          // sysctl.proc_translated doesn't exist on real Intel Macs — ignore
-        }
-      }
-
-      autoUpdater.channel = nativeArch === "arm64" ? "latest-arm64" : "latest-x64";
-    }
-
-    // Disable auto-download - let user control when to download
-    autoUpdater.autoDownload = false;
-
-    // Enable auto-install on quit - if user ignores update and quits normally,
-    // the update will install automatically (best UX)
-    // User can also manually trigger install with "Install & Restart" button
-    autoUpdater.autoInstallOnAppQuit = true;
-
-    // Enable logging in production for debugging (logs are user-accessible)
-    autoUpdater.logger = console;
-
-    // Set up event handlers
-    this.setupEventHandlers();
-  }
-
-  setupEventHandlers() {
-    const handlers = {
-      "checking-for-update": () => {
-        this.notifyRenderers("checking-for-update");
-      },
-      "update-available": (info) => {
-        this.updateAvailable = true;
-        if (info) {
-          this.lastUpdateInfo = {
-            version: info.version,
-            releaseDate: info.releaseDate,
-            releaseNotes: info.releaseNotes,
-            files: info.files,
-          };
-        }
-        this.notifyRenderers("update-available", info);
-      },
-      "update-not-available": (info) => {
-        this.updateAvailable = false;
-        this.updateDownloaded = false;
-        this.isDownloading = false;
-        this.lastUpdateInfo = null;
-        this.notifyRenderers("update-not-available", info);
-      },
-      error: (err) => {
-        console.error("❌ Auto-updater error:", err);
-        this.isDownloading = false;
-        // Don't show error toasts for startup checks (e.g. no releases yet)
-        if (!this.isStartupCheck) {
-          this.notifyRenderers("update-error", err);
-        }
-      },
-      "download-progress": (progressObj) => {
-        console.log(
-          `📥 Download progress: ${progressObj.percent.toFixed(2)}% (${(progressObj.transferred / 1024 / 1024).toFixed(2)}MB / ${(progressObj.total / 1024 / 1024).toFixed(2)}MB)`
-        );
-        this.notifyRenderers("update-download-progress", progressObj);
-      },
-      "update-downloaded": (info) => {
-        console.log("✅ Update downloaded successfully:", info?.version);
-        this.updateDownloaded = true;
-        this.isDownloading = false;
-        if (info) {
-          this.lastUpdateInfo = {
-            version: info.version,
-            releaseDate: info.releaseDate,
-            releaseNotes: info.releaseNotes,
-            files: info.files,
-          };
-        }
-        this.notifyRenderers("update-downloaded", info);
-      },
-    };
-
-    // Register and track event listeners for cleanup
-    Object.entries(handlers).forEach(([event, handler]) => {
-      autoUpdater.on(event, handler);
-      this.eventListeners.push({ event, handler });
-    });
-  }
-
   notifyRenderers(channel, data) {
-    if (this.mainWindow && !this.mainWindow.isDestroyed() && this.mainWindow.webContents) {
-      this.mainWindow.webContents.send(channel, data);
+    for (const win of [this.mainWindow, this.controlPanelWindow]) {
+      if (win && !win.isDestroyed() && win.webContents) {
+        win.webContents.send(channel, data);
+      }
     }
-    if (
-      this.controlPanelWindow &&
-      !this.controlPanelWindow.isDestroyed() &&
-      this.controlPanelWindow.webContents
-    ) {
-      this.controlPanelWindow.webContents.send(channel, data);
+  }
+
+  reportError(err) {
+    console.error("❌ Updater error:", err);
+    // Errors don't survive structured clone well; send the message.
+    const message = err?.message || String(err);
+    if (!this.isStartupCheck) {
+      this.notifyRenderers("update-error", message);
     }
+  }
+
+  /** Path of the running .app bundle, or null when not running from one. */
+  getRunningBundlePath() {
+    const bundle = path.resolve(process.execPath, "..", "..", "..");
+    return bundle.endsWith(".app") ? bundle : null;
+  }
+
+  async fetchLatestRelease() {
+    const res = await fetch(LATEST_RELEASE_URL, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "User-Agent": "SS2-Updater",
+      },
+    });
+    if (!res.ok) {
+      throw new Error(`GitHub releases request failed (HTTP ${res.status})`);
+    }
+    const data = await res.json();
+    const version = String(data.tag_name || "").replace(/^v/i, "");
+    const asset = (data.assets || []).find((a) => ZIP_ASSET_PATTERN.test(a.name));
+    if (!version) throw new Error("Latest release has no version tag");
+    if (!asset) throw new Error(`Release ${data.tag_name} has no SS2 zip attached`);
+    return {
+      version,
+      releaseDate: data.published_at,
+      releaseNotes: data.body || null,
+      asset: { name: asset.name, url: asset.browser_download_url, size: asset.size },
+    };
   }
 
   async checkForUpdates() {
+    if (this.isDev) {
+      return { updateAvailable: false, message: "Update checks are disabled in development mode" };
+    }
+    if (process.platform !== "darwin") {
+      return { updateAvailable: false, message: "Updates are only published for macOS" };
+    }
+
+    const { app } = require("electron");
+    this.notifyRenderers("checking-for-update");
+    console.log("🔍 Checking for updates...");
+
     try {
-      if (process.env.NODE_ENV === "development") {
-        return {
-          updateAvailable: false,
-          message: "Update checks are disabled in development mode",
-        };
+      const release = await this.fetchLatestRelease();
+      const current = app.getVersion();
+
+      if (!isNewer(release.version, current)) {
+        console.log(`✅ Already on latest version (${current}; latest ${release.version})`);
+        this.updateAvailable = false;
+        this.lastUpdateInfo = null;
+        this.notifyRenderers("update-not-available", { version: release.version });
+        return { updateAvailable: false, message: "You are running the latest version" };
       }
 
-      console.log("🔍 Checking for updates...");
-      const result = await autoUpdater.checkForUpdates();
-
-      if (result?.isUpdateAvailable && result?.updateInfo) {
-        console.log("📋 Update available:", result.updateInfo.version);
-        console.log(
-          "📦 Download size:",
-          result.updateInfo.files?.map((f) => `${(f.size / 1024 / 1024).toFixed(2)}MB`).join(", ")
-        );
-        return {
-          updateAvailable: true,
-          version: result.updateInfo.version,
-          releaseDate: result.updateInfo.releaseDate,
-          files: result.updateInfo.files,
-          releaseNotes: result.updateInfo.releaseNotes,
-        };
-      } else {
-        console.log("✅ Already on latest version");
-        return {
-          updateAvailable: false,
-          message: "You are running the latest version",
-        };
+      // A newer release than the one already staged invalidates the staged copy.
+      if (this.release && this.release.version !== release.version) {
+        this.discardStaged();
       }
+
+      this.release = release;
+      this.updateAvailable = true;
+      this.lastUpdateInfo = {
+        version: release.version,
+        releaseDate: release.releaseDate,
+        releaseNotes: release.releaseNotes,
+        files: [{ url: release.asset.url, size: release.asset.size }],
+      };
+      console.log(`📋 Update available: ${current} → ${release.version}`);
+      this.notifyRenderers("update-available", this.lastUpdateInfo);
+      if (this.updateDownloaded) {
+        this.notifyRenderers("update-downloaded", this.lastUpdateInfo);
+      }
+      return { updateAvailable: true, ...this.lastUpdateInfo };
     } catch (error) {
-      console.error("❌ Update check error:", error);
+      this.reportError(error);
       throw error;
     }
   }
 
   async downloadUpdate() {
-    try {
-      if (process.env.NODE_ENV === "development") {
-        return {
-          success: false,
-          message: "Update downloads are disabled in development mode",
-        };
-      }
-
-      if (this.isDownloading) {
-        return {
-          success: true,
-          message: "Download already in progress",
-        };
-      }
-
-      if (this.updateDownloaded) {
-        return {
-          success: true,
-          message: "Update already downloaded. Ready to install.",
-        };
-      }
-
-      this.isDownloading = true;
-      console.log("📥 Starting update download...");
-      await autoUpdater.downloadUpdate();
-      console.log("📥 Download initiated successfully");
-
-      return { success: true, message: "Update download started" };
-    } catch (error) {
-      this.isDownloading = false;
-      console.error("❌ Update download error:", error);
-      throw error;
+    if (this.isDev) {
+      return { success: false, message: "Update downloads are disabled in development mode" };
     }
+    if (this.isDownloading) {
+      return { success: true, message: "Download already in progress" };
+    }
+    if (this.updateDownloaded) {
+      return { success: true, message: "Update already downloaded. Ready to install." };
+    }
+    if (!this.release) {
+      await this.checkForUpdates();
+      if (!this.release) return { success: false, message: "No update available" };
+    }
+
+    this.isDownloading = true;
+    // Run in the background; progress/completion/errors arrive as events,
+    // matching how the renderer already handles electron-updater.
+    this.performDownload().catch((err) => {
+      this.isDownloading = false;
+      this.discardStaged();
+      this.reportError(err);
+    });
+    return { success: true, message: "Update download started" };
+  }
+
+  async performDownload() {
+    const { version, asset } = this.release;
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), `ss2-update-${version}-`));
+    this.stagingDir = dir;
+    const zipPath = path.join(dir, asset.name);
+
+    console.log(`📥 Downloading ${asset.name}...`);
+    const res = await fetch(asset.url, { headers: { "User-Agent": "SS2-Updater" } });
+    if (!res.ok || !res.body) {
+      throw new Error(`Download failed (HTTP ${res.status})`);
+    }
+
+    const total = Number(res.headers.get("content-length")) || asset.size || 0;
+    let transferred = 0;
+    let lastSent = 0;
+    const out = fs.createWriteStream(zipPath);
+    try {
+      const reader = res.body.getReader();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        transferred += value.length;
+        if (!out.write(Buffer.from(value))) {
+          await new Promise((r) => out.once("drain", r));
+        }
+        const now = Date.now();
+        if (now - lastSent > 250) {
+          lastSent = now;
+          this.notifyRenderers("update-download-progress", {
+            percent: total ? (transferred / total) * 100 : 0,
+            transferred,
+            total,
+          });
+        }
+      }
+    } finally {
+      await new Promise((r) => out.end(r));
+    }
+    if (total && transferred !== total) {
+      throw new Error(`Download incomplete (${transferred} of ${total} bytes)`);
+    }
+
+    console.log("📦 Unpacking update...");
+    const extractDir = path.join(dir, "extract");
+    fs.mkdirSync(extractDir);
+    await execFileAsync("/usr/bin/ditto", ["-x", "-k", zipPath, extractDir]);
+    fs.rmSync(zipPath, { force: true });
+
+    const appPath = this.findApp(extractDir);
+    if (!appPath) throw new Error("Update zip did not contain SS2.app");
+
+    await this.verifyApp(appPath, version);
+
+    this.stagedAppPath = appPath;
+    this.isDownloading = false;
+    this.updateDownloaded = true;
+    this.installQuitHook();
+    console.log(`✅ Update ${version} downloaded and verified`);
+    this.notifyRenderers("update-download-progress", { percent: 100, transferred, total });
+    this.notifyRenderers("update-downloaded", this.lastUpdateInfo);
+  }
+
+  findApp(root, depth = 0) {
+    if (depth > 3) return null;
+    for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const p = path.join(root, entry.name);
+      if (entry.name.endsWith(".app")) return p;
+      const found = this.findApp(p, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  async verifyApp(appPath, expectedVersion) {
+    const plist = path.join(appPath, "Contents", "Info.plist");
+    const read = async (key) =>
+      (await execFileAsync("/usr/bin/defaults", ["read", plist, key])).stdout.trim();
+
+    const newVersion = await read("CFBundleShortVersionString");
+    if (newVersion !== expectedVersion) {
+      throw new Error(`Downloaded app is v${newVersion}, expected v${expectedVersion}`);
+    }
+
+    const running = this.getRunningBundlePath();
+    if (running) {
+      const runningId = (
+        await execFileAsync("/usr/bin/defaults", [
+          "read",
+          path.join(running, "Contents", "Info.plist"),
+          "CFBundleIdentifier",
+        ])
+      ).stdout.trim();
+      const newId = await read("CFBundleIdentifier");
+      if (runningId !== newId) {
+        throw new Error(`Downloaded app has bundle id ${newId}, expected ${runningId}`);
+      }
+    }
+
+    await execFileAsync("/usr/bin/xattr", ["-dr", "com.apple.quarantine", appPath]).catch(() => {});
+    try {
+      await execFileAsync("/usr/bin/codesign", ["--verify", "--strict", appPath]);
+    } catch (err) {
+      throw new Error(`Downloaded app failed signature check: ${err.stderr || err.message}`);
+    }
+  }
+
+  /**
+   * Writes and launches a detached script that waits for this process to
+   * exit, swaps the bundle (new copy first, so a failure never leaves the
+   * user without an app), and optionally relaunches.
+   */
+  spawnSwapScript({ relaunch }) {
+    const target = this.getRunningBundlePath();
+    if (!target) throw new Error("Not running from an app bundle; can't install update");
+    if (!this.stagedAppPath || !fs.existsSync(this.stagedAppPath)) {
+      throw new Error("Downloaded update is missing; download it again");
+    }
+
+    const q = shellQuote;
+    const logPath = path.join(os.tmpdir(), "ss2-update.log");
+    const script = `#!/bin/bash
+exec >>${q(logPath)} 2>&1
+echo "=== $(date) installing update into ${target.replace(/[`$"\\]/g, "")} ==="
+PID=${process.pid}
+for i in $(seq 1 120); do kill -0 "$PID" 2>/dev/null || break; sleep 0.5; done
+if kill -0 "$PID" 2>/dev/null; then echo "app still running; aborting"; exit 1; fi
+
+TARGET=${q(target)}
+NEW="$TARGET.new-$$"
+OLD="$TARGET.old-$$"
+rm -rf "$NEW"
+if ! /usr/bin/ditto ${q(this.stagedAppPath)} "$NEW"; then
+  echo "copy failed"; rm -rf "$NEW"; ${relaunch ? `open "$TARGET";` : ""} exit 1
+fi
+if mv "$TARGET" "$OLD" && mv "$NEW" "$TARGET"; then
+  rm -rf "$OLD"
+  echo "swap ok"
+else
+  echo "swap failed; restoring"
+  [ -d "$OLD" ] && [ ! -d "$TARGET" ] && mv "$OLD" "$TARGET"
+  rm -rf "$NEW"
+fi
+/usr/bin/xattr -dr com.apple.quarantine "$TARGET" 2>/dev/null || true
+rm -rf ${q(this.stagingDir || "")}
+${relaunch ? `open "$TARGET"` : ""}
+rm -f "$0"
+`;
+    const scriptPath = path.join(os.tmpdir(), `ss2-install-update-${process.pid}.sh`);
+    fs.writeFileSync(scriptPath, script, { mode: 0o755 });
+    const child = spawn("/bin/bash", [scriptPath], { detached: true, stdio: "ignore" });
+    child.unref();
+    console.log(`🔄 Update installer launched (log: ${logPath})`);
+  }
+
+  /** Mirrors electron-updater's autoInstallOnAppQuit. */
+  installQuitHook() {
+    if (this.quitHookInstalled) return;
+    this.quitHookInstalled = true;
+    const { app } = require("electron");
+    app.on("will-quit", () => {
+      if (this.updateDownloaded && !this.isInstalling) {
+        try {
+          this.isInstalling = true;
+          this.spawnSwapScript({ relaunch: false });
+        } catch (err) {
+          console.error("❌ Install-on-quit failed:", err);
+        }
+      }
+    });
   }
 
   async installUpdate() {
+    if (this.isDev) {
+      return { success: false, message: "Update installation is disabled in development mode" };
+    }
+    if (!this.updateDownloaded) {
+      return { success: false, message: "No update available to install" };
+    }
+    if (this.isInstalling) {
+      return { success: false, message: "Update installation already in progress" };
+    }
+
+    this.isInstalling = true;
     try {
-      if (process.env.NODE_ENV === "development") {
-        return {
-          success: false,
-          message: "Update installation is disabled in development mode",
-        };
-      }
-
-      if (!this.updateDownloaded) {
-        return {
-          success: false,
-          message: "No update available to install",
-        };
-      }
-
-      if (this.isInstalling) {
-        return {
-          success: false,
-          message: "Update installation already in progress",
-        };
-      }
-
-      this.isInstalling = true;
-      console.log("🔄 Installing update and restarting...");
-
-      const { app, BrowserWindow } = require("electron");
-
-      // Remove listeners that prevent windows from closing
-      // so quitAndInstall can shut down cleanly
-      app.removeAllListeners("window-all-closed");
-      BrowserWindow.getAllWindows().forEach((win) => {
-        win.removeAllListeners("close");
-      });
-
-      const isSilent = process.platform === "win32";
-      autoUpdater.quitAndInstall(isSilent, true);
-
-      return { success: true, message: "Update installation started" };
+      this.spawnSwapScript({ relaunch: true });
     } catch (error) {
       this.isInstalling = false;
-      console.error("❌ Update installation error:", error);
+      this.reportError(error);
       throw error;
     }
+
+    console.log("🔄 Quitting to install update...");
+    const { app, BrowserWindow } = require("electron");
+    // Remove listeners that keep windows/app alive so the quit goes through.
+    app.removeAllListeners("window-all-closed");
+    BrowserWindow.getAllWindows().forEach((win) => win.removeAllListeners("close"));
+    setTimeout(() => app.quit(), 100);
+    // If something still blocks the quit, force it so the installer can run.
+    setTimeout(() => app.exit(0), 8000);
+
+    return { success: true, message: "Update installation started" };
+  }
+
+  discardStaged() {
+    if (this.stagingDir) {
+      fs.rmSync(this.stagingDir, { recursive: true, force: true });
+    }
+    this.stagingDir = null;
+    this.stagedAppPath = null;
+    this.updateDownloaded = false;
   }
 
   async getAppVersion() {
-    try {
-      const { app } = require("electron");
-      return { version: app.getVersion() };
-    } catch (error) {
-      console.error("❌ Error getting app version:", error);
-      throw error;
-    }
+    const { app } = require("electron");
+    return { version: app.getVersion() };
   }
 
   async getUpdateStatus() {
-    try {
-      return {
-        updateAvailable: this.updateAvailable,
-        updateDownloaded: this.updateDownloaded,
-        isDevelopment: process.env.NODE_ENV === "development",
-      };
-    } catch (error) {
-      console.error("❌ Error getting update status:", error);
-      throw error;
-    }
+    return {
+      updateAvailable: this.updateAvailable,
+      updateDownloaded: this.updateDownloaded,
+      isDevelopment: this.isDev,
+    };
   }
 
   async getUpdateInfo() {
-    try {
-      return this.lastUpdateInfo;
-    } catch (error) {
-      console.error("❌ Error getting update info:", error);
-      throw error;
-    }
+    return this.lastUpdateInfo;
   }
 
   checkForUpdatesOnStartup() {
-    if (process.env.NODE_ENV !== "development") {
-      setTimeout(() => {
-        console.log("🔄 Checking for updates on startup...");
-        this.isStartupCheck = true;
-        autoUpdater.checkForUpdates().catch((err) => {
-          console.warn("Startup update check failed (no releases published yet?):", err.message || err);
-        }).finally(() => {
+    if (this.isDev) return;
+    setTimeout(() => {
+      console.log("🔄 Checking for updates on startup...");
+      this.isStartupCheck = true;
+      this.checkForUpdates()
+        .catch((err) => console.warn("Startup update check failed:", err.message || err))
+        .finally(() => {
           this.isStartupCheck = false;
         });
-      }, 3000);
-    }
+    }, 3000);
   }
 
   cleanup() {
-    this.eventListeners.forEach(({ event, handler }) => {
-      autoUpdater.removeListener(event, handler);
-    });
-    this.eventListeners = [];
+    // Keep a downloaded update staged: the will-quit hook installs it.
+    if (!this.updateDownloaded && this.stagingDir && !this.isDownloading) {
+      this.discardStaged();
+    }
   }
 }
+
+UpdateManager._internal = { isNewer, parseVersion };
 
 module.exports = UpdateManager;
