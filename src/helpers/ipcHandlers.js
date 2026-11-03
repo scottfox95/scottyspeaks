@@ -19,6 +19,7 @@ const {
   mergeDictionaryCorrections,
   undoDictionaryCorrections,
 } = require("../utils/correctionLearner");
+const { normalizeSpokenForm } = require("../utils/spokenFormatting");
 
 const MISTRAL_TRANSCRIPTION_URL = "https://api.mistral.ai/v1/audio/transcriptions";
 
@@ -151,6 +152,16 @@ class IPCHandlers {
     try {
       return applyDictionaryAliases(text, this._getAliasesSafe());
     } catch {
+      return text;
+    }
+  }
+
+  /** Spoken numbers and symbols → digits and "/" ("six oh six" → 606). Never blocks a paste. */
+  _normalizeSpokenForm(text) {
+    try {
+      return normalizeSpokenForm(text);
+    } catch (error) {
+      debugLogger.debug("[SpokenForm] Normalization failed", { error: error.message });
       return text;
     }
   }
@@ -1030,7 +1041,7 @@ class IPCHandlers {
       }
       const canonicalText = options?.exact
         ? text
-        : applyDictionaryCorrections(this._applyAliases(text), this._getDictionarySafe());
+        : this._normalizeSpokenForm(applyDictionaryCorrections(this._applyAliases(text), this._getDictionarySafe()));
       const result = await this.clipboardManager.pasteText(canonicalText, {
         ...options,
         webContents: event.sender,
