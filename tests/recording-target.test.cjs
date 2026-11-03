@@ -216,6 +216,7 @@ test("paste IPC retains canonical text on manual fallback and never starts auto-
     windowManager: { mainWindow: { webContents: sender } },
     _getDictionarySafe: () => [],
     _applyAliases: (text) => text,
+    _normalizeSpokenForm: (text) => text,
     _autoLearnEnabled: true,
     textEditMonitor: { startMonitoring: () => monitors++ },
     clipboardManager: {
