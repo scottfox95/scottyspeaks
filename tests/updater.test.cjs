@@ -21,3 +21,23 @@ test("the running app's designated requirement is read from codesign output", ()
   );
   assert.equal(parseDesignatedRequirement("Executable=/x\n"), null);
 });
+
+// Runs the real codesign against a system app, so the argument format is proven.
+test(
+  "downloads are accepted only when signed by the running app's identity",
+  { skip: process.platform !== "darwin" },
+  async () => {
+    const app = "/System/Applications/Calculator.app";
+    const manager = new UpdateManager();
+    const requirement = await manager.designatedRequirement(app);
+    assert.ok(requirement, "read the designated requirement");
+    assert.equal(await manager.satisfiesRequirement(app, requirement), true);
+    assert.equal(
+      await manager.satisfiesRequirement(
+        app,
+        'identifier "com.scottfox.scottyspeaks" and certificate root = H"0000472e8f162e22dee03cb43e9c6d7ad21bc58b"'
+      ),
+      false
+    );
+  }
+);

@@ -322,18 +322,23 @@ class UpdateManager {
     // Any valid signature passes --verify; also require the running app's
     // own signing identity so only Scott's builds can replace it.
     const requirement = running ? await this.designatedRequirement(running) : null;
-    if (requirement) {
-      try {
-        await execFileAsync("/usr/bin/codesign", [
-          "--verify",
-          "--strict",
-          "-R",
-          requirement,
-          appPath,
-        ]);
-      } catch {
-        throw new Error("Downloaded app is signed by a different identity than this SS2");
-      }
+    if (requirement && !(await this.satisfiesRequirement(appPath, requirement)))
+      throw new Error("Downloaded app is signed by a different identity than this SS2");
+  }
+
+  async satisfiesRequirement(appPath, requirement) {
+    try {
+      // "=" marks inline requirement text; without it codesign reads a file path.
+      await execFileAsync("/usr/bin/codesign", [
+        "--verify",
+        "--strict",
+        "-R",
+        `=${requirement}`,
+        appPath,
+      ]);
+      return true;
+    } catch {
+      return false;
     }
   }
 
