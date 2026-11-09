@@ -256,7 +256,7 @@ export const useAudioRecording = (toast, options = {}) => {
             : 0;
           window.electronAPI?.recordUsage?.(wordCount, durationSeconds).catch(() => {});
 
-          if (result.source === "openai" && getSettings().useLocalWhisper) {
+          if (result.source === "openai-fallback" && getSettings().useLocalWhisper) {
             toast({
               title: t("hooks.audioRecording.fallback.title"),
               description: t("hooks.audioRecording.fallback.description"),

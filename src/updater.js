@@ -421,6 +421,12 @@ rm -f "$0"
     if (this.isInstalling) {
       return { success: false, message: "Update installation already in progress" };
     }
+    if (this.isRecording?.()) {
+      return {
+        success: false,
+        message: "Stop the call or screen recording first; the update installs when SS2 quits.",
+      };
+    }
 
     this.isInstalling = true;
     try {

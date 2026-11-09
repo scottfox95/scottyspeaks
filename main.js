@@ -66,6 +66,8 @@ let whisperManager = null;
 let parakeetManager = null;
 let trayManager = null;
 let updateManager = null;
+// True while a call or screen recording is running (set once handlers exist).
+let recordingActive = () => false;
 let globeKeyManager = null;
 let textEditMonitor = null;
 let pedalManager = null;
@@ -155,7 +157,7 @@ function initializeCoreManagers() {
       callDiarizer: new (require("./src/helpers/callDiarizer").CallDiarizer)(),
       recordingAlerts,
     });
-  require("./src/helpers/screenRecordingHandlers").registerScreenRecordingHandlers({
+  const screen = require("./src/helpers/screenRecordingHandlers").registerScreenRecordingHandlers({
     app,
     ipcMain,
     shell: require("electron").shell,
@@ -164,6 +166,7 @@ function initializeCoreManagers() {
     windowManager,
     recordingAlerts,
   });
+  recordingActive = () => !!meetings.recorder.status().id || screen.recorder.status().recording;
   require("./src/helpers/callAgentHandlers").registerCallAgentHandlers({
     app, ipcMain, windowManager, meetingStore: meetings.store, localSpeech,
   });
@@ -394,6 +397,7 @@ async function startApp() {
   await trayManager.createTray();
 
   updateManager.setWindows(windowManager.mainWindow, windowManager.controlPanelWindow);
+  updateManager.isRecording = () => recordingActive();
   updateManager.checkForUpdatesOnStartup();
 
   // macOS Globe/Fn key handling
