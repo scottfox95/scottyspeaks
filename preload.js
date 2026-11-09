@@ -44,6 +44,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ["status", "config", "sources", "list", "start", "stop", "open", "reveal", "openFolder", "delete", "openPermissionSettings"]
       .map((name) => [name, (args) => ipcRenderer.invoke(`screenRecordings:${name}`, args)])
   ),
+  recordingAlerts: {
+    get: () => ipcRenderer.invoke("recordingAlerts:get"),
+    acknowledge: (args) => ipcRenderer.invoke("recordingAlerts:acknowledge", args),
+    onChange: (callback) => { const listener = (_event, state) => callback(state); ipcRenderer.on("recordingAlerts:change", listener); return () => ipcRenderer.removeListener("recordingAlerts:change", listener); },
+  },
   callAgent: {
     state: (args) => ipcRenderer.invoke("callAgent:state", args),
     grant: (args) => ipcRenderer.invoke("callAgent:grant", args),
@@ -74,6 +79,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     startCapture: (args) => ipcRenderer.invoke("meetings:startCapture", args),
     stopCapture: (args) => ipcRenderer.invoke("meetings:stopCapture", args),
     captureStatus: (args) => ipcRenderer.invoke("meetings:captureStatus", args),
+    keepRecording: (args) => ipcRenderer.invoke("meetings:keepRecording", args),
     transcribe: (args) => ipcRenderer.invoke("meetings:transcribe", args),
     analyzeSpeech: (args) => ipcRenderer.invoke("meetings:analyzeSpeech", args),
     trim: (args) => ipcRenderer.invoke("meetings:trim", args),

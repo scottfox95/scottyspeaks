@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [SS2 0.3.13] - 2026-11-09
+
+### Fixed
+
+- **Call auto-stop during continuous talking**: `SpeechActivity` counts any window above -40 dBFS as activity and keeps its rolling floor at the 5th percentile, capped at -45 dBFS. The old 20th-percentile floor learned speech on talk-heavy calls (rose to about -25 dB) and auto-stopped a demo 11 minutes in.
+- **Screen recorder crash in window mode**: the helper checks the window is on screen and over a display before building `SCContentFilter(desktopIndependentWindow:)` (which aborts in SkyLight otherwise), emits `window-unavailable`, and the app retries on that window's display (or the main display) with a notice.
+
+### Added
+
+- Auto-stop is held off while a meeting app (Teams, Zoom, Webex, FaceTime, Slack huddle, browser WebRTC) holds a call power assertion (`src/helpers/meetingActivity.js`).
+- 30-second auto-stop warning with **Keep recording** (`meetings:keepRecording`).
+- Auto-stop default 10 minutes (was 2), with a one-time migration of configs on the old default; 15 and 30 minute options.
+- Recording alerts (`src/helpers/recordingAlerts.js`): a notification, a tray ⚠ until acknowledged and a persistent page banner for every unrequested stop or failure (crash, non-zero exit, auto-stop, disk guard, 6-hour limit, start failure, window fallback).
+- File-growth watchdog for both recorders (stall after 20 s raises an alert); the UI says "Recording" only after the helper started **and** the file grew.
+- **Record demo**: screen recording plus a backup call recording in one click, each independent.
+- Tests: `tests/recording-trust.test.cjs` (synthetic level fixtures shaped on the incident; no real call audio).
+
+See `docs/releases/0.3.13.md`.
+
 ## [SS2 0.3.12] - 2026-10-21
 
 ### Added

@@ -11,6 +11,16 @@ class TrayManager {
     this.controlPanelWindow = null;
     this.windowManager = null;
     this.attachedControlPanels = new WeakSet();
+    this.recordingAlert = false;
+  }
+
+  // A recording stopped or failed without being asked to. The menu-bar icon
+  // carries a warning until the alert is acknowledged in the control panel.
+  setRecordingAlert(active) {
+    this.recordingAlert = !!active;
+    if (!this.tray) return;
+    if (process.platform === "darwin") this.tray.setTitle(this.recordingAlert ? "⚠" : "");
+    this.updateTrayMenu();
   }
 
   setWindows(mainWindow, controlPanelWindow) {
@@ -121,6 +131,7 @@ class TrayManager {
       }
 
       this.updateTrayMenu();
+      if (this.recordingAlert) this.setRecordingAlert(true);
       this.setupTrayEventHandlers();
     } catch (error) {
       debugLogger.error("Error creating tray icon", { error: error.message }, "tray");
@@ -230,7 +241,20 @@ class TrayManager {
   buildContextMenuTemplate() {
     const dictationVisible = this.windowManager?.isDictationPanelVisible?.() ?? false;
 
+    const alertItems = this.recordingAlert
+      ? [
+          {
+            label: i18nMain.t("tray.recordingProblem"),
+            click: async () => {
+              await this.showControlPanelFromTray();
+            },
+          },
+          { type: "separator" },
+        ]
+      : [];
+
     return [
+      ...alertItems,
       {
         label: dictationVisible
           ? i18nMain.t("tray.toggleDictation.hide")
@@ -266,7 +290,9 @@ class TrayManager {
     if (!this.tray) return;
 
     const contextMenu = Menu.buildFromTemplate(this.buildContextMenuTemplate());
-    this.tray.setToolTip(i18nMain.t("tray.tooltip"));
+    this.tray.setToolTip(
+      this.recordingAlert ? i18nMain.t("tray.recordingProblem") : i18nMain.t("tray.tooltip")
+    );
     this.tray.setContextMenu(contextMenu);
   }
 

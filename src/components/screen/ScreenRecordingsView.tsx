@@ -10,7 +10,10 @@ import {
   RefreshCw,
   ShieldAlert,
   MonitorPlay,
+  Presentation,
 } from "lucide-react";
+import RecordingAlertBanner from "../RecordingAlertBanner";
+import type { CaptureStatus, MeetingResult } from "../../types/meeting";
 import { Button } from "../ui/button";
 import { Toggle } from "../ui/toggle";
 import type {
@@ -38,6 +41,12 @@ async function unwrap<T>(promise: Promise<ScreenRecordingResult<T>>): Promise<T>
       "code" in result ? result.code : null
     );
   return result.data;
+}
+
+async function callData<T>(promise: Promise<MeetingResult<T>>): Promise<T> {
+  const result = await promise;
+  if (result.success === true) return result.data;
+  throw new Error("error" in result ? result.error : "Call recording failed");
 }
 
 const clock = (seconds: number) => {
@@ -81,6 +90,7 @@ export default function ScreenRecordingsView() {
   const [error, setError] = useState("");
   const [permissionProblem, setPermissionProblem] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [call, setCall] = useState<CaptureStatus>({ id: null });
 
   const refreshFiles = useCallback(async () => {
     setFiles(await unwrap(api.list()));
@@ -111,6 +121,8 @@ export default function ScreenRecordingsView() {
       try {
         const next = await unwrap(api.status());
         setStatus(next);
+        const callStatus = await window.electronAPI.meetings?.captureStatus();
+        if (callStatus?.success) setCall(callStatus.data);
         setNow(Date.now());
         const busyNow = next.recording || next.finalizing;
         if (previous && !busyNow) void refreshFiles().catch(() => {});
@@ -162,10 +174,44 @@ export default function ScreenRecordingsView() {
       setStatus(next);
     });
 
+  // "Record demo": the whole screen with system audio and mic, plus a call
+  // recording as an independent backup. Either side failing never stops the other.
+  const startDemo = () =>
+    act(async () => {
+      const meetings = window.electronAPI.meetings;
+      const [screen, backup] = await Promise.allSettled([
+        unwrap(api.start({ systemAudio: true, microphone: true })),
+        (async () => {
+          const created = await callData(meetings.create());
+          return callData(meetings.startCapture({ id: created.id }));
+        })(),
+      ]);
+      if (screen.status === "fulfilled") setStatus(screen.value);
+      if (backup.status === "fulfilled") setCall(backup.value);
+      const failures = [
+        screen.status === "rejected" &&
+          t("screenRecordings.demo.screenFailed", {
+            error: String(screen.reason?.message || screen.reason),
+          }),
+        backup.status === "rejected" &&
+          t("screenRecordings.demo.callFailed", {
+            error: String(backup.reason?.message || backup.reason),
+          }),
+      ].filter(Boolean);
+      if (failures.length) throw new Error(failures.join(" "));
+    });
+
   const stop = () =>
     act(async () => {
       await unwrap(api.stop());
       await refreshFiles();
+    });
+
+  const stopCall = () =>
+    act(async () => {
+      if (!call.id) return;
+      await callData(window.electronAPI.meetings.stopCapture({ id: call.id }));
+      setCall({ id: null });
     });
 
   const last = status.last;
@@ -179,6 +225,11 @@ export default function ScreenRecordingsView() {
         <h1 className="text-xl font-semibold tracking-tight">{t("screenRecordings.title")}</h1>
         <p className="text-sm text-muted-foreground">{t("screenRecordings.subtitle")}</p>
       </header>
+
+      <div className="-mx-6 overflow-hidden rounded-lg md:mx-0">
+        <RecordingAlertBanner source="screen" />
+        <RecordingAlertBanner source="call" />
+      </div>
 
       {permissionProblem && (
         <section
@@ -208,12 +259,25 @@ export default function ScreenRecordingsView() {
       <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-[var(--shadow-card)]">
         {recording ? (
           <div className="flex flex-wrap items-center gap-4" aria-live="polite">
-            <span className="size-2.5 shrink-0 animate-pulse rounded-full bg-destructive" />
+            <span
+              className={`size-2.5 shrink-0 animate-pulse rounded-full ${
+                status.health === "verifying" ? "bg-muted-foreground" : "bg-destructive"
+              }`}
+            />
             <div className="flex min-w-0 flex-1 flex-col">
               <span className="font-mono text-2xl tabular-nums">{clock(elapsed)}</span>
-              <span className="text-xs text-muted-foreground">
-                {t("screenRecordings.recordingDetail", { size: megabytes(status.bytes || 0) })}
+              <span
+                className={`text-xs ${status.health === "stalled" ? "text-destructive" : "text-muted-foreground"}`}
+              >
+                {status.health === "verifying"
+                  ? t("screenRecordings.verifying")
+                  : status.health === "stalled"
+                    ? t("screenRecordings.stalled")
+                    : t("screenRecordings.recordingDetail", { size: megabytes(status.bytes || 0) })}
               </span>
+              {status.fellBack && (
+                <span className="text-xs text-amber-600">{t("screenRecordings.fellBack")}</span>
+              )}
             </div>
             <Button
               variant="destructive"
@@ -303,6 +367,15 @@ export default function ScreenRecordingsView() {
                 )}
                 {t("screenRecordings.start")}
               </Button>
+              <Button
+                variant="outline"
+                disabled={busy || !!unavailable || status.finalizing || !!call.id}
+                title={t("screenRecordings.demo.help")}
+                onClick={() => void startDemo()}
+              >
+                <Presentation />
+                {t("screenRecordings.demo.start")}
+              </Button>
               {status.finalizing && (
                 <span
                   role="status"
@@ -316,9 +389,51 @@ export default function ScreenRecordingsView() {
             <p className="text-xs leading-relaxed text-muted-foreground">
               {unavailable ? t("screenRecordings.unavailable") : t("screenRecordings.help")}
             </p>
+            {source.startsWith("window:") && (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {t("screenRecordings.windowNote")}
+              </p>
+            )}
           </>
         )}
       </section>
+
+      {call.id && (
+        <section
+          aria-label={t("screenRecordings.demo.callBackup")}
+          className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-5 py-3 text-sm"
+        >
+          <span
+            className={`size-2 shrink-0 rounded-full ${
+              call.health === "stalled"
+                ? "bg-destructive"
+                : call.health === "ok"
+                  ? "bg-emerald-500"
+                  : "animate-pulse bg-muted-foreground"
+            }`}
+          />
+          <span className="flex-1">
+            {t("screenRecordings.demo.callBackup")} ·{" "}
+            {call.health === "stalled"
+              ? t("meetings.stalled")
+              : call.health === "ok"
+                ? t("meetings.recording")
+                : t("meetings.verifying")}{" "}
+            <span className="font-mono tabular-nums">
+              {clock((now - (call.startedAt || now)) / 1000)}
+            </span>
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={busy || call.stopping}
+            onClick={() => void stopCall()}
+          >
+            <Square />
+            {t("screenRecordings.demo.stopCall")}
+          </Button>
+        </section>
+      )}
 
       {error && (
         <p role="alert" className="text-sm text-destructive">

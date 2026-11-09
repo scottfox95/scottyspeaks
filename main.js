@@ -129,6 +129,12 @@ function initializeCoreManagers() {
   const localSpeech = speechHandlers.createLocalSpeech(app);
   speechHandlers.registerSpeechHandlers({ app, ipcMain, windowManager, manager: localSpeech });
 
+  const recordingAlerts = require("./src/helpers/recordingAlertHandlers").registerRecordingAlertHandlers({
+    ipcMain,
+    Notification: require("electron").Notification,
+    windowManager,
+    getTrayManager: () => trayManager,
+  });
   const audioEvidence = new (require("./src/helpers/audioEvidence").AudioEvidence)();
   protocol.handle("ss2-audio", (request) => audioEvidence.handle(request));
   const { meetings, captures } = require("./src/helpers/transcriptionHandlers")
@@ -147,6 +153,7 @@ function initializeCoreManagers() {
       audioEvidence,
       localSpeech,
       callDiarizer: new (require("./src/helpers/callDiarizer").CallDiarizer)(),
+      recordingAlerts,
     });
   require("./src/helpers/screenRecordingHandlers").registerScreenRecordingHandlers({
     app,
@@ -155,6 +162,7 @@ function initializeCoreManagers() {
     systemPreferences,
     powerSaveBlocker: require("electron").powerSaveBlocker,
     windowManager,
+    recordingAlerts,
   });
   require("./src/helpers/callAgentHandlers").registerCallAgentHandlers({
     app, ipcMain, windowManager, meetingStore: meetings.store, localSpeech,

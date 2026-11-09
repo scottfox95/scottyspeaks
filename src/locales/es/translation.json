@@ -16,7 +16,8 @@
     },
     "openControlPanel": "Abrir panel de control",
     "quit": "Salir de ScottySpeaks",
-    "tooltip": "ScottySpeaks - Dictado por voz"
+    "tooltip": "ScottySpeaks - Dictado por voz",
+    "recordingProblem": "⚠ Una grabación se detuvo. Abrir SS2"
   },
   "menu": {
     "appLabel": "ScottySpeaks",
@@ -1742,7 +1743,9 @@
       "minutes_one": "{{count}} minuto",
       "minutes_other": "{{count}} minutos",
       "stopped_one": "La grabación se detuvo automáticamente tras {{count}} minuto sin voz.",
-      "stopped_other": "La grabación se detuvo automáticamente tras {{count}} minutos sin voz."
+      "stopped_other": "La grabación se detuvo automáticamente tras {{count}} minutos sin voz.",
+      "warning": "No se detecta voz. La grabación se detiene en {{seconds}} s.",
+      "heldBy": "Llamada de {{app}} en curso, parada automática en pausa"
     },
     "trim": {
       "button": "Recortar",
@@ -1757,7 +1760,9 @@
       "apply": "Recortar a {{time}}",
       "cancel": "Cancelar",
       "warning": "Los últimos {{removed}} de audio se eliminarán de forma permanente. Habrá que volver a transcribir la llamada."
-    }
+    },
+    "verifying": "Iniciando, comprobando que se guarda el audio…",
+    "stalled": "No se guarda. Revisa la grabación"
   },
   "replay": {
     "open": "Reproducir y corregir",
@@ -2024,6 +2029,76 @@
       "body": "macOS impidió que SS2 capturara la pantalla. Abre Ajustes del Sistema → Privacidad y seguridad → Grabación de pantalla y audio del sistema, activa SS2 y vuelve a abrir SS2.",
       "open": "Abrir Ajustes del Sistema",
       "retry": "Comprobar de nuevo"
+    },
+    "verifying": "Iniciando, comprobando que se guarda el audio…",
+    "stalled": "El archivo dejó de crecer. Puede que esta grabación no se esté guardando.",
+    "fellBack": "La ventana elegida no estaba disponible, así que SS2 graba la pantalla en la que estaba.",
+    "windowNote": "Si la ventana está minimizada, en otro Espacio o cerrada al empezar, SS2 graba su pantalla.",
+    "demo": {
+      "start": "Grabar demo",
+      "help": "Graba la pantalla completa con audio del sistema y micrófono, y además una grabación de llamada como respaldo. Si una falla, la otra sigue.",
+      "screenFailed": "La grabación de pantalla no se inició: {{error}}",
+      "callFailed": "La grabación de respaldo de la llamada no se inició: {{error}}",
+      "callBackup": "Grabación de llamada de respaldo",
+      "stopCall": "Detener grabación de llamada"
+    }
+  },
+  "recordingAlerts": {
+    "dismiss": "Descartar",
+    "keepRecording": "Seguir grabando",
+    "autoStopWarning": {
+      "title": "La grabación de la llamada se detendrá pronto",
+      "body": "No se detecta voz. La grabación se detiene en {{seconds}} segundos. Abre SS2 para seguir grabando."
+    },
+    "autoStopped": {
+      "title": "Grabación de la llamada detenida",
+      "body": "SS2 no oyó voz durante {{minutes}} minutos y detuvo la grabación. El audio está guardado."
+    },
+    "stalledCall": {
+      "title": "La grabación de la llamada no se está guardando",
+      "body": "El archivo de grabación dejó de crecer. Revisa SS2 ahora; quizá debas iniciar una nueva grabación."
+    },
+    "stalledScreen": {
+      "title": "La grabación de pantalla no se está guardando",
+      "body": "El archivo de grabación dejó de crecer. Revisa SS2 ahora; quizá debas iniciar una nueva grabación."
+    },
+    "fellBack": {
+      "title": "Grabando la pantalla completa",
+      "body": "La ventana elegida no estaba disponible, así que SS2 graba la pantalla en la que estaba."
+    },
+    "limit": {
+      "title": "Grabación de la llamada detenida",
+      "body": "La grabación alcanzó el límite de 6 horas. El audio está guardado."
+    },
+    "disk": {
+      "title": "Grabación de pantalla detenida",
+      "body": "Queda menos de 1 GB de espacio. La grabación se guardó."
+    },
+    "startFailedCall": {
+      "title": "La grabación de la llamada no se inició",
+      "body": "{{message}}"
+    },
+    "startFailedScreen": {
+      "title": "La grabación de pantalla no se inició",
+      "body": "{{message}}"
+    },
+    "failedCall": {
+      "title": "La grabación de la llamada se detuvo inesperadamente",
+      "body": "{{message}}"
+    },
+    "failedScreen": {
+      "title": "La grabación de pantalla se detuvo inesperadamente",
+      "body": "{{message}}"
+    }
+  },
+  "updaterNotice": {
+    "updated": {
+      "title": "SS2 actualizado a {{version}}",
+      "body": "Tenías la {{previous}}."
+    },
+    "ready": {
+      "title": "SS2 {{version}} está listo",
+      "body": "Se instala la próxima vez que cierres SS2, o ahora desde Ajustes."
     }
   }
 }

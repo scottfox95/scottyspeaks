@@ -328,6 +328,7 @@ declare global {
       speech: import("./speech").SpeechAPI;
       callAgent: import("./callAgent").CallAgentAPI;
       meetings: import("./meeting").MeetingAPI;
+      recordingAlerts: import("./recordingAlerts").RecordingAlertsAPI;
       captures: import("./capture").CaptureAPI;
       screenRecordings: import("./screenRecording").ScreenRecordingAPI;
       // Basic window operations

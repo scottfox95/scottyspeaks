@@ -642,6 +642,13 @@ Screen recordings page (sidebar / ⌘4) → `src/components/screen/ScreenRecordi
 - Guards: refuses to start with <2 GB free, stops itself below 1 GB (checked every 30s), `powerSaveBlocker("prevent-app-suspension")` while recording, `before-quit` finalizes first. If SS2 crashes, the helper sees stdin EOF and finalizes on its own.
 - Permission: TCC refusal surfaces as `SCStreamError.userDeclined` → `code: "permission"` → the page shows guidance and opens `Privacy_ScreenCapture`. Running the helper from a terminal fails with that error; TCC belongs to the signed SS2 app, so real tests go through a packed build.
 
+### Recording trust (0.3.13, after the Nov 9 2026 demo failures)
+- **Speech detection** (`speechActivity.js`): anything above -40 dBFS is activity; the rolling floor is the 5th percentile capped at -45 dBFS. The old 20th-percentile floor learned speech on talk-heavy calls and auto-stopped one 11 minutes in. `tests/recording-trust.test.cjs` holds synthetic fixtures that the pre-fix detector fails on. Never commit real call audio.
+- **Auto-stop** (`meetingRecorder.js`): default 10 min (configs on the old default of 2 migrate once, flag `autoStopDefaultMigrated`). 30 s warning (`status().autoStopWarning`, `meetings:keepRecording`). Held off while a meeting app holds a call power assertion (`meetingActivity.js` parses `pmset -g assertions`: Teams, Zoom, Webex, FaceTime, Slack huddle, browser WebRTC).
+- **Window capture**: `screen-recorder.swift` checks the window is on screen and over a display before `SCContentFilter(desktopIndependentWindow:)`, which aborts inside SkyLight otherwise. It emits `window-unavailable` (+ `displayID`) and exits 3; `screenRecorder.js` retries on that display and sets `fellBack`.
+- **Never fail silently**: both recorders call `onAlert` for every stop the person didn't request; `recordingAlerts.js` turns that into a notification, a tray ⚠ (`TrayManager.setRecordingAlert`) and a `RecordingAlertBanner` that stays until dismissed. Pass `requestedBy: "user"` to `stop()` from user actions or you'll raise a false alert.
+- **Watchdog**: `health` is `verifying` → `ok` once the output file grows, `stalled` after 20 s without growth (alert, recorder keeps running). Video-only screen recordings aren't stall-checked: a static screen writes nothing.
+
 ### Stream Deck Pedal
 - `src/helpers/pedalManager.js` (@elgato-stream-deck/node). Default: left=tap-toggle, middle=hold-to-talk, right=voice command. Config: `userData/pedal-config.json`, UI in Settings → Hotkeys + onboarding.
 - Voice command mode: spoken instruction applied to selected text (Cmd+C capture via `clipboard.captureSelection`) or last dictation; `src/services/polish/voiceCommand.ts`.

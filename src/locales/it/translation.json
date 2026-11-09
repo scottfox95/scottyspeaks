@@ -16,7 +16,8 @@
     },
     "openControlPanel": "Apri pannello di controllo",
     "quit": "Esci da ScottySpeaks",
-    "tooltip": "ScottySpeaks - Dettatura vocale"
+    "tooltip": "ScottySpeaks - Dettatura vocale",
+    "recordingProblem": "⚠ Una registrazione si è interrotta. Apri SS2"
   },
   "menu": {
     "appLabel": "ScottySpeaks",
@@ -1742,7 +1743,9 @@
       "minutes_one": "{{count}} minuto",
       "minutes_other": "{{count}} minuti",
       "stopped_one": "Registrazione interrotta automaticamente dopo {{count}} minuto senza voce.",
-      "stopped_other": "Registrazione interrotta automaticamente dopo {{count}} minuti senza voce."
+      "stopped_other": "Registrazione interrotta automaticamente dopo {{count}} minuti senza voce.",
+      "warning": "Nessuna voce rilevata. Stop tra {{seconds}} s.",
+      "heldBy": "Chiamata {{app}} in corso, arresto automatico in pausa"
     },
     "trim": {
       "button": "Taglia",
@@ -1757,7 +1760,9 @@
       "apply": "Taglia a {{time}}",
       "cancel": "Annulla",
       "warning": "Gli ultimi {{removed}} di audio verranno eliminati definitivamente. La chiamata dovrà essere trascritta di nuovo."
-    }
+    },
+    "verifying": "Avvio, verifica del salvataggio audio…",
+    "stalled": "Non salva. Controlla la registrazione"
   },
   "replay": {
     "open": "Riascolta e correggi",
@@ -2024,6 +2029,76 @@
       "body": "macOS ha impedito a SS2 di catturare lo schermo. Apri Impostazioni di Sistema → Privacy e sicurezza → Registrazione schermo e audio di sistema, attiva SS2 e riapri SS2.",
       "open": "Apri Impostazioni di Sistema",
       "retry": "Controlla di nuovo"
+    },
+    "verifying": "Avvio, verifica del salvataggio audio…",
+    "stalled": "Il file ha smesso di crescere. La registrazione potrebbe non essere salvata.",
+    "fellBack": "La finestra scelta non era disponibile, quindi SS2 registra lo schermo su cui si trovava.",
+    "windowNote": "Se la finestra è ridotta a icona, in un altro Spazio o chiusa all'avvio, SS2 registra il suo schermo.",
+    "demo": {
+      "start": "Registra demo",
+      "help": "Registra l'intero schermo con audio di sistema e microfono, più una registrazione della chiamata di riserva. Se una fallisce, l'altra continua.",
+      "screenFailed": "La registrazione dello schermo non è partita: {{error}}",
+      "callFailed": "La registrazione di riserva della chiamata non è partita: {{error}}",
+      "callBackup": "Registrazione chiamata di riserva",
+      "stopCall": "Ferma registrazione chiamata"
+    }
+  },
+  "recordingAlerts": {
+    "dismiss": "Ignora",
+    "keepRecording": "Continua a registrare",
+    "autoStopWarning": {
+      "title": "La registrazione della chiamata sta per fermarsi",
+      "body": "Nessuna voce rilevata. La registrazione si ferma tra {{seconds}} secondi. Apri SS2 per continuare."
+    },
+    "autoStopped": {
+      "title": "Registrazione della chiamata interrotta",
+      "body": "SS2 non ha sentito voci per {{minutes}} minuti e ha interrotto la registrazione. L'audio è salvato."
+    },
+    "stalledCall": {
+      "title": "La registrazione della chiamata non viene salvata",
+      "body": "Il file di registrazione ha smesso di crescere. Controlla SS2 ora; potrebbe servire una nuova registrazione."
+    },
+    "stalledScreen": {
+      "title": "La registrazione dello schermo non viene salvata",
+      "body": "Il file di registrazione ha smesso di crescere. Controlla SS2 ora; potrebbe servire una nuova registrazione."
+    },
+    "fellBack": {
+      "title": "Registrazione dell'intero schermo",
+      "body": "La finestra scelta non era disponibile, quindi SS2 registra lo schermo su cui si trovava."
+    },
+    "limit": {
+      "title": "Registrazione della chiamata interrotta",
+      "body": "La registrazione ha raggiunto il limite di 6 ore. L'audio è salvato."
+    },
+    "disk": {
+      "title": "Registrazione dello schermo interrotta",
+      "body": "Rimane meno di 1 GB di spazio. La registrazione è stata salvata."
+    },
+    "startFailedCall": {
+      "title": "La registrazione della chiamata non è partita",
+      "body": "{{message}}"
+    },
+    "startFailedScreen": {
+      "title": "La registrazione dello schermo non è partita",
+      "body": "{{message}}"
+    },
+    "failedCall": {
+      "title": "La registrazione della chiamata si è interrotta inaspettatamente",
+      "body": "{{message}}"
+    },
+    "failedScreen": {
+      "title": "La registrazione dello schermo si è interrotta inaspettatamente",
+      "body": "{{message}}"
+    }
+  },
+  "updaterNotice": {
+    "updated": {
+      "title": "SS2 aggiornato a {{version}}",
+      "body": "Prima avevi la {{previous}}."
+    },
+    "ready": {
+      "title": "SS2 {{version}} è pronto",
+      "body": "Verrà installato alla prossima chiusura di SS2, oppure ora dalle Impostazioni."
     }
   }
 }

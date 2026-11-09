@@ -35,6 +35,10 @@ export interface ScreenRecordingStatus {
   startedAt?: number;
   name?: string;
   bytes?: number;
+  /** "verifying" until the file is seen growing. */
+  health?: "verifying" | "ok" | "stalled";
+  /** The chosen window was unavailable, so the display is being recorded. */
+  fellBack?: boolean;
   finalizing: boolean;
   last: ScreenRecordingOutcome | null;
 }

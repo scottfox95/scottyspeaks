@@ -16,7 +16,8 @@
     },
     "openControlPanel": "Ouvrir le panneau de contrôle",
     "quit": "Quitter ScottySpeaks",
-    "tooltip": "ScottySpeaks - Dictée vocale"
+    "tooltip": "ScottySpeaks - Dictée vocale",
+    "recordingProblem": "⚠ Un enregistrement s'est arrêté. Ouvrir SS2"
   },
   "menu": {
     "appLabel": "ScottySpeaks",
@@ -1742,7 +1743,9 @@
       "minutes_one": "{{count}} minute",
       "minutes_other": "{{count}} minutes",
       "stopped_one": "Enregistrement arrêté automatiquement après {{count}} minute sans parole.",
-      "stopped_other": "Enregistrement arrêté automatiquement après {{count}} minutes sans parole."
+      "stopped_other": "Enregistrement arrêté automatiquement après {{count}} minutes sans parole.",
+      "warning": "Aucune voix détectée. Arrêt dans {{seconds}} s.",
+      "heldBy": "Appel {{app}} en cours, arrêt automatique en pause"
     },
     "trim": {
       "button": "Couper",
@@ -1757,7 +1760,9 @@
       "apply": "Couper à {{time}}",
       "cancel": "Annuler",
       "warning": "Les dernières {{removed}} d’audio seront définitivement supprimées. L’appel devra être transcrit à nouveau."
-    }
+    },
+    "verifying": "Démarrage, vérification de l'enregistrement audio…",
+    "stalled": "Pas de sauvegarde. Vérifiez l'enregistrement"
   },
   "replay": {
     "open": "Réécouter et corriger",
@@ -2024,6 +2029,76 @@
       "body": "macOS a empêché SS2 de capturer l'écran. Ouvrez Réglages Système → Confidentialité et sécurité → Enregistrement de l'écran et de l'audio du système, activez SS2, puis relancez SS2.",
       "open": "Ouvrir Réglages Système",
       "retry": "Vérifier à nouveau"
+    },
+    "verifying": "Démarrage, vérification de l'enregistrement audio…",
+    "stalled": "Le fichier ne grossit plus. Cet enregistrement n'est peut-être pas sauvegardé.",
+    "fellBack": "La fenêtre choisie n'était pas disponible ; SS2 enregistre l'écran où elle se trouvait.",
+    "windowNote": "Si la fenêtre est réduite, sur un autre Space ou fermée au démarrage, SS2 enregistre son écran à la place.",
+    "demo": {
+      "start": "Enregistrer une démo",
+      "help": "Enregistre l'écran entier avec l'audio système et le micro, plus un enregistrement d'appel de secours. Si l'un échoue, l'autre continue.",
+      "screenFailed": "L'enregistrement de l'écran n'a pas démarré : {{error}}",
+      "callFailed": "L'enregistrement d'appel de secours n'a pas démarré : {{error}}",
+      "callBackup": "Enregistrement d'appel de secours",
+      "stopCall": "Arrêter l'enregistrement d'appel"
+    }
+  },
+  "recordingAlerts": {
+    "dismiss": "Ignorer",
+    "keepRecording": "Continuer l'enregistrement",
+    "autoStopWarning": {
+      "title": "L'enregistrement de l'appel va bientôt s'arrêter",
+      "body": "Aucune voix détectée. L'enregistrement s'arrête dans {{seconds}} secondes. Ouvrez SS2 pour continuer."
+    },
+    "autoStopped": {
+      "title": "Enregistrement de l'appel arrêté",
+      "body": "SS2 n'a entendu aucune voix pendant {{minutes}} minutes et a arrêté l'enregistrement. L'audio est enregistré."
+    },
+    "stalledCall": {
+      "title": "L'enregistrement de l'appel n'est pas sauvegardé",
+      "body": "Le fichier d'enregistrement ne grossit plus. Vérifiez SS2 maintenant ; il faudra peut-être relancer un enregistrement."
+    },
+    "stalledScreen": {
+      "title": "L'enregistrement de l'écran n'est pas sauvegardé",
+      "body": "Le fichier d'enregistrement ne grossit plus. Vérifiez SS2 maintenant ; il faudra peut-être relancer un enregistrement."
+    },
+    "fellBack": {
+      "title": "Enregistrement de l'écran entier à la place",
+      "body": "La fenêtre choisie n'était pas disponible ; SS2 enregistre l'écran où elle se trouvait."
+    },
+    "limit": {
+      "title": "Enregistrement de l'appel arrêté",
+      "body": "L'enregistrement a atteint la limite de 6 heures. L'audio est enregistré."
+    },
+    "disk": {
+      "title": "Enregistrement de l'écran arrêté",
+      "body": "Il reste moins de 1 Go d'espace disque. L'enregistrement a été sauvegardé."
+    },
+    "startFailedCall": {
+      "title": "L'enregistrement de l'appel n'a pas démarré",
+      "body": "{{message}}"
+    },
+    "startFailedScreen": {
+      "title": "L'enregistrement de l'écran n'a pas démarré",
+      "body": "{{message}}"
+    },
+    "failedCall": {
+      "title": "L'enregistrement de l'appel s'est arrêté de façon inattendue",
+      "body": "{{message}}"
+    },
+    "failedScreen": {
+      "title": "L'enregistrement de l'écran s'est arrêté de façon inattendue",
+      "body": "{{message}}"
+    }
+  },
+  "updaterNotice": {
+    "updated": {
+      "title": "SS2 mis à jour vers {{version}}",
+      "body": "Vous utilisiez la {{previous}}."
+    },
+    "ready": {
+      "title": "SS2 {{version}} est prêt",
+      "body": "Il s'installera à la prochaine fermeture de SS2, ou maintenant depuis les Réglages."
     }
   }
 }

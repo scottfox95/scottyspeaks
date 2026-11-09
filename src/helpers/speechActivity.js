@@ -1,12 +1,18 @@
 const { spawn } = require("child_process");
 
-// Loudness windows are 0.5s. A fixed dBFS threshold cannot separate speech from
-// room noise (a laptop mic's floor can sit near -50 dBFS while quiet remote
-// voices peak only ~8 dB above it), so speech is measured against a rolling
-// noise floor: the 20th percentile of the last 10 minutes of windows.
+// Loudness windows are 0.5s. Quiet remote voices can peak only ~8 dB above a
+// laptop mic's floor (near -50 dBFS), so quiet tracks are measured against a
+// rolling noise floor. Two guards keep that floor from learning speech, which
+// on a talk-heavy call made normal talking stop counting (Nov 9 2026: the
+// 20th percentile rose to -24.7 dB and auto-stop fired 11 minutes into a demo):
+// the floor is a low percentile and is capped, and anything above an absolute
+// level counts as activity whatever the floor says.
 const WINDOW_SECONDS = 0.5;
 const FLOOR_WINDOWS = 1200;
+const FLOOR_PERCENTILE = 0.05;
+const FLOOR_CAP_DB = -45;
 const MARGIN_DB = 8;
+const ABSOLUTE_ACTIVITY_DB = -40;
 // Digital silence (an idle system-audio track) has no floor; ignore anything
 // quieter than this so a notification blip on a dead track is not "speech".
 const MIN_SPEECH_DB = -60;
@@ -27,7 +33,7 @@ class SpeechActivity {
   floor() {
     if (this.history.length < 20) return null;
     const sorted = [...this.history].sort((a, b) => a - b);
-    return sorted[Math.floor(sorted.length * 0.2)];
+    return Math.min(sorted[Math.floor(sorted.length * FLOOR_PERCENTILE)], FLOOR_CAP_DB);
   }
   // Feeds one window ending at `time` seconds. Returns true when speech is
   // detected at that moment.
@@ -36,7 +42,8 @@ class SpeechActivity {
     this.history.push(db);
     if (this.history.length > FLOOR_WINDOWS) this.history.shift();
     const floor = this.floor();
-    const loud = floor != null && db > MIN_SPEECH_DB && db > floor + MARGIN_DB;
+    const loud =
+      db > ABSOLUTE_ACTIVITY_DB || (floor != null && db > MIN_SPEECH_DB && db > floor + MARGIN_DB);
     this.recent.push(loud);
     if (this.recent.length > BURST_SPAN) this.recent.shift();
     if (!loud || this.recent.filter(Boolean).length < BURST_WINDOWS) return false;
@@ -147,4 +154,6 @@ module.exports = {
   mergeSegments,
   trimSuggestions,
   WINDOW_SECONDS,
+  ABSOLUTE_ACTIVITY_DB,
+  FLOOR_CAP_DB,
 };

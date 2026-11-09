@@ -63,6 +63,13 @@ export interface CaptureStatus {
   id: string | null;
   startedAt?: number;
   stopping?: boolean;
+  autoStopSeconds?: number;
+  lastSpeech?: number | null;
+  /** "verifying" until the capture files are seen growing. */
+  health?: "verifying" | "ok" | "stalled";
+  autoStopWarning?: { secondsLeft: number } | null;
+  /** Meeting app whose live call is holding off auto-stop. */
+  heldBy?: string | null;
 }
 export type MeetingResult<T> = { success: true; data: T } | { success: false; error: string };
 export interface MeetingAPI {
@@ -102,6 +109,7 @@ export interface MeetingAPI {
   startCapture(args: { id: string }): Promise<MeetingResult<CaptureStatus>>;
   stopCapture(args: { id: string }): Promise<MeetingResult<Meeting>>;
   captureStatus(args?: unknown): Promise<MeetingResult<CaptureStatus>>;
+  keepRecording(args: { id: string }): Promise<MeetingResult<CaptureStatus>>;
   transcribe(args: { id: string; force?: boolean }): Promise<MeetingResult<Meeting>>;
   cancelTranscription(args: { id: string }): Promise<MeetingResult<void>>;
   analyzeSpeech(args: { id: string }): Promise<MeetingResult<SpeechAnalysis>>;

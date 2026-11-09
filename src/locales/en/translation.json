@@ -16,7 +16,8 @@
     },
     "openControlPanel": "Open Control Panel",
     "quit": "Quit ScottySpeaks",
-    "tooltip": "ScottySpeaks - Voice Dictation"
+    "tooltip": "ScottySpeaks - Voice Dictation",
+    "recordingProblem": "⚠ A recording stopped. Open SS2"
   },
   "menu": {
     "appLabel": "ScottySpeaks",
@@ -927,11 +928,7 @@
         "enterprise": {
           "name": "Enterprise",
           "price": "Custom",
-          "features": [
-            "Cloud sync",
-            "Team features (coming soon)",
-            "SSO & compliance"
-          ],
+          "features": ["Cloud sync", "Team features (coming soon)", "SSO & compliance"],
           "cta": "Contact Us"
         },
         "currentPlan": "Current plan"
@@ -1742,7 +1739,9 @@
       "minutes_one": "{{count}} minute",
       "minutes_other": "{{count}} minutes",
       "stopped_one": "Recording stopped automatically after {{count}} minute without speech.",
-      "stopped_other": "Recording stopped automatically after {{count}} minutes without speech."
+      "stopped_other": "Recording stopped automatically after {{count}} minutes without speech.",
+      "warning": "No speech detected. Recording stops in {{seconds}} s.",
+      "heldBy": "{{app}} call in progress, auto-stop paused"
     },
     "trim": {
       "button": "Trim",
@@ -1757,7 +1756,9 @@
       "apply": "Trim to {{time}}",
       "cancel": "Cancel",
       "warning": "The last {{removed}} of audio will be permanently deleted. The call will need to be transcribed again."
-    }
+    },
+    "verifying": "Starting, checking audio is saving…",
+    "stalled": "Not saving. Check the recording"
   },
   "replay": {
     "open": "Replay & repair",
@@ -2024,6 +2025,76 @@
       "body": "macOS blocked SS2 from capturing the screen. Open System Settings → Privacy & Security → Screen & System Audio Recording, turn on SS2, then quit and reopen SS2.",
       "open": "Open System Settings",
       "retry": "Check again"
+    },
+    "verifying": "Starting, checking audio is saving…",
+    "stalled": "The file stopped growing. This recording may not be saving.",
+    "fellBack": "The chosen window wasn't available, so SS2 is recording the display it was on.",
+    "windowNote": "If the window is minimized, moved to another Space or closed when recording starts, SS2 records its display instead.",
+    "demo": {
+      "start": "Record demo",
+      "help": "Records the whole screen with system audio and mic, plus a call recording as a backup. If one fails, the other keeps going.",
+      "screenFailed": "Screen recording didn't start: {{error}}",
+      "callFailed": "Backup call recording didn't start: {{error}}",
+      "callBackup": "Backup call recording",
+      "stopCall": "Stop call recording"
+    }
+  },
+  "recordingAlerts": {
+    "dismiss": "Dismiss",
+    "keepRecording": "Keep recording",
+    "autoStopWarning": {
+      "title": "Call recording stops soon",
+      "body": "No speech detected. Recording stops in {{seconds}} seconds. Open SS2 to keep recording."
+    },
+    "autoStopped": {
+      "title": "Call recording stopped",
+      "body": "SS2 heard no speech for {{minutes}} minutes and stopped the recording. The audio is saved."
+    },
+    "stalledCall": {
+      "title": "Call recording isn't saving",
+      "body": "The recording file stopped growing. Check SS2 now; you may need to start a new recording."
+    },
+    "stalledScreen": {
+      "title": "Screen recording isn't saving",
+      "body": "The recording file stopped growing. Check SS2 now; you may need to start a new recording."
+    },
+    "fellBack": {
+      "title": "Recording the whole screen instead",
+      "body": "The chosen window wasn't available, so SS2 is recording the display it was on."
+    },
+    "limit": {
+      "title": "Call recording stopped",
+      "body": "The recording reached the 6-hour limit. The audio is saved."
+    },
+    "disk": {
+      "title": "Screen recording stopped",
+      "body": "Less than 1 GB of disk space is left. The recording was saved."
+    },
+    "startFailedCall": {
+      "title": "Call recording didn't start",
+      "body": "{{message}}"
+    },
+    "startFailedScreen": {
+      "title": "Screen recording didn't start",
+      "body": "{{message}}"
+    },
+    "failedCall": {
+      "title": "Call recording stopped unexpectedly",
+      "body": "{{message}}"
+    },
+    "failedScreen": {
+      "title": "Screen recording stopped unexpectedly",
+      "body": "{{message}}"
+    }
+  },
+  "updaterNotice": {
+    "updated": {
+      "title": "SS2 updated to {{version}}",
+      "body": "You were on {{previous}}."
+    },
+    "ready": {
+      "title": "SS2 {{version}} is ready",
+      "body": "It installs the next time SS2 quits, or now from Settings."
     }
   }
 }

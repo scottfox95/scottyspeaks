@@ -16,7 +16,8 @@
     },
     "openControlPanel": "Kontrollzentrum öffnen",
     "quit": "ScottySpeaks beenden",
-    "tooltip": "ScottySpeaks – Sprachdiktat"
+    "tooltip": "ScottySpeaks – Sprachdiktat",
+    "recordingProblem": "⚠ Eine Aufnahme wurde beendet. SS2 öffnen"
   },
   "menu": {
     "appLabel": "ScottySpeaks",
@@ -927,11 +928,7 @@
         "enterprise": {
           "name": "Enterprise",
           "price": "Individuell",
-          "features": [
-            "Cloud-Synchronisation",
-            "Team-Funktionen (demnächst)",
-            "SSO & Compliance"
-          ],
+          "features": ["Cloud-Synchronisation", "Team-Funktionen (demnächst)", "SSO & Compliance"],
           "cta": "Kontakt aufnehmen"
         },
         "currentPlan": "Aktueller Tarif"
@@ -1742,7 +1739,9 @@
       "minutes_one": "{{count}} Minute",
       "minutes_other": "{{count}} Minuten",
       "stopped_one": "Aufnahme nach {{count}} Minute ohne Sprache automatisch beendet.",
-      "stopped_other": "Aufnahme nach {{count}} Minuten ohne Sprache automatisch beendet."
+      "stopped_other": "Aufnahme nach {{count}} Minuten ohne Sprache automatisch beendet.",
+      "warning": "Keine Sprache erkannt. Aufnahme endet in {{seconds}} s.",
+      "heldBy": "{{app}}-Anruf läuft, Auto-Stopp pausiert"
     },
     "trim": {
       "button": "Kürzen",
@@ -1757,7 +1756,9 @@
       "apply": "Auf {{time}} kürzen",
       "cancel": "Abbrechen",
       "warning": "Die letzten {{removed}} Audio werden dauerhaft gelöscht. Der Anruf muss erneut transkribiert werden."
-    }
+    },
+    "verifying": "Startet, prüfe, ob der Ton gespeichert wird…",
+    "stalled": "Speichert nicht. Aufnahme prüfen"
   },
   "replay": {
     "open": "Wiedergabe & Korrektur",
@@ -2024,6 +2025,76 @@
       "body": "macOS hat SS2 die Bildschirmaufnahme verweigert. Öffne Systemeinstellungen → Datenschutz & Sicherheit → Bildschirm- & Systemaudioaufnahme, aktiviere SS2 und öffne SS2 neu.",
       "open": "Systemeinstellungen öffnen",
       "retry": "Erneut prüfen"
+    },
+    "verifying": "Startet, prüfe, ob der Ton gespeichert wird…",
+    "stalled": "Die Datei wächst nicht mehr. Diese Aufnahme wird eventuell nicht gespeichert.",
+    "fellBack": "Das gewählte Fenster war nicht verfügbar, daher nimmt SS2 den Bildschirm auf, auf dem es war.",
+    "windowNote": "Ist das Fenster beim Start minimiert, in einem anderen Space oder geschlossen, nimmt SS2 stattdessen seinen Bildschirm auf.",
+    "demo": {
+      "start": "Demo aufnehmen",
+      "help": "Nimmt den ganzen Bildschirm mit Systemton und Mikrofon auf, dazu eine Anrufaufnahme als Sicherung. Fällt eine aus, läuft die andere weiter.",
+      "screenFailed": "Bildschirmaufnahme nicht gestartet: {{error}}",
+      "callFailed": "Sicherungs-Anrufaufnahme nicht gestartet: {{error}}",
+      "callBackup": "Sicherungs-Anrufaufnahme",
+      "stopCall": "Anrufaufnahme beenden"
+    }
+  },
+  "recordingAlerts": {
+    "dismiss": "Schließen",
+    "keepRecording": "Weiter aufnehmen",
+    "autoStopWarning": {
+      "title": "Die Anrufaufnahme endet gleich",
+      "body": "Keine Sprache erkannt. Die Aufnahme endet in {{seconds}} Sekunden. Öffne SS2, um weiter aufzunehmen."
+    },
+    "autoStopped": {
+      "title": "Anrufaufnahme beendet",
+      "body": "SS2 hat {{minutes}} Minuten lang keine Sprache gehört und die Aufnahme beendet. Der Ton ist gespeichert."
+    },
+    "stalledCall": {
+      "title": "Die Anrufaufnahme wird nicht gespeichert",
+      "body": "Die Aufnahmedatei wächst nicht mehr. Prüfe SS2 jetzt; eventuell musst du neu aufnehmen."
+    },
+    "stalledScreen": {
+      "title": "Die Bildschirmaufnahme wird nicht gespeichert",
+      "body": "Die Aufnahmedatei wächst nicht mehr. Prüfe SS2 jetzt; eventuell musst du neu aufnehmen."
+    },
+    "fellBack": {
+      "title": "Stattdessen wird der ganze Bildschirm aufgenommen",
+      "body": "Das gewählte Fenster war nicht verfügbar, daher nimmt SS2 den Bildschirm auf, auf dem es war."
+    },
+    "limit": {
+      "title": "Anrufaufnahme beendet",
+      "body": "Die Aufnahme hat das 6-Stunden-Limit erreicht. Der Ton ist gespeichert."
+    },
+    "disk": {
+      "title": "Bildschirmaufnahme beendet",
+      "body": "Weniger als 1 GB Speicher frei. Die Aufnahme wurde gespeichert."
+    },
+    "startFailedCall": {
+      "title": "Die Anrufaufnahme wurde nicht gestartet",
+      "body": "{{message}}"
+    },
+    "startFailedScreen": {
+      "title": "Die Bildschirmaufnahme wurde nicht gestartet",
+      "body": "{{message}}"
+    },
+    "failedCall": {
+      "title": "Die Anrufaufnahme wurde unerwartet beendet",
+      "body": "{{message}}"
+    },
+    "failedScreen": {
+      "title": "Die Bildschirmaufnahme wurde unerwartet beendet",
+      "body": "{{message}}"
+    }
+  },
+  "updaterNotice": {
+    "updated": {
+      "title": "SS2 auf {{version}} aktualisiert",
+      "body": "Vorher: {{previous}}."
+    },
+    "ready": {
+      "title": "SS2 {{version}} ist bereit",
+      "body": "Es wird beim nächsten Beenden von SS2 installiert oder sofort in den Einstellungen."
     }
   }
 }

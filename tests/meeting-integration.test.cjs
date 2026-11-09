@@ -43,13 +43,11 @@ function setup(t, seconds = 1, options = {}) {
     ipcMain: { handle: (name, handler) => handlers.set(name, handler) },
     dialog: options.dialog || {},
     shell: {},
-    safeStorage:
-      options.safeStorage ||
-      {
-        isEncryptionAvailable: () => true,
-        encryptString: (value) => Buffer.from(value),
-        decryptString: (value) => value.toString(),
-      },
+    safeStorage: options.safeStorage || {
+      isEncryptionAvailable: () => true,
+      encryptString: (value) => Buffer.from(value),
+      decryptString: (value) => value.toString(),
+    },
     systemPreferences: {},
     whisperManager: {},
     parakeetManager: {
@@ -864,9 +862,34 @@ test("trimming shortens saved audio, drops later takes, and invalidates cached t
   await a.invoke("transcribe", { id: a.meeting.id });
   assert.equal((await finished(a.service.store, a.meeting.id)).status, "ready");
 });
-test("auto-stop is a validated call setting that defaults to two minutes", async (t) => {
+test("auto-stop is a validated call setting that defaults to ten minutes", async (t) => {
   const a = setup(t);
-  assert.equal((await a.invoke("getConfig")).autoStopMinutes, 2);
+  assert.equal((await a.invoke("getConfig")).autoStopMinutes, 10);
   assert.equal((await a.invoke("setConfig", { autoStopMinutes: 0 })).autoStopMinutes, 0);
+  assert.equal((await a.invoke("setConfig", { autoStopMinutes: 30 })).autoStopMinutes, 30);
   await assert.rejects(a.invoke("setConfig", { autoStopMinutes: 3 }), /auto-stop/);
+});
+function writeIndexConfig(root, config) {
+  const notesRoot = path.join(root, "call-notes");
+  fs.mkdirSync(notesRoot, { recursive: true });
+  fs.writeFileSync(
+    path.join(notesRoot, "index.json"),
+    JSON.stringify({ ids: [], folders: [], config: { provider: "local", ...config } })
+  );
+}
+test("configs still on the old two-minute default move to ten minutes once", async (t) => {
+  const a = setup(t, 1, {
+    beforeRegister: (root) => writeIndexConfig(root, { autoStopMinutes: 2 }),
+  });
+  assert.equal((await a.invoke("getConfig")).autoStopMinutes, 10);
+  // A person who picks two minutes afterwards keeps it.
+  await a.invoke("setConfig", { autoStopMinutes: 2 });
+  assert.equal(a.service.store.index.config.autoStopMinutes, 2);
+  assert.equal(a.service.store.index.config.autoStopDefaultMigrated, true);
+});
+test("other saved auto-stop choices survive the migration", async (t) => {
+  const a = setup(t, 1, {
+    beforeRegister: (root) => writeIndexConfig(root, { autoStopMinutes: 5 }),
+  });
+  assert.equal((await a.invoke("getConfig")).autoStopMinutes, 5);
 });
