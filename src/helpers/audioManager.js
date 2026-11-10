@@ -1,5 +1,5 @@
 import { openRecordingMicrophone } from "./recordingActivity";
-import { cleanupChoices, applyDictationCleanup, respectsCleanupChoices, isNamedDictationCommand } from "../services/polish/dictationCleanup";
+import { cleanupChoices, applyDictationCleanup, cleanupViolation, isNamedDictationCommand } from "../services/polish/dictationCleanup";
 import { getSystemPrompt } from "../config/prompts";
 import { getModelProvider } from "../models/ModelRegistry";
 import ReasoningService from "../services/ReasoningService";
@@ -162,6 +162,76 @@ const NUMBER_WORDS =
  * nine" → 1099, "seven fifty" → 750; the paste path does the same).
  * Currency signs and unit suffixes don't count as a change ("625" → "$625").
  */
+const SHARE_FILLERS = new Set(
+  "um uh like so just really actually basically you know i mean kind sort of okay ok well and".split(" ")
+);
+
+// Who is speaking to whom must not change: "check my email" → "check your
+// email" turns a note to self into an instruction. Compare first- and
+// second-person pronoun counts (contractions expanded).
+const PERSON_PRONOUNS = new Set("i me my mine myself we us our ours you your yours yourself".split(" "));
+function personPronouns(text) {
+  const counts = {};
+  for (const word of (text.toLowerCase().replace(/[’]/g, "'").match(/[a-z']+/g) || []).flatMap(
+    (w) => (CONTRACTIONS[w] || w.replace(/'(?:m|re|ve|ll|d|s)$/, "")).split(" ")
+  ))
+    if (PERSON_PRONOUNS.has(word)) counts[word === "me" || word === "myself" ? "i" : word] = (counts[word === "me" || word === "myself" ? "i" : word] || 0) + 1;
+  return counts;
+}
+function samePerson(input, output) {
+  const a = personPronouns(input);
+  const b = personPronouns(output);
+  const groups = { first: ["i", "my", "mine"], plural: ["we", "us", "our", "ours"], second: ["you", "your", "yours", "yourself"] };
+  // Dropping a filler "you know" is fine; switching person is not.
+  for (const keys of Object.values(groups)) {
+    const n = (c) => keys.reduce((s, k) => s + (c[k] || 0), 0);
+    if (n(b) > n(a)) return false;
+  }
+  const inFirst = groups.first.some((k) => a[k]);
+  const outFirst = groups.first.some((k) => b[k]);
+  return !(inFirst && !outFirst && groups.second.some((k) => b[k]));
+}
+const CONTRACTIONS = {
+  "don't": "do not", "didn't": "did not", "doesn't": "does not", "isn't": "is not", "can't": "can not",
+  "won't": "will not", "it's": "it is", "i'm": "i am", "we're": "we are", "you're": "you are",
+  "they're": "they are", "that's": "that is", "there's": "there is", "what's": "what is",
+  "i've": "i have", "i'll": "i will", "we'll": "we will", "let's": "let us", "gonna": "going to", "wanna": "want to",
+};
+// Spoken formatting commands are meant to disappear ("new paragraph" → a blank line).
+const SPOKEN_COMMANDS =
+  /\b(?:new (?:line|paragraph)|period|full stop|comma|colon|semicolon|question mark|exclamation (?:point|mark)|scratch that|(?:open |close )?quote|unquote|bullet(?: point)?|numbered list|dash|hyphen)\b/g;
+// Numbers are checked separately (numbersPreserved), so spelled-out numbers
+// turning into digits ("nineteen thousand" → 19,000) don't count as rewording.
+function contentWords(text) {
+  return (
+    text
+      .toLowerCase()
+      .replace(/[’]/g, "'")
+      .replace(SPOKEN_COMMANDS, " ")
+      .replace(NUMBER_WORDS, " ")
+      .match(/[a-z']+/g) || []
+  )
+    .flatMap((word) => (CONTRACTIONS[word] || word).split(" "))
+    .filter((word) => !SHARE_FILLERS.has(word));
+}
+
+/** Share of the input's content words that appear in the output, in order (LCS). */
+function keptWordShare(input, output) {
+  const a = contentWords(input);
+  const b = contentWords(output);
+  if (!a.length) return 1;
+  const row = new Array(b.length + 1).fill(0);
+  for (let i = 1; i <= a.length; i++) {
+    let diagonal = 0;
+    for (let j = 1; j <= b.length; j++) {
+      const above = row[j];
+      row[j] = a[i - 1] === b[j - 1] ? diagonal + 1 : Math.max(row[j], row[j - 1]);
+      diagonal = above;
+    }
+  }
+  return row[b.length] / a.length;
+}
+
 function numbersPreserved(input, output) {
   const core = (token) => token.replace(/^[$€£¥]/, "").replace(/(?:%|[a-z]{1,4})$/i, "");
   const inCores = extractNumericTokens(input).map(core);
@@ -1403,7 +1473,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     const allowedGrowth = Math.max(3, Math.round(inWords * 0.1));
     if (outWords > inWords + allowedGrowth) return { text: null, reason: "grew" }; // expanded → invented content
     if (inWords >= 12 && outWords < inWords * 0.4) return { text: null, reason: "shrank" }; // shrunk → summarized/answered
-
     // Numbers and negation carry disproportionate meaning. Accept harmless
     // formatting variants (1,200 → 1200 and can't → cannot), but fall back to
     // the raw transcript if the model adds, removes, or changes either signal.
@@ -1419,6 +1488,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     );
     if (extractProtectedNames(input).some((name) => !outputWords.has(name)))
       return { text: null, reason: "names" };
+
+    // Cleanup, not ghost-writing: at least 85% of the speaker's own words
+    // (fillers and spoken commands aside) must survive, in order. Measured on
+    // Scott's dictations with the full polish prompt, edits below that dropped
+    // or reworded real content ("what you say" → "what I said").
+    if (inWords >= 6 && keptWordShare(input, out) < 0.85) return { text: null, reason: "rewrote" };
+    if (!samePerson(input, out)) return { text: null, reason: "pronouns" };
 
     // A trailing connective strongly suggests recording stopped mid-thought.
     // Punctuation/case cleanup remains valid, while invented completion does not.
@@ -1497,8 +1573,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         this.processWithReasoningModel(baseline, snapshot.model, null, snapshot),
         POLISH_TIMEOUT_MS, "Polish"
       );
-      const validated = this.validatePolishOutput(baseline, result);
-      if (validated === null || !respectsCleanupChoices(baseline, validated, snapshot.cleanup)) return baseline;
+      const { text: validated, reason } = this.explainPolishOutput(baseline, result);
+      const violation = validated === null ? reason : cleanupViolation(baseline, validated, snapshot.cleanup);
+      if (violation) {
+        // Why polish was set aside lands in logs/ss2.log; the text never does.
+        logger.warn("Polish result set aside; cleanup kept", { reason: violation, words: baseline.split(/\s+/).length }, "polish");
+        return baseline;
+      }
       if (evidence) evidence.polished = true;
       this.lastPolishInfo = { polished: true, raw };
       return validated;

@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [SS2 0.3.15] - 2026-11-10
+
+### Fixed
+
+- **Dictation polish used a six-line prompt.** `getSystemPrompt` sent only `cleanupInstructions()` for dictation captures, never `cleanupPrompt`/`verbatimPrompt` (review §3, first bullet). Dictation now gets the full prompt with the cleanup choices appended as overriding rules ("CLEANUP CHOICES").
+- **Polish guards discarded most edits.** Measured on 518 real dictations: 207 of 361 changed outputs were thrown away.
+  - `extractProtectedNames` protected sentence-initial words ("So", "But", "There's"). It now skips a list of common sentence openers and "I". Names stay protected anywhere.
+  - Numbers: digits the speaker gave must survive. New digits are allowed only where the transcript had spelled-out numbers. Currency signs and units don't count.
+  - Negation: compared by count, so "does this not" ↔ "doesn't this" passes.
+  - `respectsCleanupChoices`: with filler removal on, only the meaningful uses of like / you know / kind of / sort of are protected (the prompt removes filler uses).
+  - Technical segments: single quotes inside words (contractions) no longer read as quoted literals. Prose lines with "(" or ";" are no longer code. Input literals must appear verbatim in the output, and added quotes are fine.
+  - New guards: `rewrote` (fewer than 85% of the speaker's content words kept, in order) and `pronouns` (first/second person changed).
+  - `explainPolishOutput` / `cleanupViolation` return the reason, logged when polish is set aside.
+- **Question marks** (`src/utils/questionPunctuation.js`): sentences built like questions that end in "." get "?" in the paste path, so short (no-polish) dictations and every engine are covered.
+- **D7:** `sync-startup-preferences` treated the model-family provider id ("qwen") as cloud, cleared `LOCAL_REASONING_MODEL` and stopped llama-server. Only real cloud providers do that now. The selected model is persisted and prewarmed, also on change.
+- **D8:** CoreML replies were matched by queue position. A timed-out request now keeps its slot, so its late reply is dropped, and the helper echoes a request id.
+- **D6:** the mic opens in parallel with paste-target capture, settings snapshot and inference reservation. Processing waits for them on stop.
+- **D2:** paste-failure toasts name the app and the reason.
+- **D24:** uncaught exceptions and unhandled rejections are logged to file.
+
+### Changed
+
+- **Paste gate (§6 L2):** `macos-recording-target` gates on the target app (alive, frontmost after re-activation, no secure input), no longer on the exact field, window and selection. Replace-in-place still requires the exact field.
+  - Sets `AXManualAccessibility` so Electron apps expose their fields.
+  - The clipboard snapshot can no longer veto a paste (if it can't be taken, the paste goes ahead and the restore is skipped).
+  - The temporary write is tagged transient/concealed for clipboard managers.
+- `RecordingTargetManager` reports bundle id and AX role.
+
+### Added
+
+- **Paste last dictation** global hotkey, default ⌃⌥V (`src/helpers/pasteLast.js`, `PASTE_LAST_HOTKEY` in `.env`, Settings → Hotkeys).
+- **Paste outcome log** (`paste-outcomes.jsonl`, last 200; Diagnostics shows 50): app, bundle id, AX role, outcome, reason. Never text.
+- **`logs/ss2.log`:** warnings and errors at every log level, rotated at 1 MB with two old files. Keys that could carry dictation text are dropped and long strings are cut.
+- Tests: `question-punctuation`, `parakeet-coreml-pairing`, `paste-last`, new validator cases, and the mic-first lifecycle.
+
+See `docs/releases/0.3.15.md`.
+
 ## [SS2 0.3.14] - 2026-11-10
 
 ### Changed
