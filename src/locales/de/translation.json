@@ -312,6 +312,9 @@
         "title": "Fallback-Modus",
         "description": "Lokales Whisper ist fehlgeschlagen. Stattdessen wurde die OpenAI API verwendet."
       },
+      "speechModelPreparing": "Das Sprachmodell wird noch eingerichtet (erster Download oder einmalige Neural-Engine-Kompilierung). Versuche es in einer Minute erneut.",
+      "speechModelFailed": "Das Sprachmodell konnte nicht starten: {{error}}",
+      "speechEngineStopped": "Die Spracherkennung wurde während der Transkription beendet. Bitte versuche es erneut.",
       "noAudio": {
         "title": "Kein Audio erkannt",
         "description": "Die Aufnahme enthielt kein erkennbares Audio. Bitte versuchen Sie es erneut."
@@ -1624,7 +1627,8 @@
     },
     "buttons": {
       "cancelRecording": "Aufnahme abbrechen",
-      "cancelProcessing": "Verarbeitung abbrechen"
+      "cancelProcessing": "Verarbeitung abbrechen",
+      "skipRefinement": "Text ohne KI-Überarbeitung verwenden"
     },
     "commandMenu": {
       "stopListening": "Aufnahme beenden",
@@ -1862,6 +1866,7 @@
       "transcribing": "Transkription",
       "refining": "Überarbeitung",
       "failed": "Fehlgeschlagen",
+      "cancelled": "Abgebrochen",
       "preparing": "Audio vorbereiten",
       "idle": "Bereit",
       "recording": "Aufnahme"

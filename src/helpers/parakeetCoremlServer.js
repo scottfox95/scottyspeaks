@@ -5,6 +5,7 @@ const debugLogger = require("./debugLogger");
 const { resolveBinaryPath, gracefulStopProcess } = require("../utils/serverUtils");
 const { getModelsDirForService } = require("./modelDirUtils");
 const { getSafeTempDir } = require("./safeTempDir");
+const ownedProcesses = require("./ownedProcesses");
 
 // Persistent CoreML/Neural Engine transcription backend.
 //
@@ -105,6 +106,7 @@ class ParakeetCoremlServer {
       stdio: ["pipe", "pipe", "pipe"],
       cwd: getSafeTempDir(),
     });
+    ownedProcesses.track(this.process, { name: "parakeet-coreml", binary });
 
     this.modelName = modelName;
     this.stdoutBuffer = "";
@@ -137,14 +139,22 @@ class ParakeetCoremlServer {
       settle({ ok: false, reason: `exit code ${code}` });
     });
 
-    const timeout = new Promise((_, reject) =>
-      setTimeout(
-        () => reject(new Error(`parakeet-coreml failed to start within ${STARTUP_TIMEOUT_MS}ms`)),
-        STARTUP_TIMEOUT_MS
-      )
-    );
+    let timer = null;
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        // Stop the helper too: otherwise it keeps downloading/compiling after
+        // we've reported failure, and a retry starts a second copy.
+        this.stop().catch(() => {});
+        reject(new Error(`parakeet-coreml failed to start within ${STARTUP_TIMEOUT_MS}ms`));
+      }, STARTUP_TIMEOUT_MS);
+    });
 
-    const outcome = await Promise.race([readySignal, timeout]);
+    let outcome;
+    try {
+      outcome = await Promise.race([readySignal, timeout]);
+    } finally {
+      clearTimeout(timer);
+    }
     if (!outcome.ok) {
       const detail = stderrTail.trim().slice(-200);
       throw new Error(

@@ -312,6 +312,9 @@
         "title": "Fallback Mode",
         "description": "Local Whisper failed. Used OpenAI API instead."
       },
+      "speechModelPreparing": "The speech model is still being set up (first download or a one-time Neural Engine compile). Try again in a minute.",
+      "speechModelFailed": "The speech model could not start: {{error}}",
+      "speechEngineStopped": "The speech engine stopped while transcribing. Please try again.",
       "noAudio": {
         "title": "No Audio Detected",
         "description": "The recording contained no detectable audio. Please try again."
@@ -1624,7 +1627,8 @@
     },
     "buttons": {
       "cancelRecording": "Cancel recording",
-      "cancelProcessing": "Cancel processing"
+      "cancelProcessing": "Cancel processing",
+      "skipRefinement": "Use text without AI refinement"
     },
     "commandMenu": {
       "stopListening": "Stop listening",
@@ -1862,6 +1866,7 @@
       "transcribing": "Transcribing",
       "refining": "Refining",
       "failed": "Failed",
+      "cancelled": "Cancelled",
       "preparing": "Preparing audio",
       "idle": "Ready",
       "recording": "Recording"

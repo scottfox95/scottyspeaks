@@ -1032,18 +1032,11 @@ class IPCHandlers {
         return { success: false, manualCopy: true, reason: "invalid-request" };
       // If the floating dictation panel currently has focus, dismiss it so the
       // paste keystroke lands in the user's target app instead of the overlay.
+      // macOS pastes into the recorded target through the AX helper instead.
       const mainWindow = this.windowManager?.mainWindow;
       if (process.platform !== "darwin" && mainWindow && !mainWindow.isDestroyed() && mainWindow.isFocused()) {
-        if (process.platform === "darwin") {
-          // hide() forces macOS to activate the previous app; showInactive()
-          // restores the overlay without stealing focus.
-          mainWindow.hide();
-          await new Promise((resolve) => setTimeout(resolve, 120));
-          mainWindow.showInactive();
-        } else {
-          mainWindow.blur();
-          await new Promise((resolve) => setTimeout(resolve, 80));
-        }
+        mainWindow.blur();
+        await new Promise((resolve) => setTimeout(resolve, 80));
       }
       const canonicalText = options?.exact
         ? text
@@ -1083,14 +1076,8 @@ class IPCHandlers {
         return { success: false, replaced: false, manualCopy: true, reason: "invalid-request" };
       const mainWindow = this.windowManager?.mainWindow;
       if (process.platform !== "darwin" && mainWindow && !mainWindow.isDestroyed() && mainWindow.isFocused()) {
-        if (process.platform === "darwin") {
-          mainWindow.hide();
-          await new Promise((resolve) => setTimeout(resolve, 120));
-          mainWindow.showInactive();
-        } else {
-          mainWindow.blur();
-          await new Promise((resolve) => setTimeout(resolve, 80));
-        }
+        mainWindow.blur();
+        await new Promise((resolve) => setTimeout(resolve, 80));
       }
       return this.clipboardManager.replaceLastPaste(newText, expectedText, {
         ...options,
@@ -1360,6 +1347,23 @@ class IPCHandlers {
       } catch (error) {
         debugLogger.error("Local Parakeet transcription error", error);
         const errorMessage = error.message || "Unknown error";
+
+        if (error.code === "PARAKEET_WARMING_UP") {
+          return {
+            success: false,
+            error: "model_warming_up",
+            message: error.startupError
+              ? i18nMain.t("hooks.audioRecording.speechModelFailed", { error: error.startupError })
+              : i18nMain.t("hooks.audioRecording.speechModelPreparing"),
+          };
+        }
+        if (error.code === "PARAKEET_ENGINE_STOPPED") {
+          return {
+            success: false,
+            error: "engine_stopped",
+            message: i18nMain.t("hooks.audioRecording.speechEngineStopped"),
+          };
+        }
 
         if (errorMessage.includes("sherpa-onnx") && errorMessage.includes("not found")) {
           return {
@@ -1939,6 +1943,19 @@ class IPCHandlers {
         const LocalReasoningService = require("../services/localReasoningBridge").default;
         const result = await LocalReasoningService.processText(text, modelId, config);
         return { success: true, text: result };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    });
+
+    // The renderer gave up on a polish pass (timeout, or the person chose the
+    // raw text). Drop the HTTP request so llama-server stops generating
+    // instead of holding its slot for the next dictation.
+    ipcMain.handle("cancel-local-reasoning", () => {
+      try {
+        const modelManager = require("./modelManagerBridge").default;
+        const aborted = modelManager.serverManager?.abortInflight?.("Polish cancelled") || 0;
+        return { success: true, aborted };
       } catch (error) {
         return { success: false, error: error.message };
       }

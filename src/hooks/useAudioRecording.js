@@ -6,6 +6,8 @@ import { playStartCue, playStopCue } from "../utils/dictationCues";
 import { getSettings } from "../stores/settingsStore";
 import { getRecordingErrorTitle } from "../utils/recordingErrors";
 
+const FAILED_LABEL_MS = 4000;
+
 export const useAudioRecording = (toast, options = {}) => {
   const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
@@ -19,6 +21,27 @@ export const useAudioRecording = (toast, options = {}) => {
   const stopLockRef = useRef(false);
   const commandModeRef = useRef(false);
   const { onToggle } = options;
+  // The dictation engine must live for the whole window: tearing it down
+  // because `t` (language load), `toast` or `onToggle` changed identity can
+  // drop a hotkey press that arrives during the swap. Read them through refs.
+  const tRef = useRef(t);
+  const toastRef = useRef(toast);
+  const onToggleRef = useRef(onToggle);
+  useEffect(() => {
+    tRef.current = t;
+    toastRef.current = toast;
+    onToggleRef.current = onToggle;
+  });
+
+  // "Failed" under the idle button is a notice, not a state: clear it after a
+  // few seconds (the next dictation also replaces it).
+  useEffect(() => {
+    if (pipelineStage !== "failed") return;
+    const timer = setTimeout(() => {
+      setPipelineStage((current) => (current === "failed" ? "idle" : current));
+    }, FAILED_LABEL_MS);
+    return () => clearTimeout(timer);
+  }, [pipelineStage]);
 
   const performStartRecording = useCallback(async () => {
     if (startLockRef.current) return false;
@@ -79,6 +102,9 @@ export const useAudioRecording = (toast, options = {}) => {
   }, []);
 
   useEffect(() => {
+    const t = (...args) => tRef.current(...args);
+    const toast = (...args) => toastRef.current(...args);
+    const onToggle = () => onToggleRef.current?.();
     audioManagerRef.current = new AudioManager();
 
     audioManagerRef.current.setCallbacks({
@@ -169,6 +195,9 @@ export const useAudioRecording = (toast, options = {}) => {
                 const saved = await manager.saveTranscription(result.evidenceFinalText, result.rawText);
                 result.historyId = saved?.transcription?.id;
                 if (!saved?.success) result.evidenceError = "History could not be saved";
+                // A failed safePaste has already shown its own paste-failure
+                // toast; a second "Text ready to copy" would only repeat it.
+                if (res.usedSelection && !replaced) return;
                 toast({
                   title: replaced ? `✨ ${transcribedText}` : t("recordingTarget.manualTitle"),
                   description: replaced
@@ -370,7 +399,7 @@ export const useAudioRecording = (toast, options = {}) => {
         audioManagerRef.current.cleanup();
       }
     };
-  }, [toast, onToggle, performStartRecording, performStopRecording, t]);
+  }, [performStartRecording, performStopRecording]);
 
   const startRecording = async () => {
     return performStartRecording();

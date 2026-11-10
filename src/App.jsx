@@ -12,6 +12,9 @@ import { useWindowDrag } from "./hooks/useWindowDrag";
 import { useAudioRecording } from "./hooks/useAudioRecording";
 import { useSettingsStore } from "./stores/settingsStore";
 
+const isOverToast = (target) =>
+  typeof Element !== "undefined" && target instanceof Element && !!target.closest(".toast-surface");
+
 // Sound Wave Icon Component (for idle/hover states)
 const SoundWaveIcon = ({ size = 16 }) => {
   return (
@@ -164,13 +167,36 @@ export default function App() {
     };
   }, [toast, dismiss, t]);
 
+  // The window grows to fit toasts, but only the toast itself may take clicks:
+  // the transparent rest stays click-through (mouse moves are still forwarded,
+  // which is how we notice the pointer arriving over a toast).
+  const [isToastHovered, setIsToastHovered] = useState(false);
   useEffect(() => {
-    if (isCommandMenuOpen || toastCount > 0) {
+    if (toastCount === 0) {
+      setIsToastHovered(false);
+      return;
+    }
+    const handleMove = (event) => {
+      setIsToastHovered(isOverToast(event.target));
+    };
+    const handleOut = (event) => {
+      if (!event.relatedTarget) setIsToastHovered(false);
+    };
+    document.addEventListener("mousemove", handleMove);
+    document.addEventListener("mouseout", handleOut);
+    return () => {
+      document.removeEventListener("mousemove", handleMove);
+      document.removeEventListener("mouseout", handleOut);
+    };
+  }, [toastCount]);
+
+  useEffect(() => {
+    if (isCommandMenuOpen || isToastHovered) {
       setWindowInteractivity(true);
     } else if (!isHovered) {
       setWindowInteractivity(false);
     }
-  }, [isCommandMenuOpen, isHovered, toastCount, setWindowInteractivity]);
+  }, [isCommandMenuOpen, isHovered, isToastHovered, setWindowInteractivity]);
 
   useEffect(() => {
     const resizeWindow = () => {
@@ -226,9 +252,33 @@ export default function App() {
     return () => clearTimeout(hideTimeout);
   }, [isRecording, isProcessing, floatingIconAutoHide, toastCount, speechBusy]);
 
+  // Hiding the overlay while the mic is live would leave a recording with no
+  // indicator on screen, so a hide requested mid-dictation waits until idle.
+  const [hideWhenIdle, setHideWhenIdle] = useState(false);
   const handleClose = () => {
+    if (isRecording || isProcessing) {
+      setHideWhenIdle(true);
+      return;
+    }
     window.electronAPI.hideWindow();
   };
+  useEffect(() => {
+    if (!hideWhenIdle || isRecording || isProcessing) return;
+    // Same short grace as auto-hide: processing starts just after recording stops.
+    const timer = setTimeout(() => {
+      setHideWhenIdle(false);
+      window.electronAPI?.hideWindow?.();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [hideWhenIdle, isRecording, isProcessing]);
+
+  // Brief "Cancelled" under the button so an Escape is visibly acknowledged.
+  const [showCancelled, setShowCancelled] = useState(false);
+  useEffect(() => {
+    if (!showCancelled) return;
+    const timer = setTimeout(() => setShowCancelled(false), 2000);
+    return () => clearTimeout(timer);
+  }, [showCancelled]);
 
   useEffect(() => {
     if (!isCommandMenuOpen) {
@@ -255,6 +305,14 @@ export default function App() {
       if (e.key === "Escape") {
         if (isCommandMenuOpen) {
           setIsCommandMenuOpen(false);
+        } else if (isRecording) {
+          // Escape means "stop listening", never "hide while the mic stays on".
+          void Promise.resolve(cancelRecording()).then((cancelled) => {
+            if (cancelled) setShowCancelled(true);
+          });
+        } else if (isProcessing) {
+          // While refining this delivers the unrefined text instead.
+          cancelProcessing();
         } else {
           handleClose();
         }
@@ -263,7 +321,7 @@ export default function App() {
 
     document.addEventListener("keydown", handleKeyPress);
     return () => document.removeEventListener("keydown", handleKeyPress);
-  }, [isCommandMenuOpen]);
+  });
 
   // Determine current mic state
   const getMicState = () => {
@@ -335,11 +393,22 @@ export default function App() {
           {(isRecording || isProcessing) && isHovered && (
             <button
               aria-label={
-                isRecording ? t("app.buttons.cancelRecording") : t("app.buttons.cancelProcessing")
+                isRecording
+                  ? t("app.buttons.cancelRecording")
+                  : pipelineStage === "refining"
+                    ? t("app.buttons.skipRefinement")
+                    : t("app.buttons.cancelProcessing")
               }
+              title={pipelineStage === "refining" ? t("app.buttons.skipRefinement") : undefined}
               onClick={(e) => {
                 e.stopPropagation();
-                isRecording ? cancelRecording() : cancelProcessing();
+                if (isRecording) {
+                  void Promise.resolve(cancelRecording()).then((cancelled) => {
+                    if (cancelled) setShowCancelled(true);
+                  });
+                } else {
+                  cancelProcessing();
+                }
               }}
               className="group/cancel w-5 h-5 rounded-full bg-surface-2/90 hover:bg-destructive border border-border hover:border-destructive/70 flex items-center justify-center transition-colors duration-150 shadow-sm backdrop-blur-sm"
             >
@@ -436,7 +505,7 @@ export default function App() {
               )}
             </button>
           </Tooltip>
-          {(isProcessing || pipelineStage === "failed") && <span role="status" className="absolute bottom-0 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] text-foreground">{t(`dictationCleanup.stages.${pipelineStage}`)}</span>}
+          {(isProcessing || pipelineStage === "failed" || showCancelled) && <span role="status" className="absolute bottom-0 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] text-foreground">{t(`dictationCleanup.stages.${isProcessing || pipelineStage === "failed" ? pipelineStage : "cancelled"}`)}</span>}
           {isCommandMenuOpen && (
             <div
               ref={commandMenuRef}

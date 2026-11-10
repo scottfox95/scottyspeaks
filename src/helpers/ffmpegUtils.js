@@ -107,8 +107,23 @@ function isWavFormat(buffer) {
   );
 }
 
+const CONVERT_TIMEOUT_MS = 5 * 60000;
+const SPLIT_TIMEOUT_MS = 30 * 60000;
+
+/// Kills `proc` if it is still running after `ms`, then calls `onTimeout`.
+/// Returns a function that disarms the timer.
+function killAfter(proc, ms, onTimeout) {
+  const timer = setTimeout(() => {
+    try {
+      proc.kill("SIGKILL");
+    } catch {}
+    onTimeout();
+  }, ms);
+  return () => clearTimeout(timer);
+}
+
 function convertToWav(inputPath, outputPath, options = {}) {
-  const { sampleRate = 16000, channels = 1 } = options;
+  const { sampleRate = 16000, channels = 1, timeoutMs = CONVERT_TIMEOUT_MS } = options;
 
   return new Promise((resolve, reject) => {
     const ffmpegPath = getFFmpegPath();
@@ -143,16 +158,24 @@ function convertToWav(inputPath, outputPath, options = {}) {
     });
 
     let stderr = "";
+    let timedOut = false;
+    const disarm = killAfter(proc, timeoutMs, () => {
+      timedOut = true;
+      reject(new Error(`FFmpeg conversion timed out after ${timeoutMs}ms`));
+    });
 
     proc.stderr.on("data", (data) => {
       stderr += data.toString();
     });
 
     proc.on("error", (error) => {
+      disarm();
       reject(new Error(`FFmpeg process error: ${error.message}`));
     });
 
     proc.on("close", (code) => {
+      disarm();
+      if (timedOut) return;
       if (code !== 0) {
         const stderrPreview = stderr.slice(-500).trim();
         debugLogger.debug("FFmpeg conversion failed", { code, stderr: stderrPreview });
@@ -238,7 +261,7 @@ function computeFloat32RMS(float32Buffer) {
 }
 
 function splitAudioFile(inputPath, outputDir, options = {}) {
-  const { segmentDuration = 600, audioBitrate = "128k" } = options;
+  const { segmentDuration = 600, audioBitrate = "128k", timeoutMs = SPLIT_TIMEOUT_MS } = options;
 
   return new Promise((resolve, reject) => {
     const ffmpegPath = getFFmpegPath();
@@ -281,16 +304,24 @@ function splitAudioFile(inputPath, outputDir, options = {}) {
     });
 
     let stderr = "";
+    let timedOut = false;
+    const disarm = killAfter(proc, timeoutMs, () => {
+      timedOut = true;
+      reject(new Error(`FFmpeg split timed out after ${timeoutMs}ms`));
+    });
 
     proc.stderr.on("data", (data) => {
       stderr += data.toString();
     });
 
     proc.on("error", (error) => {
+      disarm();
       reject(new Error(`FFmpeg split error: ${error.message}`));
     });
 
     proc.on("close", (code) => {
+      disarm();
+      if (timedOut) return;
       if (code !== 0) {
         const stderrPreview = stderr.slice(-500).trim();
         debugLogger.debug("FFmpeg split failed", { code, stderr: stderrPreview });

@@ -641,6 +641,7 @@ declare global {
         agentName: string | null,
         config: any
       ) => Promise<{ success: boolean; text?: string; error?: string }>;
+      cancelLocalReasoning?: () => Promise<{ success: boolean; aborted?: number; error?: string }>;
       checkLocalReasoningAvailable: () => Promise<boolean>;
 
       // Anthropic reasoning

@@ -284,6 +284,9 @@
         "title": "Modo de fallback",
         "description": "O Whisper local falhou. A API da OpenAI foi usada no lugar."
       },
+      "speechModelPreparing": "O modelo de voz ainda está sendo preparado (primeiro download ou uma compilação única para o Neural Engine). Tente novamente em um minuto.",
+      "speechModelFailed": "Não foi possível iniciar o modelo de voz: {{error}}",
+      "speechEngineStopped": "O mecanismo de voz parou durante a transcrição. Tente novamente.",
       "noAudio": {
         "title": "Nenhum áudio detectado",
         "description": "A gravação não contém áudio detectável. Tente novamente."
@@ -1628,7 +1631,8 @@
     },
     "buttons": {
       "cancelRecording": "Cancelar gravação",
-      "cancelProcessing": "Cancelar processamento"
+      "cancelProcessing": "Cancelar processamento",
+      "skipRefinement": "Usar o texto sem refinamento de IA"
     },
     "commandMenu": {
       "stopListening": "Parar de ouvir",
@@ -1866,6 +1870,7 @@
       "transcribing": "Transcrevendo",
       "refining": "Refinando",
       "failed": "Falhou",
+      "cancelled": "Cancelado",
       "preparing": "Preparando áudio",
       "idle": "Pronto",
       "recording": "Gravando"

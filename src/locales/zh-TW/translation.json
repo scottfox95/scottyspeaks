@@ -312,6 +312,9 @@
         "title": "備援模式",
         "description": "本機 Whisper 失敗，已改用 OpenAI API。"
       },
+      "speechModelPreparing": "語音模型仍在準備中（首次下載或一次性的 Neural Engine 編譯）。請一分鐘後再試。",
+      "speechModelFailed": "語音模型無法啟動：{{error}}",
+      "speechEngineStopped": "語音引擎在轉錄時停止。請再試一次。",
       "noAudio": {
         "title": "未偵測到音訊",
         "description": "錄音中未偵測到聲音。請再試一次。"
@@ -1624,7 +1627,8 @@
     },
     "buttons": {
       "cancelRecording": "取消錄音",
-      "cancelProcessing": "取消處理"
+      "cancelProcessing": "取消處理",
+      "skipRefinement": "使用未經 AI 潤飾的文字"
     },
     "commandMenu": {
       "stopListening": "停止錄音",
@@ -1860,6 +1864,7 @@
       "transcribing": "轉錄中",
       "refining": "潤飾中",
       "failed": "失敗",
+      "cancelled": "已取消",
       "preparing": "準備音訊",
       "idle": "就緒",
       "recording": "錄音中"

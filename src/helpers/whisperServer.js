@@ -1,12 +1,13 @@
 const { spawn } = require("child_process");
 const EventEmitter = require("events");
 const fs = require("fs");
-const net = require("net");
 const path = require("path");
 const http = require("http");
 const { app } = require("electron");
 const debugLogger = require("./debugLogger");
 const { killProcess } = require("../utils/process");
+const { findAvailablePort } = require("../utils/serverUtils");
+const ownedProcesses = require("./ownedProcesses");
 const { getSafeTempDir } = require("./safeTempDir");
 const { convertToWav } = require("./ffmpegUtils");
 
@@ -15,6 +16,7 @@ const PORT_RANGE_END = 8199;
 const STARTUP_TIMEOUT_MS = 30000;
 const HEALTH_CHECK_INTERVAL_MS = 5000;
 const HEALTH_CHECK_TIMEOUT_MS = 2000;
+const HEALTH_CHECK_FAILURE_THRESHOLD = 3;
 
 class WhisperServerManager extends EventEmitter {
   constructor() {
@@ -173,23 +175,8 @@ class WhisperServerManager extends EventEmitter {
     return this.getServerBinaryPath() !== null;
   }
 
-  async findAvailablePort() {
-    for (let port = PORT_RANGE_START; port <= PORT_RANGE_END; port++) {
-      if (await this.isPortAvailable(port)) return port;
-    }
-    throw new Error(`No available ports in range ${PORT_RANGE_START}-${PORT_RANGE_END}`);
-  }
-
-  isPortAvailable(port) {
-    return new Promise((resolve) => {
-      const server = net.createServer();
-      server.once("error", () => resolve(false));
-      server.once("listening", () => {
-        server.close();
-        resolve(true);
-      });
-      server.listen(port, "127.0.0.1");
-    });
+  findAvailablePort() {
+    return findAvailablePort(PORT_RANGE_START, PORT_RANGE_END);
   }
 
   async start(modelPath, options = {}) {
@@ -266,6 +253,7 @@ class WhisperServerManager extends EventEmitter {
       env: spawnEnv,
       cwd: serverBinaryDir,
     });
+    ownedProcesses.track(this.process, { name: "whisper-server", binary: serverBinary });
 
     let stderrBuffer = "";
     let exitCode = null;
@@ -305,6 +293,8 @@ class WhisperServerManager extends EventEmitter {
         this.emit("cuda-fallback");
         return this._doStart(modelPath, { ...options, useCuda: false });
       }
+      // A startup timeout leaves the server loading its model; stop it.
+      if (this.process) killProcess(this.process, "SIGKILL");
       throw err;
     }
 
@@ -378,14 +368,28 @@ class WhisperServerManager extends EventEmitter {
 
   startHealthCheck() {
     this.stopHealthCheck();
+    this.healthCheckFailures = 0;
     this.healthCheckInterval = setInterval(async () => {
       if (!this.process) {
         this.stopHealthCheck();
         return;
       }
-      if (!(await this.checkHealth())) {
-        debugLogger.warn("whisper-server health check failed");
-        this.ready = false;
+      if (await this.checkHealth()) {
+        this.healthCheckFailures = 0;
+        // One slow answer (sleep/wake, a long transcription) must not make the
+        // next request kill and reload a model that is answering again.
+        if (!this.ready && this.process && !this.startupPromise) {
+          debugLogger.info("whisper-server health check recovered");
+          this.ready = true;
+        }
+      } else {
+        this.healthCheckFailures = (this.healthCheckFailures || 0) + 1;
+        if (this.healthCheckFailures >= HEALTH_CHECK_FAILURE_THRESHOLD) {
+          debugLogger.warn("whisper-server health check failed", {
+            consecutiveFailures: this.healthCheckFailures,
+          });
+          this.ready = false;
+        }
       }
     }, HEALTH_CHECK_INTERVAL_MS);
   }

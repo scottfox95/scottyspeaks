@@ -312,6 +312,9 @@
         "title": "フォールバックモード",
         "description": "ローカル Whisper が失敗しました。代わりに OpenAI API を使用しました。"
       },
+      "speechModelPreparing": "音声モデルを準備中です（初回ダウンロードまたは Neural Engine の一回限りのコンパイル）。1 分後にもう一度お試しください。",
+      "speechModelFailed": "音声モデルを起動できませんでした: {{error}}",
+      "speechEngineStopped": "文字起こし中に音声エンジンが停止しました。もう一度お試しください。",
       "noAudio": {
         "title": "音声が検出されませんでした",
         "description": "録音に音声が含まれていませんでした。もう一度お試しください。"
@@ -1624,7 +1627,8 @@
     },
     "buttons": {
       "cancelRecording": "録音をキャンセル",
-      "cancelProcessing": "処理をキャンセル"
+      "cancelProcessing": "処理をキャンセル",
+      "skipRefinement": "AI 整形なしでテキストを使用"
     },
     "commandMenu": {
       "stopListening": "録音を停止",
@@ -1860,6 +1864,7 @@
       "transcribing": "文字起こし中",
       "refining": "整形中",
       "failed": "失敗",
+      "cancelled": "キャンセルしました",
       "preparing": "音声を準備中",
       "idle": "準備完了",
       "recording": "録音中"

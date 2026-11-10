@@ -312,6 +312,9 @@
         "title": "回退模式",
         "description": "本地 Whisper 失败，已改用 OpenAI API。"
       },
+      "speechModelPreparing": "语音模型仍在准备中（首次下载或一次性的 Neural Engine 编译）。请一分钟后重试。",
+      "speechModelFailed": "语音模型无法启动：{{error}}",
+      "speechEngineStopped": "语音引擎在转录时停止。请重试。",
       "noAudio": {
         "title": "未检测到音频",
         "description": "录音中未检测到音频，请重试。"
@@ -1624,7 +1627,8 @@
     },
     "buttons": {
       "cancelRecording": "取消录音",
-      "cancelProcessing": "取消处理"
+      "cancelProcessing": "取消处理",
+      "skipRefinement": "使用未经 AI 润色的文本"
     },
     "commandMenu": {
       "stopListening": "停止录音",
@@ -1860,6 +1864,7 @@
       "transcribing": "转录中",
       "refining": "润色中",
       "failed": "失败",
+      "cancelled": "已取消",
       "preparing": "准备音频",
       "idle": "就绪",
       "recording": "录音中"

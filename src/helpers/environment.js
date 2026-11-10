@@ -140,7 +140,8 @@ class EnvironmentManager {
   }
 
   saveActivationMode(mode) {
-    const validMode = mode === "push" ? "push" : "tap";
+    // Same fallback as getActivationMode: anything but an explicit "tap" is push.
+    const validMode = mode === "tap" ? "tap" : "push";
     const result = this._saveKey("ACTIVATION_MODE", validMode);
     this.saveAllKeysToEnvFile().catch(() => {});
     return result;
