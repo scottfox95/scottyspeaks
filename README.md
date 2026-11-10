@@ -483,7 +483,6 @@ Improve transcription accuracy for specific words, names, or technical terms:
 open-whispr/
 ├── main.js              # Electron main process & IPC handlers
 ├── preload.js           # Electron preload script & API bridge
-├── setup.js             # First-time setup script
 ├── package.json         # Dependencies and scripts
 ├── env.example          # Environment variables template
 ├── CHANGELOG.md         # Project changelog

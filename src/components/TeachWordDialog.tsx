@@ -104,8 +104,6 @@ export default function TeachWordDialog({
       onError: (err: { title: string; description: string; code?: string }) => {
         setError(`${getRecordingErrorTitle(err, t)}: ${err.description}`);
       },
-      onPartialTranscript: () => {},
-      onStreamingCommit: () => {},
       onTranscriptionComplete: (result: { success: boolean; text: string }) => {
         if (!result.success) return;
         const heard = normalizeHeard(result.text || "");

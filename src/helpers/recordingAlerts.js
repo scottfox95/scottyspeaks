@@ -35,6 +35,10 @@ const DEFAULTS = {
     "Screen recording stopped",
     "Less than 1 GB of disk space is left. The recording was saved.",
   ],
+  diskCall: [
+    "Call recording stopped",
+    "Less than 1 GB of disk space is left. The audio recorded so far is saved.",
+  ],
   startFailedCall: ["Call recording didn't start", "{{message}}"],
   startFailedScreen: ["Screen recording didn't start", "{{message}}"],
   failedCall: ["Call recording stopped unexpectedly", "{{message}}"],
@@ -50,7 +54,9 @@ function describe(alert, t) {
   const suffix = call ? "Call" : "Screen";
   const key = ["stalled", "startFailed", "failed"].includes(alert.reason)
     ? `${alert.reason}${suffix}`
-    : DEFAULTS[alert.reason]
+    : alert.reason === "disk" && call
+      ? "diskCall"
+      : DEFAULTS[alert.reason]
       ? alert.reason
       : `failed${suffix}`;
   const vars = {

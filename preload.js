@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer, webUtils } = require("electron");
+const { contextBridge, ipcRenderer } = require("electron");
 
 /**
  * Helper to register an IPC listener and return a cleanup function.
@@ -35,7 +35,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   reserveLocalInference: () => ipcRenderer.invoke("local-inference-reserve"),
   releaseLocalInference: (token) => ipcRenderer.invoke("local-inference-release", token),
-  getLocalInferenceStatus: () => ipcRenderer.invoke("local-inference-status"),
   captures: Object.fromEntries(
     ["create", "complete", "delete", "list", "get", "forHistory", "getConfig", "setConfig", "playback", "releasePlayback", "retry", "cancelRetry", "acceptAttempt", "saveFixture", "listFixtures", "deleteFixture"]
       .map((name) => [name, (args) => ipcRenderer.invoke(`captures:${name}`, args)])
@@ -97,6 +96,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     "hands-free-changed",
     (callback) => (_event, active) => callback(active)
   ),
+  onOverlayEscape: registerListener("overlay-escape", (callback) => () => callback()),
 
   // Stream Deck Pedal
   onStartCommandDictation: registerListener(
@@ -170,7 +170,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
       audioDuration,
       folderId
     ),
-  getNote: (id) => ipcRenderer.invoke("db-get-note", id),
   getNotes: (noteType, limit, folderId) =>
     ipcRenderer.invoke("db-get-notes", noteType, limit, folderId),
   updateNote: (id, updates) => ipcRenderer.invoke("db-update-note", id, updates),
@@ -186,7 +185,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Action functions
   getActions: () => ipcRenderer.invoke("db-get-actions"),
-  getAction: (id) => ipcRenderer.invoke("db-get-action", id),
   createAction: (name, description, prompt, icon) =>
     ipcRenderer.invoke("db-create-action", name, description, prompt, icon),
   updateAction: (id, updates) => ipcRenderer.invoke("db-update-action", id, updates),
@@ -212,13 +210,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   createStyleProfile: (name, rules) => ipcRenderer.invoke("db-create-style-profile", name, rules),
   updateStyleProfile: (id, updates) => ipcRenderer.invoke("db-update-style-profile", id, updates),
   deleteStyleProfile: (id) => ipcRenderer.invoke("db-delete-style-profile", id),
-
-  // Audio file operations
-  selectAudioFile: () => ipcRenderer.invoke("select-audio-file"),
-  getFileSize: (filePath) => ipcRenderer.invoke("get-file-size", filePath),
-  transcribeAudioFile: (filePath, options) =>
-    ipcRenderer.invoke("transcribe-audio-file", filePath, options),
-  getPathForFile: (file) => webUtils.getPathForFile(file),
 
   onNoteAdded: (callback) => {
     const listener = (_event, note) => callback?.(note);
@@ -271,7 +262,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Environment variables
   getOpenAIKey: () => ipcRenderer.invoke("get-openai-key"),
   saveOpenAIKey: (key) => ipcRenderer.invoke("save-openai-key", key),
-  createProductionEnvFile: (key) => ipcRenderer.invoke("create-production-env-file", key),
 
   // Clipboard functions
   checkAccessibilityPermission: () => ipcRenderer.invoke("check-accessibility-permission"),
@@ -290,33 +280,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   deleteWhisperModel: (modelName) => ipcRenderer.invoke("delete-whisper-model", modelName),
   deleteAllWhisperModels: () => ipcRenderer.invoke("delete-all-whisper-models"),
   cancelWhisperDownload: () => ipcRenderer.invoke("cancel-whisper-download"),
-  checkFFmpegAvailability: () => ipcRenderer.invoke("check-ffmpeg-availability"),
-  getAudioDiagnostics: () => ipcRenderer.invoke("get-audio-diagnostics"),
-
-  // Whisper server functions (faster repeated transcriptions)
-  whisperServerStart: (modelName) => ipcRenderer.invoke("whisper-server-start", modelName),
-  whisperServerStop: () => ipcRenderer.invoke("whisper-server-stop"),
-  whisperServerStatus: () => ipcRenderer.invoke("whisper-server-status"),
-
-  // CUDA GPU acceleration
-  detectGpu: () => ipcRenderer.invoke("detect-gpu"),
-  getCudaWhisperStatus: () => ipcRenderer.invoke("get-cuda-whisper-status"),
-  downloadCudaWhisperBinary: () => ipcRenderer.invoke("download-cuda-whisper-binary"),
-  cancelCudaWhisperDownload: () => ipcRenderer.invoke("cancel-cuda-whisper-download"),
-  deleteCudaWhisperBinary: () => ipcRenderer.invoke("delete-cuda-whisper-binary"),
-  onCudaDownloadProgress: registerListener(
-    "cuda-download-progress",
-    (callback) => (_event, data) => callback(data)
-  ),
-  onCudaFallbackNotification: registerListener(
-    "cuda-fallback-notification",
-    (callback) => () => callback()
-  ),
 
   // Local Parakeet (NVIDIA) functions
   transcribeLocalParakeet: (audioBlob, options) =>
     ipcRenderer.invoke("transcribe-local-parakeet", audioBlob, options),
-  checkParakeetInstallation: () => ipcRenderer.invoke("check-parakeet-installation"),
   downloadParakeetModel: (modelName) => ipcRenderer.invoke("download-parakeet-model", modelName),
   onParakeetDownloadProgress: registerListener("parakeet-download-progress"),
   checkParakeetModelStatus: (modelName) =>
@@ -325,14 +292,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   deleteParakeetModel: (modelName) => ipcRenderer.invoke("delete-parakeet-model", modelName),
   deleteAllParakeetModels: () => ipcRenderer.invoke("delete-all-parakeet-models"),
   cancelParakeetDownload: () => ipcRenderer.invoke("cancel-parakeet-download"),
-  getParakeetDiagnostics: () => ipcRenderer.invoke("get-parakeet-diagnostics"),
   getParakeetEngineInfo: () => ipcRenderer.invoke("get-parakeet-engine-info"),
   setParakeetEngine: (engine) => ipcRenderer.invoke("set-parakeet-engine", engine),
-
-  // Parakeet server functions (faster repeated transcriptions)
-  parakeetServerStart: (modelName) => ipcRenderer.invoke("parakeet-server-start", modelName),
-  parakeetServerStop: () => ipcRenderer.invoke("parakeet-server-stop"),
-  parakeetServerStatus: () => ipcRenderer.invoke("parakeet-server-status"),
 
   // Window control functions
   windowMinimize: () => ipcRenderer.invoke("window-minimize"),
@@ -347,12 +308,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   updateHotkey: (hotkey) => ipcRenderer.invoke("update-hotkey", hotkey),
   setHotkeyListeningMode: (enabled, newHotkey) =>
     ipcRenderer.invoke("set-hotkey-listening-mode", enabled, newHotkey),
-  getHotkeyModeInfo: () => ipcRenderer.invoke("get-hotkey-mode-info"),
   startWindowDrag: () => ipcRenderer.invoke("start-window-drag"),
   stopWindowDrag: () => ipcRenderer.invoke("stop-window-drag"),
   setMainWindowInteractivity: (interactive) =>
     ipcRenderer.invoke("set-main-window-interactivity", interactive),
   resizeMainWindow: (sizeKey) => ipcRenderer.invoke("resize-main-window", sizeKey),
+  setOverlayEscape: (enabled) => ipcRenderer.invoke("overlay:set-escape", enabled),
 
   // Update functions
   checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
@@ -382,7 +343,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   modelDownload: (modelId) => ipcRenderer.invoke("model-download", modelId),
   modelDelete: (modelId) => ipcRenderer.invoke("model-delete", modelId),
   modelDeleteAll: () => ipcRenderer.invoke("model-delete-all"),
-  modelCheckRuntime: () => ipcRenderer.invoke("model-check-runtime"),
   modelCancelDownload: (modelId) => ipcRenderer.invoke("model-cancel-download", modelId),
   onModelDownloadProgress: registerListener("model-download-progress"),
 
@@ -390,7 +350,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getAnthropicKey: () => ipcRenderer.invoke("get-anthropic-key"),
   saveAnthropicKey: (key) => ipcRenderer.invoke("save-anthropic-key", key),
   getUiLanguage: () => ipcRenderer.invoke("get-ui-language"),
-  saveUiLanguage: (language) => ipcRenderer.invoke("save-ui-language", language),
   setUiLanguage: (language) => ipcRenderer.invoke("set-ui-language", language),
 
   // Gemini API
@@ -418,7 +377,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Activation mode persistence (file-based for reliable startup)
   getActivationMode: () => ipcRenderer.invoke("get-activation-mode"),
-  saveActivationMode: (mode) => ipcRenderer.invoke("save-activation-mode", mode),
 
   saveAllKeysToEnv: () => ipcRenderer.invoke("save-all-keys-to-env"),
   syncStartupPreferences: (prefs) => ipcRenderer.invoke("sync-startup-preferences", prefs),
@@ -426,33 +384,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Local reasoning
   processLocalReasoning: (text, modelId, agentName, config) =>
     ipcRenderer.invoke("process-local-reasoning", text, modelId, agentName, config),
+  cancelLocalReasoning: () => ipcRenderer.invoke("cancel-local-reasoning"),
   checkLocalReasoningAvailable: () => ipcRenderer.invoke("check-local-reasoning-available"),
 
   // Anthropic reasoning
   processAnthropicReasoning: (text, modelId, agentName, config) =>
     ipcRenderer.invoke("process-anthropic-reasoning", text, modelId, agentName, config),
 
-  // llama.cpp
-  llamaCppCheck: () => ipcRenderer.invoke("llama-cpp-check"),
-  llamaCppInstall: () => ipcRenderer.invoke("llama-cpp-install"),
-  llamaCppUninstall: () => ipcRenderer.invoke("llama-cpp-uninstall"),
-
   // llama-server
-  llamaServerStart: (modelId) => ipcRenderer.invoke("llama-server-start", modelId),
   llamaServerStop: () => ipcRenderer.invoke("llama-server-stop"),
   llamaServerStatus: () => ipcRenderer.invoke("llama-server-status"),
-  llamaGpuReset: () => ipcRenderer.invoke("llama-gpu-reset"),
-
-  // Vulkan GPU acceleration
-  detectVulkanGpu: () => ipcRenderer.invoke("detect-vulkan-gpu"),
-  getLlamaVulkanStatus: () => ipcRenderer.invoke("get-llama-vulkan-status"),
-  downloadLlamaVulkanBinary: () => ipcRenderer.invoke("download-llama-vulkan-binary"),
-  cancelLlamaVulkanDownload: () => ipcRenderer.invoke("cancel-llama-vulkan-download"),
-  deleteLlamaVulkanBinary: () => ipcRenderer.invoke("delete-llama-vulkan-binary"),
-  onLlamaVulkanDownloadProgress: registerListener(
-    "llama-vulkan-download-progress",
-    (callback) => (_event, data) => callback(data)
-  ),
 
   getLogLevel: () => ipcRenderer.invoke("get-log-level"),
   log: (entry) => ipcRenderer.invoke("app-log", entry),
@@ -468,10 +409,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openSoundInputSettings: () => ipcRenderer.invoke("open-sound-input-settings"),
   openAccessibilitySettings: () => ipcRenderer.invoke("open-accessibility-settings"),
   openWhisperModelsFolder: () => ipcRenderer.invoke("open-whisper-models-folder"),
-
-  // Usage limit events
-  notifyLimitReached: (data) => ipcRenderer.send("limit-reached", data),
-  onLimitReached: registerListener("limit-reached", (callback) => (_event, data) => callback(data)),
 
   // Globe key listener for hotkey capture (macOS only)
   onGlobeKeyPressed: (callback) => {
@@ -505,7 +442,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("hotkey-registration-failed", listener);
     return () => ipcRenderer.removeListener("hotkey-registration-failed", listener);
   },
-  onWindowsPushToTalkUnavailable: registerListener("windows-ptt-unavailable"),
 
   // Notify main process of activation mode changes (for Windows Push-to-Talk)
   notifyActivationModeChanged: (mode) => ipcRenderer.send("activation-mode-changed", mode),

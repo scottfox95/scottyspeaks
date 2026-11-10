@@ -1,0 +1,301 @@
+/* Overlay v2, Direction B ("destination card"). House tokens from scottsui;
+   system fonts only, so the overlay makes no network requests. */
+.ss2-card {
+  --n-0: #fff;
+  --n-50: oklch(0.97 0.007 85);
+  --n-100: oklch(0.952 0.008 85);
+  --n-200: oklch(0.919 0.006 85);
+  --n-300: oklch(0.862 0.008 85);
+  --n-600: oklch(0.528 0.004 85);
+  --n-700: oklch(0.4 0.004 85);
+  --n-900: oklch(0.178 0.002 85);
+  --brand: #3b5eff;
+  --brand-hover: #2d4bdb;
+  --brand-glow: 0 2px 12px oklch(0.561 0.241 268 / 0.2);
+  --green: oklch(0.58 0.1 158);
+  --green-ink: oklch(0.42 0.08 158);
+  --green-soft: oklch(0.965 0.025 158);
+  --green-ring: oklch(0.9 0.04 158);
+  --amber-ink: oklch(0.46 0.09 65);
+  --amber-soft: oklch(0.975 0.03 85);
+  --amber-ring: oklch(0.9 0.05 82);
+  --red-ink: oklch(0.48 0.14 25);
+  --red-soft: oklch(0.965 0.02 25);
+  --red-ring: oklch(0.9 0.04 25);
+  --ring: 0 0 0 1px oklch(0.178 0.002 85 / 0.1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --t-fast: 140ms;
+  --t-med: 240ms;
+
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: 340px;
+  box-sizing: border-box;
+  border-radius: 16px;
+  padding: 10px 10px 10px 12px;
+  background: oklch(0.985 0.004 85 / 0.94);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow:
+    0 0 0 1px oklch(0.178 0.002 85 / 0.1),
+    0 2px 4px oklch(0.25 0.01 85 / 0.06),
+    0 12px 32px oklch(0.25 0.01 85 / 0.14);
+  color: var(--n-900);
+  font:
+    13px/1.45 -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+  animation: ss2-card-enter var(--t-med) var(--ease-out) both;
+  transition:
+    opacity var(--t-med) var(--ease-out),
+    transform var(--t-med) var(--ease-out),
+    filter var(--t-med) var(--ease-out);
+}
+.ss2-card.is-leaving {
+  opacity: 0;
+  transform: translateY(6px) scale(0.97);
+  filter: blur(2px);
+}
+@keyframes ss2-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+    filter: blur(2px);
+  }
+}
+
+.ss2-card__row1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ss2-card__dest {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--n-700);
+}
+.ss2-card__dest b {
+  font-weight: 600;
+  color: var(--n-900);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ss2-card__appic {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: var(--n-900);
+  color: var(--n-50);
+  font:
+    600 9.5px/1 -apple-system,
+    sans-serif;
+}
+.ss2-card__chip {
+  font:
+    500 10.5px/1 ui-monospace,
+    "SF Mono",
+    Menlo,
+    monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--n-600);
+  padding: 3px 6px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--n-200);
+}
+.ss2-card__time {
+  margin-left: auto;
+  font:
+    500 12px/1 ui-monospace,
+    "SF Mono",
+    Menlo,
+    monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--n-600);
+}
+
+.ss2-card__wave {
+  margin-top: 8px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.ss2-card__wave i {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--n-300);
+  transition:
+    height 90ms linear,
+    background-color var(--t-fast) ease;
+}
+.ss2-card__wave.is-live i {
+  background: var(--brand);
+}
+
+.ss2-card__stage {
+  margin-top: 8px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ss2-card__steps {
+  display: flex;
+  gap: 4px;
+}
+.ss2-card__steps i {
+  width: 18px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--n-200);
+  transition: background-color var(--t-med) ease;
+}
+.ss2-card__steps i.is-on {
+  background: var(--brand);
+}
+.ss2-card__steps i.is-done {
+  background: var(--green);
+}
+.ss2-card__what {
+  font-size: 12.5px;
+  color: var(--n-700);
+}
+.ss2-card__acts {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.ss2-card__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--n-0);
+  color: var(--n-900);
+  box-shadow: var(--ring);
+  font:
+    500 12px/1 -apple-system,
+    sans-serif;
+  cursor: pointer;
+  transition:
+    transform var(--t-fast) var(--ease-out),
+    background-color var(--t-fast) ease;
+}
+.ss2-card__btn:active {
+  transform: scale(0.97);
+}
+.ss2-card__btn.is-primary {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: var(--brand-glow);
+}
+.ss2-card__btn:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--n-0),
+    0 0 0 4px oklch(0.561 0.241 268 / 0.55);
+}
+.ss2-card__btn kbd {
+  font:
+    500 10.5px/1 ui-monospace,
+    "SF Mono",
+    Menlo,
+    monospace;
+  padding: 2px 5px;
+  border-radius: 6px;
+  background: var(--n-100);
+  box-shadow: inset 0 0 0 1px var(--n-200);
+  color: var(--n-700);
+}
+.ss2-card__btn.is-primary kbd {
+  background: oklch(1 0 0 / 0.18);
+  box-shadow: none;
+  color: #fff;
+}
+@media (hover: hover) and (pointer: fine) {
+  .ss2-card__btn:hover {
+    background: var(--n-50);
+  }
+  .ss2-card__btn.is-primary:hover {
+    background: var(--brand-hover);
+  }
+}
+
+.ss2-card__note {
+  margin-top: 8px;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.ss2-card__note b {
+  font-weight: 600;
+}
+.ss2-card__note .ss2-card__btn {
+  display: flex;
+  width: max-content;
+  margin-top: 8px;
+}
+.ss2-card__note.is-ok {
+  background: var(--green-soft);
+  color: var(--green-ink);
+  box-shadow: inset 0 0 0 1px var(--green-ring);
+}
+.ss2-card__note.is-amber {
+  background: var(--amber-soft);
+  color: var(--amber-ink);
+  box-shadow: inset 0 0 0 1px var(--amber-ring);
+}
+.ss2-card__note.is-error {
+  background: var(--red-soft);
+  color: var(--red-ink);
+  box-shadow: inset 0 0 0 1px var(--red-ring);
+}
+.ss2-card__note.is-quiet {
+  background: var(--n-100);
+  color: var(--n-700);
+}
+
+/* Fewer and gentler, not zero: keep fades that explain a change, drop
+   movement, scale and blur. The meter still moves because it is data. */
+@media (prefers-reduced-motion: reduce) {
+  .ss2-card {
+    animation: ss2-card-fade var(--t-med) ease both;
+    transition: opacity var(--t-med) ease;
+  }
+  .ss2-card.is-leaving {
+    transform: none;
+    filter: none;
+  }
+  .ss2-card__wave i {
+    transition: none;
+  }
+  .ss2-card__btn,
+  .ss2-card__btn:active {
+    transition: background-color var(--t-fast) ease;
+    transform: none;
+  }
+}
+@keyframes ss2-card-fade {
+  from {
+    opacity: 0;
+  }
+}

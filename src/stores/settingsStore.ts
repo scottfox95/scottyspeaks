@@ -1,7 +1,12 @@
 import { create } from "zustand";
 import { API_ENDPOINTS } from "../config/constants";
 import i18n, { normalizeUiLanguage } from "../i18n";
-import { hasStoredByokKey } from "../utils/byokDetection";
+import {
+  DEFAULT_PARAKEET_MODEL,
+  DEFAULT_POLISH_MODEL,
+  DEFAULT_POLISH_PROVIDER,
+  migrateToLocalFirstDefaults,
+} from "./localFirstDefaults";
 import { ensureAgentNameInDictionary } from "../utils/agentName";
 import logger from "../utils/logger";
 import type { LocalTranscriptionProvider } from "../types/electron";
@@ -11,7 +16,6 @@ import type {
   HotkeySettings,
   MicrophoneSettings,
   ApiKeySettings,
-  PrivacySettings,
   ThemeSettings,
 } from "../hooks/useSettings";
 
@@ -48,18 +52,14 @@ const BOOLEAN_SETTINGS = new Set([
   "useLocalWhisper",
   "allowOpenAIFallback",
   "allowLocalFallback",
-  "assemblyAiStreaming",
   "useReasoningModel",
   "dictationExact",
   "dictationRemoveFillers",
   "dictationResolveCorrections",
   "dictationPreserveTechnical",
   "preferBuiltInMic",
-  "cloudBackupEnabled",
-  "telemetryEnabled",
   "audioCuesEnabled",
   "floatingIconAutoHide",
-  "isSignedIn",
 ]);
 
 const ARRAY_SETTINGS = new Set(["customDictionary"]);
@@ -76,6 +76,12 @@ function migratePreferredLanguage() {
 
 migratePreferredLanguage();
 
+try {
+  if (isBrowser) migrateToLocalFirstDefaults(localStorage);
+} catch {
+  // Best-effort; the defaults below still apply.
+}
+
 export interface SettingsState
   extends
     TranscriptionSettings,
@@ -83,9 +89,7 @@ export interface SettingsState
     HotkeySettings,
     MicrophoneSettings,
     ApiKeySettings,
-    PrivacySettings,
     ThemeSettings {
-  isSignedIn: boolean;
   audioCuesEnabled: boolean;
   floatingIconAutoHide: boolean;
 
@@ -106,11 +110,8 @@ export interface SettingsState
   setCloudTranscriptionProvider: (value: string) => void;
   setCloudTranscriptionModel: (value: string) => void;
   setCloudTranscriptionBaseUrl: (value: string) => void;
-  setCloudTranscriptionMode: (value: string) => void;
-  setCloudReasoningMode: (value: string) => void;
   setCloudReasoningBaseUrl: (value: string) => void;
   setCustomDictionary: (words: string[]) => void;
-  setAssemblyAiStreaming: (value: boolean) => void;
   setUseReasoningModel: (value: boolean) => void;
   setReasoningModel: (value: string) => void;
   setReasoningProvider: (value: string) => void;
@@ -131,11 +132,8 @@ export interface SettingsState
   setSelectedMicDeviceId: (value: string) => void;
 
   setTheme: (value: "light" | "dark" | "auto") => void;
-  setCloudBackupEnabled: (value: boolean) => void;
-  setTelemetryEnabled: (value: boolean) => void;
   setAudioCuesEnabled: (value: boolean) => void;
   setFloatingIconAutoHide: (enabled: boolean) => void;
-  setIsSignedIn: (value: boolean) => void;
 
   updateTranscriptionSettings: (settings: Partial<TranscriptionSettings>) => void;
   updateReasoningSettings: (settings: Partial<ReasoningSettings>) => void;
@@ -192,12 +190,12 @@ function invalidateApiKeyCaches(
 
 export const useSettingsStore = create<SettingsState>()((set, get) => ({
   uiLanguage: normalizeUiLanguage(isBrowser ? localStorage.getItem("uiLanguage") : null),
-  useLocalWhisper: readBoolean("useLocalWhisper", false),
+  useLocalWhisper: readBoolean("useLocalWhisper", true),
   whisperModel: readString("whisperModel", "base"),
-  localTranscriptionProvider: (readString("localTranscriptionProvider", "whisper") === "nvidia"
-    ? "nvidia"
-    : "whisper") as LocalTranscriptionProvider,
-  parakeetModel: readString("parakeetModel", ""),
+  localTranscriptionProvider: (readString("localTranscriptionProvider", "nvidia") === "whisper"
+    ? "whisper"
+    : "nvidia") as LocalTranscriptionProvider,
+  parakeetModel: readString("parakeetModel", DEFAULT_PARAKEET_MODEL),
   polishStyle: readBoolean("dictationExact", readString("polishStyle", "balanced") === "verbatim")
     ? "verbatim"
     : "balanced",
@@ -218,18 +216,12 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     "cloudTranscriptionBaseUrl",
     API_ENDPOINTS.TRANSCRIPTION_BASE
   ),
-  cloudTranscriptionMode: readString(
-    "cloudTranscriptionMode",
-    hasStoredByokKey() ? "byok" : "openwhispr"
-  ),
-  cloudReasoningMode: readString("cloudReasoningMode", "openwhispr"),
   cloudReasoningBaseUrl: readString("cloudReasoningBaseUrl", API_ENDPOINTS.OPENAI_BASE),
   customDictionary: readStringArray("customDictionary", []),
-  assemblyAiStreaming: readBoolean("assemblyAiStreaming", true),
 
   useReasoningModel: readBoolean("useReasoningModel", true),
-  reasoningModel: readString("reasoningModel", ""),
-  reasoningProvider: readString("reasoningProvider", "openai"),
+  reasoningModel: readString("reasoningModel", DEFAULT_POLISH_MODEL),
+  reasoningProvider: readString("reasoningProvider", DEFAULT_POLISH_PROVIDER),
 
   openaiApiKey: readString("openaiApiKey", ""),
   anthropicApiKey: readString("anthropicApiKey", ""),
@@ -252,11 +244,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     if (v === "light" || v === "dark" || v === "auto") return v;
     return "auto" as const;
   })(),
-  cloudBackupEnabled: readBoolean("cloudBackupEnabled", false),
-  telemetryEnabled: readBoolean("telemetryEnabled", false),
   audioCuesEnabled: readBoolean("audioCuesEnabled", true),
   floatingIconAutoHide: readBoolean("floatingIconAutoHide", false),
-  isSignedIn: readBoolean("isSignedIn", false),
 
   setUseLocalWhisper: createBooleanSetter("useLocalWhisper"),
   setWhisperModel: createStringSetter("whisperModel"),
@@ -285,10 +274,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setCloudTranscriptionProvider: createStringSetter("cloudTranscriptionProvider"),
   setCloudTranscriptionModel: createStringSetter("cloudTranscriptionModel"),
   setCloudTranscriptionBaseUrl: createStringSetter("cloudTranscriptionBaseUrl"),
-  setCloudTranscriptionMode: createStringSetter("cloudTranscriptionMode"),
-  setCloudReasoningMode: createStringSetter("cloudReasoningMode"),
   setCloudReasoningBaseUrl: createStringSetter("cloudReasoningBaseUrl"),
-  setAssemblyAiStreaming: createBooleanSetter("assemblyAiStreaming"),
   setUseReasoningModel: createBooleanSetter("useReasoningModel"),
   setReasoningModel: createStringSetter("reasoningModel"),
   setReasoningProvider: createStringSetter("reasoningProvider"),
@@ -389,8 +375,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     set({ theme: value });
   },
 
-  setCloudBackupEnabled: createBooleanSetter("cloudBackupEnabled"),
-  setTelemetryEnabled: createBooleanSetter("telemetryEnabled"),
   setAudioCuesEnabled: createBooleanSetter("audioCuesEnabled"),
 
   setFloatingIconAutoHide: (enabled: boolean) => {
@@ -400,11 +384,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     if (isBrowser) {
       window.electronAPI?.notifyFloatingIconAutoHideChanged?.(enabled);
     }
-  },
-
-  setIsSignedIn: (value: boolean) => {
-    if (isBrowser) localStorage.setItem("isSignedIn", String(value));
-    set({ isSignedIn: value });
   },
 
   updateTranscriptionSettings: (settings: Partial<TranscriptionSettings>) => {
@@ -429,11 +408,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       s.setCloudTranscriptionModel(settings.cloudTranscriptionModel);
     if (settings.cloudTranscriptionBaseUrl !== undefined)
       s.setCloudTranscriptionBaseUrl(settings.cloudTranscriptionBaseUrl);
-    if (settings.cloudTranscriptionMode !== undefined)
-      s.setCloudTranscriptionMode(settings.cloudTranscriptionMode);
     if (settings.customDictionary !== undefined) s.setCustomDictionary(settings.customDictionary);
-    if (settings.assemblyAiStreaming !== undefined)
-      s.setAssemblyAiStreaming(settings.assemblyAiStreaming);
   },
 
   updateReasoningSettings: (settings: Partial<ReasoningSettings>) => {
@@ -454,8 +429,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
       s.setReasoningProvider(settings.reasoningProvider);
     if (settings.cloudReasoningBaseUrl !== undefined)
       s.setCloudReasoningBaseUrl(settings.cloudReasoningBaseUrl);
-    if (settings.cloudReasoningMode !== undefined)
-      s.setCloudReasoningMode(settings.cloudReasoningMode);
   },
 
   updateApiKeys: (keys: Partial<ApiKeySettings>) => {
@@ -472,14 +445,6 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   },
 }));
 
-// --- Selectors (derived state, not stored) ---
-
-export const selectIsCloudReasoningMode = (state: SettingsState) =>
-  state.isSignedIn && state.cloudReasoningMode === "openwhispr";
-
-export const selectEffectiveReasoningProvider = (state: SettingsState) =>
-  selectIsCloudReasoningMode(state) ? "openwhispr" : state.reasoningProvider;
-
 // --- Convenience getters for non-React code ---
 
 export function getSettings() {
@@ -487,15 +452,7 @@ export function getSettings() {
 }
 
 export function getEffectiveReasoningModel() {
-  const state = useSettingsStore.getState();
-  if (selectIsCloudReasoningMode(state)) {
-    return "";
-  }
-  return state.reasoningModel;
-}
-
-export function isCloudReasoningMode() {
-  return selectIsCloudReasoningMode(useSettingsStore.getState());
+  return useSettingsStore.getState().reasoningModel;
 }
 
 // --- Initialization ---
@@ -518,8 +475,8 @@ export async function initializeSettings(): Promise<void> {
   // the Settings model picker matches it against family ids and silently
   // falls back to Cloud (rewriting the model to a cloud default and stopping
   // llama-server) when it sees an unknown value.
-  const POLISH_MODEL = "qwen3-4b-instruct-2507-q4_k_m";
-  const POLISH_PROVIDER = "qwen";
+  const POLISH_MODEL = DEFAULT_POLISH_MODEL;
+  const POLISH_PROVIDER = DEFAULT_POLISH_PROVIDER;
   try {
     if (localStorage.getItem("polishEngineMigrated") !== "2") {
       const previouslyMigrated = localStorage.getItem("polishEngineMigrated") === "1";

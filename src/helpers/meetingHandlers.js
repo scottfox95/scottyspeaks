@@ -24,6 +24,18 @@ const {
 const debugLogger = require("./debugLogger");
 const { analyzeFile, mergeSegments, trimSuggestions } = require("./speechActivity");
 const { createMeetingActivity } = require("./meetingActivity");
+const { guardQuit, waitUntil } = require("./quitGuard");
+// Saved audio entries whose file is on disk. Entries from a take whose recorder
+// never wrote its files are skipped rather than breaking playback or trim.
+function presentAudio(directory, entries) {
+  return entries.filter((entry) => {
+    try {
+      return fs.statSync(path.join(directory, entry.file)).isFile();
+    } catch {
+      return false;
+    }
+  });
+}
 const AUTO_STOP_MINUTES = [0, 1, 2, 5, 10, 15, 30];
 // Was 2 until Nov 2026, when a talk-heavy demo was cut off at 11 minutes.
 // Configs still on the old default move to the new one once.
@@ -39,6 +51,13 @@ function isTransientCloudError(error) {
     status === 429 ||
     (status >= 500 && status <= 599)
   );
+}
+function translate(key, fallback) {
+  try {
+    return require("./i18nMain").i18nMain.t(key, { defaultValue: fallback });
+  } catch {
+    return fallback;
+  }
 }
 function registerMeetingHandlers({
   app,
@@ -57,6 +76,8 @@ function registerMeetingHandlers({
   callDiarizer = null,
   recordingAlerts = null,
   meetingActive = createMeetingActivity(),
+  // ffmpeg for trimming; injectable so tests can make one file fail.
+  runTrim = promisify(execFile),
 }) {
   const root = path.join(app.getPath("userData"), "call-notes");
   const store = new MeetingStore(root);
@@ -77,6 +98,12 @@ function registerMeetingHandlers({
       store.index.config.autoStopMinutes = DEFAULT_AUTO_STOP_MINUTES;
     store.index.config = { ...store.index.config, autoStopDefaultMigrated: true };
     store.persistIndex();
+  }
+  // Scratch files from jobs a crash or quit cut short (no job runs yet).
+  try {
+    store.cleanStaleWork();
+  } catch (error) {
+    debugLogger.warn("Could not clean stale call work files", { error: error.message });
   }
   const keyPath = path.join(root, "openrouter-key.enc");
   let keyLoaded = false;
@@ -106,6 +133,11 @@ function registerMeetingHandlers({
     cachedKey = value;
     cachedKeyError = null;
     keyLoaded = true;
+  };
+  const savedPlaybackInputs = (id, meeting, source) => {
+    const inputs = playbackInputs(meeting, source);
+    const present = new Set(presentAudio(store.directory(id), inputs).map((input) => input.file));
+    return inputs.filter((input) => present.has(input.file));
   };
   const config = () => ({
     autoStopMinutes: DEFAULT_AUTO_STOP_MINUTES,
@@ -159,10 +191,14 @@ function registerMeetingHandlers({
           group.inputs,
           path.join(work, `diarize-${group.index}.wav`)
         );
-        const diarization = await inferenceScheduler.run(
-          () =>
-            callDiarizer.diarize(audio, path.join(work, `diarize-${group.index}.f32`), { signal }),
-          { priority: "background", signal }
+        // Not in the shared inference lane: the diarizer's first run downloads
+        // and compiles its model (up to 15 minutes), and dictation must never
+        // wait behind that. It is a separate one-shot process that does not
+        // share an engine with dictation.
+        const diarization = await callDiarizer.diarize(
+          audio,
+          path.join(work, `diarize-${group.index}.f32`),
+          { signal }
         );
         const labels = attributeWords(words, diarization, group.offset);
         const microphone = await microphoneSpeakerFor(group, diarization, work);
@@ -329,10 +365,18 @@ function registerMeetingHandlers({
                       signal: controller.signal,
                       fetchImpl: cloudFetch,
                       localTranscribe: (audio) => {
-                        store.update(id, { status: "queued" });
+                        // Show "queued" only when the chunk really has to wait;
+                        // the job is already "transcribing", and each status
+                        // write rewrites the whole session file.
+                        const lane = inferenceScheduler.status();
+                        const waits =
+                          lane.active > 0 ||
+                          lane.queued.foreground > 0 ||
+                          lane.foregroundReservations > 0;
+                        if (waits) store.update(id, { status: "queued" });
                         return inferenceScheduler.run(
                           () => {
-                            store.update(id, { status: "transcribing" });
+                            if (waits) store.update(id, { status: "transcribing" });
                             return localTranscribe(audio, settings);
                           },
                           { priority: "background", signal: controller.signal }
@@ -369,7 +413,11 @@ function registerMeetingHandlers({
         if (controller.signal.aborted)
           throw new Error("Transcription cancelled; saved audio is retained");
         const raw = chunks.map((c) => cache.results[c.key]);
-        if (raw.every((r) => r.empty || !r.text?.trim()) && raw.some((r) => r.empty)) {
+        if (
+          settings.provider === "openrouter" &&
+          raw.every((r) => r.empty || !r.text?.trim()) &&
+          raw.some((r) => r.empty)
+        ) {
           for (const chunk of chunks)
             if (cache.results[chunk.key]?.empty) delete cache.results[chunk.key];
           store.update(id, { transcriptionCache: cache });
@@ -548,6 +596,10 @@ function registerMeetingHandlers({
         if (!(await systemPreferences.askForMediaAccess("microphone")))
           throw new Error("Microphone permission is required");
         return await recorder.start(id, { autoStopSeconds: config().autoStopMinutes * 60 });
+      } catch (error) {
+        if (error?.code === "disk")
+          throw new Error(translate("meetings.lowDiskError", error.message));
+        throw error;
       } finally {
         starting.delete(id);
       }
@@ -562,13 +614,13 @@ function registerMeetingHandlers({
     playback: async ({ id, source = "all" }) => {
       if (recorder.status().id === id) throw new Error("Stop recording before playback");
       const original = store.get(id);
-      const inputs = playbackInputs(original, source);
+      const inputs = savedPlaybackInputs(id, original, source);
       if (reading.has(id)) throw new Error("Playback is already being prepared");
       reading.add(id);
       try {
         const file = await audioEvidence.prepare(store.directory(id), inputs);
         const url = audioEvidence.issue(() => {
-          const current = playbackInputs(store.get(id), source);
+          const current = savedPlaybackInputs(id, store.get(id), source);
           if (JSON.stringify(current) !== JSON.stringify(inputs))
             throw new Error("Recording changed");
           for (const input of current) confinedFile(store.directory(id), input.file);
@@ -586,7 +638,7 @@ function registerMeetingHandlers({
     exportAudio: async ({ id, source = "all" }) => {
       if (recorder.status().id === id) throw new Error("Stop recording before exporting audio");
       const original = store.get(id);
-      const inputs = playbackInputs(original, source);
+      const inputs = savedPlaybackInputs(id, original, source);
       if (reading.has(id)) throw new Error("Audio is already being prepared");
       reading.add(id);
       try {
@@ -652,22 +704,28 @@ function registerMeetingHandlers({
         const ffmpeg = require("ffmpeg-static").replace("app.asar/", "app.asar.unpacked/");
         const keep = [];
         const remove = [];
-        for (const entry of original.audio || []) {
-          const file = confinedFile(directory, entry.file);
-          const length = end - (entry.offset || 0);
-          if (length <= 0) {
-            remove.push(file);
-            continue;
-          }
-          keep.push(entry);
-          if ((await audioDuration(file)) <= length + 0.05) continue;
-          const extension = path.extname(file);
-          const temporary = path.join(
-            path.dirname(file),
-            `trim-${crypto.randomUUID()}${extension}`
-          );
-          try {
-            await promisify(execFile)(
+        const rewrites = [];
+        // All or nothing: every shortened file is written to a temporary first.
+        // Only when all of them succeeded is any saved audio replaced, so a
+        // failure part-way leaves the recording and its cached transcription
+        // exactly as they were. Entries whose file was never written are dropped.
+        try {
+          for (const entry of presentAudio(directory, original.audio || [])) {
+            const file = confinedFile(directory, entry.file);
+            const length = end - (entry.offset || 0);
+            if (length <= 0) {
+              remove.push(file);
+              continue;
+            }
+            keep.push(entry);
+            if ((await audioDuration(file)) <= length + 0.05) continue;
+            const extension = path.extname(file);
+            const temporary = path.join(
+              path.dirname(file),
+              `trim-${crypto.randomUUID()}${extension}`
+            );
+            rewrites.push({ file, temporary });
+            await runTrim(
               ffmpeg,
               ["-hide_banner", "-loglevel", "error", "-nostdin", "-i", file].concat([
                 "-t",
@@ -680,12 +738,15 @@ function registerMeetingHandlers({
               ]),
               { timeout: 300000, maxBuffer: 512 * 1024 }
             );
-            fs.renameSync(temporary, file);
-          } finally {
-            fs.rmSync(temporary, { force: true });
           }
+          if (!keep.length) throw new Error("The trim point is before any saved audio");
+          // From here the saved audio changes; forget cached chunk results first
+          // so nothing can reuse them against different audio.
+          store.update(id, { transcriptionCache: null, needsTranscription: true });
+          for (const { file, temporary } of rewrites) fs.renameSync(temporary, file);
+        } finally {
+          for (const { temporary } of rewrites) fs.rmSync(temporary, { force: true });
         }
-        if (!keep.length) throw new Error("The trim point is before any saved audio");
         for (const file of remove) fs.rmSync(file, { force: true });
         for (const name of fs.readdirSync(directory)) {
           const full = path.join(directory, name);
@@ -748,15 +809,18 @@ function registerMeetingHandlers({
         return { success: false, error: String(error.message || error).slice(0, 700) };
       }
     });
-  let quitting = false;
-  app.on("before-quit", (event) => {
+  app.on("before-quit", () => {
     for (const job of jobs.values()) job.abort();
-    const active = recorder.status();
-    if (active.id && !quitting) {
-      event.preventDefault();
-      quitting = true;
-      recorder.stop(active.id, { requestedBy: "user" }).finally(() => app.quit());
-    }
+  });
+  // Quitting mid-call finalizes the recording first, even when a screen
+  // recording is finishing at the same time.
+  guardQuit(app, {
+    busy: () => !!recorder.status().id,
+    drain: async () => {
+      const active = recorder.status();
+      if (active.id) await recorder.stop(active.id, { requestedBy: "user" }).catch(() => {});
+      await waitUntil(() => !!recorder.status().id);
+    },
   });
   return { store, recorder, inferenceScheduler, readCloudKey: readKey };
 }

@@ -30,7 +30,6 @@ export default function ControlPanel() {
   const history = useTranscriptions();
   const [isLoading, setIsLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
-  const [settingsSection, setSettingsSection] = useState<string | undefined>();
   const [aiCTADismissed, setAiCTADismissed] = useState(
     () => localStorage.getItem("aiCTADismissed") === "true"
   );
@@ -265,11 +264,7 @@ export default function ControlPanel() {
         <Suspense fallback={null}>
           <SettingsModal
             open={showSettings}
-            onOpenChange={(open) => {
-              setShowSettings(open);
-              if (!open) setSettingsSection(undefined);
-            }}
-            initialSection={settingsSection}
+            onOpenChange={setShowSettings}
           />
         </Suspense>
       )}
@@ -289,10 +284,7 @@ export default function ControlPanel() {
         <ControlPanelSidebar
           activeView={activeView}
           onViewChange={setActiveView}
-          onOpenSettings={() => {
-            setSettingsSection(undefined);
-            setShowSettings(true);
-          }}
+          onOpenSettings={() => setShowSettings(true)}
           updateAction={
             !updateStatus.isDevelopment &&
             (updateStatus.updateAvailable ||
@@ -326,12 +318,7 @@ export default function ControlPanel() {
             )}
             {activeView === "personal-notes" && (
               <Suspense fallback={null}>
-                <PersonalNotesView
-                  onOpenSettings={(section) => {
-                    setSettingsSection(section);
-                    setShowSettings(true);
-                  }}
-                />
+                <PersonalNotesView />
               </Suspense>
             )}
             {activeView === "meetings" && (

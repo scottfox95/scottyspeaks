@@ -7,17 +7,13 @@ import { API_ENDPOINTS, buildApiUrl, normalizeBaseUrl } from "../config/constant
 import logger from "../utils/logger";
 import { isBuiltInMicrophone } from "../utils/audioDeviceUtils";
 import { isSecureEndpoint } from "../utils/urlUtils";
-import { withSessionRefresh } from "../lib/neonAuth";
 import { getBaseLanguageCode, validateLanguageForModel } from "../utils/languageSupport";
-import {
-  getSettings,
-  getEffectiveReasoningModel,
-  isCloudReasoningMode,
-} from "../stores/settingsStore";
+import { getSettings, getEffectiveReasoningModel } from "../stores/settingsStore";
 
 const SHORT_CLIP_DURATION_SECONDS = 2.5;
 const REASONING_CACHE_TTL = 30000; // 30 seconds
 const POLISH_TIMEOUT_MS = 20000; // hard cap on the polish pass; raw text is the fallback
+const POLISH_SKIPPED = Symbol("polish-skipped");
 
 const TRUNCATED_ENDING_WORDS = new Set([
   "a",
@@ -197,6 +193,13 @@ const CONTRACTIONS = {
   "they're": "they are", "that's": "that is", "there's": "there is", "what's": "what is",
   "i've": "i have", "i'll": "i will", "we'll": "we will", "let's": "let us", "gonna": "going to", "wanna": "want to",
 };
+/** Mic RMS (0..1 amplitude) → meter level 0..1 on a -60..-10 dBFS scale. */
+function levelFromRms(rms) {
+  if (!(rms > 0)) return 0;
+  const db = 20 * Math.log10(rms);
+  return Math.min(1, Math.max(0, (db + 60) / 50));
+}
+
 // Spoken formatting commands are meant to disappear ("new paragraph" → a blank line).
 const SPOKEN_COMMANDS =
   /\b(?:new (?:line|paragraph)|period|full stop|comma|colon|semicolon|question mark|exclamation (?:point|mark)|scratch that|(?:open |close )?quote|unquote|bullet(?: point)?|numbered list|dash|hyphen)\b/g;
@@ -257,33 +260,6 @@ const isValidApiKey = (key, provider = "openai") => {
   return key !== placeholder;
 };
 
-const STREAMING_PROVIDERS = {
-  deepgram: {
-    warmup: (opts) => window.electronAPI.deepgramStreamingWarmup(opts),
-    start: (opts) => window.electronAPI.deepgramStreamingStart(opts),
-    send: (buf) => window.electronAPI.deepgramStreamingSend(buf),
-    finalize: () => window.electronAPI.deepgramStreamingFinalize(),
-    stop: () => window.electronAPI.deepgramStreamingStop(),
-    status: () => window.electronAPI.deepgramStreamingStatus(),
-    onPartial: (cb) => window.electronAPI.onDeepgramPartialTranscript(cb),
-    onFinal: (cb) => window.electronAPI.onDeepgramFinalTranscript(cb),
-    onError: (cb) => window.electronAPI.onDeepgramError(cb),
-    onSessionEnd: (cb) => window.electronAPI.onDeepgramSessionEnd(cb),
-  },
-  assemblyai: {
-    warmup: (opts) => window.electronAPI.assemblyAiStreamingWarmup(opts),
-    start: (opts) => window.electronAPI.assemblyAiStreamingStart(opts),
-    send: (buf) => window.electronAPI.assemblyAiStreamingSend(buf),
-    finalize: () => window.electronAPI.assemblyAiStreamingForceEndpoint(),
-    stop: () => window.electronAPI.assemblyAiStreamingStop(),
-    status: () => window.electronAPI.assemblyAiStreamingStatus(),
-    onPartial: (cb) => window.electronAPI.onAssemblyAiPartialTranscript(cb),
-    onFinal: (cb) => window.electronAPI.onAssemblyAiFinalTranscript(cb),
-    onError: (cb) => window.electronAPI.onAssemblyAiError(cb),
-    onSessionEnd: (cb) => window.electronAPI.onAssemblyAiSessionEnd(cb),
-  },
-};
-
 class AudioManager {
   constructor() {
     this.mediaRecorder = null;
@@ -293,7 +269,6 @@ class AudioManager {
     this.onStateChange = null;
     this.onError = null;
     this.onTranscriptionComplete = null;
-    this.onPartialTranscript = null;
     this.cachedApiKey = null;
     this.cachedApiKeyProvider = null;
     this.commandMode = false; // true while capturing a voice-command instruction
@@ -311,71 +286,9 @@ class AudioManager {
     this.recordingStartTime = null;
     this.reasoningAvailabilityCache = { value: false, expiresAt: 0 };
     this.cachedReasoningPreference = null;
-    this.isStreaming = false;
-    this.streamingAudioContext = null;
-    this.streamingSource = null;
-    this.streamingProcessor = null;
-    this.streamingStream = null;
-    this.streamingCleanupFns = [];
-    this.streamingFinalText = "";
-    this.streamingPartialText = "";
-    this.streamingTextResolve = null;
-    this.streamingTextDebounce = null;
     this.cachedMicDeviceId = null;
-    this.persistentAudioContext = null;
-    this.workletModuleLoaded = false;
-    this.workletBlobUrl = null;
-    this.streamingStartInProgress = false;
-    this.stopRequestedDuringStreamingStart = false;
-    this.streamingFallbackRecorder = null;
-    this.streamingFallbackChunks = [];
     this.skipReasoning = false;
     this.context = "dictation";
-    this.sttConfig = null;
-  }
-
-  getWorkletBlobUrl() {
-    if (this.workletBlobUrl) return this.workletBlobUrl;
-    const code = `
-const BUFFER_SIZE = 800;
-class PCMStreamingProcessor extends AudioWorkletProcessor {
-  constructor() {
-    super();
-    this._buffer = new Int16Array(BUFFER_SIZE);
-    this._offset = 0;
-    this._stopped = false;
-    this.port.onmessage = (event) => {
-      if (event.data === "stop") {
-        if (this._offset > 0) {
-          const partial = this._buffer.slice(0, this._offset);
-          this.port.postMessage(partial.buffer, [partial.buffer]);
-          this._buffer = new Int16Array(BUFFER_SIZE);
-          this._offset = 0;
-        }
-        this._stopped = true;
-      }
-    };
-  }
-  process(inputs) {
-    if (this._stopped) return false;
-    const input = inputs[0]?.[0];
-    if (!input) return true;
-    for (let i = 0; i < input.length; i++) {
-      const s = Math.max(-1, Math.min(1, input[i]));
-      this._buffer[this._offset++] = s < 0 ? s * 0x8000 : s * 0x7fff;
-      if (this._offset >= BUFFER_SIZE) {
-        this.port.postMessage(this._buffer.buffer, [this._buffer.buffer]);
-        this._buffer = new Int16Array(BUFFER_SIZE);
-        this._offset = 0;
-      }
-    }
-    return true;
-  }
-}
-registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
-`;
-    this.workletBlobUrl = URL.createObjectURL(new Blob([code], { type: "application/javascript" }));
-    return this.workletBlobUrl;
   }
 
   getCustomDictionaryPrompt(snapshot = this.captureSnapshot) {
@@ -383,18 +296,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     return words.length > 0 ? words.join(", ") : null;
   }
 
-  setCallbacks({
-    onStateChange,
-    onError,
-    onTranscriptionComplete,
-    onPartialTranscript,
-    onStreamingCommit,
-  }) {
+  setCallbacks({ onStateChange, onError, onTranscriptionComplete, onLevel = null, onTarget = null }) {
     this.onStateChange = onStateChange;
     this.onError = onError;
     this.onTranscriptionComplete = onTranscriptionComplete;
-    this.onPartialTranscript = onPartialTranscript;
-    this.onStreamingCommit = onStreamingCommit;
+    // Overlay v2: live mic level (0..1, every 100 ms) and the paste target's app name.
+    this.onLevel = onLevel;
+    this.onTarget = onTarget;
   }
 
   setSkipReasoning(skip) {
@@ -403,15 +311,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
   setContext(context) {
     this.context = context;
-  }
-
-  setSttConfig(config) {
-    this.sttConfig = config;
-  }
-
-  getStreamingProvider() {
-    const providerName = this.sttConfig?.streamingProvider || "deepgram";
-    return STREAMING_PROVIDERS[providerName] || STREAMING_PROVIDERS.deepgram;
   }
 
   async getAudioConstraints() {
@@ -467,24 +366,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     return { audio: noProcessing };
   }
 
-  async cacheMicrophoneDeviceId() {
-    if (this.cachedMicDeviceId) return; // Already cached
-
-    if (!getSettings().preferBuiltInMic) return; // Only needed for built-in mic detection
-
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const audioInputs = devices.filter((d) => d.kind === "audioinput");
-      const builtInMic = audioInputs.find((d) => isBuiltInMicrophone(d.label));
-      if (builtInMic) {
-        this.cachedMicDeviceId = builtInMic.deviceId;
-        logger.debug("Microphone device ID pre-cached", { deviceId: builtInMic.deviceId }, "audio");
-      }
-    } catch (error) {
-      logger.debug("Failed to pre-cache microphone device ID", { error: error.message }, "audio");
-    }
-  }
-
   releaseLocalInference(token = this._localInferenceToken) {
     if (!token) return;
     if (this._localInferenceToken === token) this._localInferenceToken = null;
@@ -498,6 +379,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       target.token = result?.token || null;
       target.appName = typeof result?.appName === "string" ? result.appName : "";
       if (target.released && target.token) await window.electronAPI?.releaseRecordingTarget?.(target.token);
+      else this.onTarget?.({ appName: target.appName });
     } catch { target.token = null; }
   }
 
@@ -552,7 +434,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   setPipelineStage(pipelineStage) {
-    this.onStateChange?.({ isRecording: false, isProcessing: true, isStreaming: false, pipelineStage });
+    this.onStateChange?.({ isRecording: false, isProcessing: true, pipelineStage });
   }
 
   async startRecording({ recordingTarget } = {}) {
@@ -618,6 +500,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           }
           const rms = Math.sqrt(sum / dataArray.length);
           if (rms > this._peakRms) this._peakRms = rms;
+          // The overlay's level meter, -60 dBFS → 0 and -10 dBFS → 1. Computed
+          // anyway for silence detection; until 0.3.16 it was thrown away.
+          this.onLevel?.(levelFromRms(rms));
         }, 100);
       } catch (e) {
         this.cleanupSilenceDetection();
@@ -775,6 +660,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   cancelProcessing() {
+    // The words are already transcribed: cancelling the AI pass delivers them
+    // as they are instead of throwing the dictation away.
+    if (this.skipPolish()) return true;
     this.releaseRecordingTarget();
     this.releaseRecordingTarget(this._evidenceOperation?.target);
     if (this._evidenceOperation) this._evidenceOperation.cancelled = true;
@@ -795,9 +683,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       const response = await window.electronAPI.captures.create({
         audio: await audioBlob.arrayBuffer(), mimeType: audioBlob.type || "audio/webm",
         durationSeconds: metadata.durationSeconds || 0,
-        settings: { provider: !s.useLocalWhisper && s.cloudTranscriptionMode === "openwhispr" ? "openwhispr" : s.useLocalWhisper ? (s.localTranscriptionProvider === "nvidia" ? "parakeet" : "whisper") : (s.cloudTranscriptionProvider || "openwhispr"),
-          model: s.useLocalWhisper ? (s.localTranscriptionProvider === "nvidia" ? s.parakeetModel : s.whisperModel) : s.cloudTranscriptionMode === "openwhispr" ? "server-selected" : this.getTranscriptionModel(snapshot),
-          language: s.preferredLanguage || "auto", polishModel: snapshot?.provider === "openwhispr" ? "openwhispr-cloud" : snapshot?.model || s.reasoningModel,
+        settings: { provider: s.useLocalWhisper ? (s.localTranscriptionProvider === "nvidia" ? "parakeet" : "whisper") : (s.cloudTranscriptionProvider || "openai"),
+          model: s.useLocalWhisper ? (s.localTranscriptionProvider === "nvidia" ? s.parakeetModel : s.whisperModel) : this.getTranscriptionModel(snapshot),
+          language: s.preferredLanguage || "auto", polishModel: snapshot?.model || s.reasoningModel,
           styleId: snapshot?.context.styleId, styleName: snapshot?.context.styleName,
           styleRules: snapshot?.context.styleRules, dictionary: s.customDictionary,
           polishProvider: snapshot?.provider, cleanup: snapshot?.cleanup || cleanupChoices(s) },
@@ -849,17 +737,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       const localProvider = s.localTranscriptionProvider;
       const whisperModel = s.whisperModel;
       const parakeetModel = s.parakeetModel || "parakeet-tdt-0.6b-v3";
-
-      const cloudTranscriptionMode = s.cloudTranscriptionMode;
-      const isSignedIn = s.isSignedIn;
-
-      const isOpenWhisprCloudMode = !useLocalWhisper && cloudTranscriptionMode === "openwhispr";
-      const useCloud = isOpenWhisprCloudMode && isSignedIn;
-      logger.debug(
-        "Transcription routing",
-        { useLocalWhisper, useCloud, isSignedIn, cloudTranscriptionMode },
-        "transcription"
-      );
+      logger.debug("Transcription routing", { useLocalWhisper, localProvider }, "transcription");
 
       let result;
       let activeModel;
@@ -871,16 +749,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           activeModel = whisperModel;
           result = await this.processWithLocalWhisper(audioBlob, whisperModel, metadata);
         }
-      } else if (isOpenWhisprCloudMode) {
-        if (!isSignedIn) {
-          const err = new Error(
-            "OpenWhispr Cloud requires sign-in. Please sign in again or switch to BYOK mode."
-          );
-          err.code = "AUTH_REQUIRED";
-          throw err;
-        }
-        activeModel = "openwhispr-cloud";
-        result = await this.processWithOpenWhisprCloud(audioBlob, metadata);
       } else {
         activeModel = this.getTranscriptionModel();
         result = await this.processWithOpenAIAPI(audioBlob, metadata);
@@ -902,10 +770,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       }
       await this.finishEvidence(captureId, { rawText: result.rawText, finalText: result.evidenceFinalText ?? result.text ?? "", historyId: result.historyId, error: result.evidenceError });
       evidenceFinished = true;
-
-      if (result?.source === "openwhispr") {
-        window.dispatchEvent(new Event("usage-changed"));
-      }
 
       const roundTripDurationMs = Math.round(performance.now() - pipelineStart);
 
@@ -1172,7 +1036,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           provider,
           hasKey: !!apiKey,
           keyLength: apiKey?.length || 0,
-          keyPreview: apiKey ? `${apiKey.substring(0, 8)}...` : "(none)",
+          hasKey: Boolean(apiKey),
         },
         "transcription"
       );
@@ -1367,15 +1231,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       return false;
     }
 
-    if (isCloudReasoningMode()) {
-      this.reasoningAvailabilityCache = {
-        value: true,
-        expiresAt: now + REASONING_CACHE_TTL,
-      };
-      this.cachedReasoningPreference = useReasoning;
-      return true;
-    }
-
     try {
       const isAvailable = await ReasoningService.isAvailable();
 
@@ -1520,20 +1375,39 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     return { text: out, reason: "" };
   }
 
+  /**
+   * Races a polish request against its timeout and against "use the raw text
+   * now" (cancel while refining). Either way the HTTP request to llama-server
+   * is aborted so it stops generating instead of holding the next dictation.
+   * Resolves POLISH_SKIPPED when the person skipped the pass.
+   */
   _withTimeout(promise, ms, label) {
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+      let settled = false;
+      let timer = null;
+      const settle = (fn, value, abort) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        if (this._skipPolish === skip) this._skipPolish = null;
+        if (abort) void window.electronAPI?.cancelLocalReasoning?.()?.catch?.(() => {});
+        fn(value);
+      };
+      const skip = () => settle(resolve, POLISH_SKIPPED, true);
+      this._skipPolish = skip;
+      timer = setTimeout(() => settle(reject, new Error(`${label} timed out after ${ms}ms`), true), ms);
       promise.then(
-        (v) => {
-          clearTimeout(timer);
-          resolve(v);
-        },
-        (e) => {
-          clearTimeout(timer);
-          reject(e);
-        }
+        (v) => settle(resolve, v),
+        (e) => settle(reject, e)
       );
     });
+  }
+
+  /** Cancel while refining: keep the dictation and deliver it without the AI pass. */
+  skipPolish() {
+    if (!this._skipPolish) return false;
+    this._skipPolish();
+    return true;
   }
 
   async processTranscription(text, source, evidence) {
@@ -1554,7 +1428,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       try {
         const result = await this._withTimeout(this.processWithReasoningModel(raw, snapshot.model,
           snapshot.agentName || snapshot.settings.agentName, { ...snapshot, command: true }), POLISH_TIMEOUT_MS, "Voice command");
-        if (typeof result !== "string" || !result.trim()) return raw;
+        if (result === POLISH_SKIPPED || typeof result !== "string" || !result.trim()) return raw;
         if (evidence) { evidence.polished = true; evidence.explicitCommand = true; }
         this.lastPolishInfo = { polished: true, raw };
         return result;
@@ -1573,6 +1447,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         this.processWithReasoningModel(baseline, snapshot.model, null, snapshot),
         POLISH_TIMEOUT_MS, "Polish"
       );
+      if (result === POLISH_SKIPPED) return baseline;
       const { text: validated, reason } = this.explainPolishOutput(baseline, result);
       const violation = validated === null ? reason : cleanupViolation(baseline, validated, snapshot.cleanup);
       if (violation) {
@@ -1682,7 +1557,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           "First stream chunk received",
           {
             chunkLength: chunk.length,
-            chunkPreview: chunk.substring(0, 500),
+            chunkLength: chunk.length,
           },
           "transcription"
         );
@@ -1743,78 +1618,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     );
 
     return result;
-  }
-
-  async processWithOpenWhisprCloud(audioBlob, metadata = {}) {
-    if (!navigator.onLine) {
-      const err = new Error("You're offline. Cloud transcription requires an internet connection.");
-      err.code = "OFFLINE";
-      throw err;
-    }
-
-    const timings = {};
-    const settings = this.processingSettings(metadata.evidence?.snapshot);
-    const language = getBaseLanguageCode(settings.preferredLanguage);
-
-    const arrayBuffer = await audioBlob.arrayBuffer();
-    const audioSizeBytes = audioBlob.size;
-    const audioFormat = audioBlob.type;
-    const opts = {};
-    if (language) opts.language = language;
-    const reasoningMode = settings.cloudReasoningMode || "openwhispr";
-    if (settings.useReasoningModel && !this.skipReasoning && !metadata.evidence?.snapshot?.cleanup.exact && reasoningMode === "openwhispr") {
-      opts.sendLogs = "false";
-    }
-
-    const dictionaryPrompt = this.getCustomDictionaryPrompt(metadata.evidence?.snapshot);
-    if (dictionaryPrompt) opts.prompt = dictionaryPrompt;
-
-    // Use withSessionRefresh to handle AUTH_EXPIRED automatically
-    const transcriptionStart = performance.now();
-    const result = await withSessionRefresh(async () => {
-      const res = await window.electronAPI.cloudTranscribe(arrayBuffer, opts);
-      if (!res.success) {
-        const err = new Error(res.error || "Cloud transcription failed");
-        err.code = res.code;
-        throw err;
-      }
-      return res;
-    });
-    timings.transcriptionProcessingDurationMs = Math.round(performance.now() - transcriptionStart);
-
-    const reasoningStart = performance.now();
-    const processedText = await this.processTranscription(result.text, "openwhispr", metadata.evidence);
-    timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
-
-    return {
-      success: true,
-      text: processedText,
-      rawText: result.text,
-      source: "openwhispr",
-      timings,
-      limitReached: result.limitReached,
-      wordsUsed: result.wordsUsed,
-      wordsRemaining: result.wordsRemaining,
-    };
-  }
-
-  getCustomDictionaryArray() {
-    return this.processingSettings().customDictionary;
-  }
-
-  getCustomPrompt() {
-    try {
-      const raw = localStorage.getItem("customUnifiedPrompt");
-      if (!raw) return undefined;
-      const parsed = JSON.parse(raw);
-      return typeof parsed === "string" ? parsed : undefined;
-    } catch {
-      return undefined;
-    }
-  }
-
-  getKeyterms() {
-    return this.getCustomDictionaryArray();
   }
 
   async processWithOpenAIAPI(audioBlob, metadata = {}) {
@@ -1962,7 +1765,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           provider,
           isCustomEndpoint,
           hasApiKey: !!apiKey,
-          apiKeyPreview: apiKey ? `${apiKey.substring(0, 8)}...` : "(none)",
+          hasApiKey: Boolean(apiKey),
         },
         "transcription"
       );
@@ -2054,7 +1857,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             "Failed to parse JSON response",
             {
               parseError: parseError.message,
-              rawText: rawText.substring(0, 500),
+              responseLength: rawText.length,
             },
             "transcription"
           );
@@ -2329,7 +2132,11 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         return { ...pasted, text: pasted.text ?? text };
       }
       this.lastPastedText = pasted?.text ?? text;
-      return { success: true, text: this.lastPastedText };
+      return {
+        success: true,
+        text: this.lastPastedText,
+        appName: typeof pasted?.appName === "string" ? pasted.appName : "",
+      };
     } catch {
       this.onError?.({ code: "PASTE_FAILED" });
       return { success: false, manualCopy: true, text };
@@ -2351,675 +2158,34 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     return {
       isRecording: this.isRecording,
       isProcessing: this.isProcessing,
-      isStreaming: this.isStreaming,
-      isStreamingStartInProgress: this.streamingStartInProgress,
+      // Streaming dictation was removed; kept false for existing callers.
+      isStreaming: false,
+      isStreamingStartInProgress: false,
       isRecordingStartInProgress: !!this._recordingStartAttempt,
     };
   }
 
-  shouldUseStreaming(isSignedInOverride) {
-    const s = getSettings();
-    const isSignedIn = isSignedInOverride ?? s.isSignedIn;
-    if (s.useLocalWhisper || s.cloudTranscriptionMode !== "openwhispr" || !isSignedIn) {
-      return false;
-    }
-
-    // For notes context, check user preference first
-    if (this.context === "notes") {
-      const userPref = localStorage.getItem("notesStreamingPreference");
-      if (userPref === "streaming") return true;
-      if (userPref === "batch") return false;
-    }
-
-    // Config-driven: check mode for this context
-    if (this.sttConfig) {
-      const contextConfig =
-        this.context === "notes" ? this.sttConfig.notes : this.sttConfig.dictation;
-      return contextConfig?.mode === "streaming";
-    }
-
-    // Fallback when config not yet loaded
-    return localStorage.getItem("deepgramStreaming") !== "false";
+  // Streaming dictation (OpenWhispr cloud, Deepgram, AssemblyAI) was removed.
+  // These stubs keep callers that still branch on streaming (useAudioRecording)
+  // on the batch path until they drop those branches.
+  shouldUseStreaming() {
+    return false;
   }
 
-  async warmupStreamingConnection({ isSignedIn: isSignedInOverride } = {}) {
-    if (!this.shouldUseStreaming(isSignedInOverride)) {
-      logger.debug("Streaming warmup skipped - not in streaming mode", {}, "streaming");
-      return false;
-    }
-
-    try {
-      const provider = this.getStreamingProvider();
-      const [, wsResult] = await Promise.all([
-        this.cacheMicrophoneDeviceId(),
-        withSessionRefresh(async () => {
-          const warmupLang = getSettings().preferredLanguage;
-          const res = await provider.warmup({
-            sampleRate: 16000,
-            language: warmupLang && warmupLang !== "auto" ? warmupLang : undefined,
-            keyterms: this.getKeyterms(),
-          });
-          // Throw error to trigger retry if AUTH_EXPIRED
-          if (!res.success && res.code) {
-            const err = new Error(res.error || "Warmup failed");
-            err.code = res.code;
-            throw err;
-          }
-          return res;
-        }),
-      ]);
-
-      if (wsResult.success) {
-        // Pre-load AudioWorklet module so first recording is faster
-        try {
-          const audioContext = await this.getOrCreateAudioContext();
-          if (!this.workletModuleLoaded) {
-            await audioContext.audioWorklet.addModule(this.getWorkletBlobUrl());
-            this.workletModuleLoaded = true;
-            logger.debug("AudioWorklet module pre-loaded during warmup", {}, "streaming");
-          }
-        } catch (e) {
-          logger.debug(
-            "AudioWorklet pre-load failed (will retry on recording)",
-            { error: e.message },
-            "streaming"
-          );
-        }
-
-        // Warm up the OS audio driver by briefly acquiring the mic, then releasing.
-        // This forces macOS to initialize the audio subsystem so subsequent
-        // getUserMedia calls resolve in ~100-200ms instead of ~500-1000ms.
-        if (!this.micDriverWarmedUp) {
-          try {
-            const constraints = await this.getAudioConstraints();
-            const microphone = await openRecordingMicrophone(constraints, this.context === "notes" ? "notes" : "dictation");
-            await microphone.release();
-            this.micDriverWarmedUp = true;
-            logger.debug("Microphone driver pre-warmed", {}, "streaming");
-          } catch (e) {
-            logger.debug(
-              "Mic driver warmup failed (non-critical)",
-              { error: e.message },
-              "streaming"
-            );
-          }
-        }
-
-        logger.info(
-          "Streaming connection warmed up",
-          { alreadyWarm: wsResult.alreadyWarm, micCached: !!this.cachedMicDeviceId },
-          "streaming"
-        );
-        return true;
-      } else if (wsResult.code === "NO_API") {
-        logger.debug("Streaming warmup skipped - API not configured", {}, "streaming");
-        return false;
-      } else {
-        logger.warn("Streaming warmup failed", { error: wsResult.error }, "streaming");
-        return false;
-      }
-    } catch (error) {
-      logger.error("Streaming warmup error", { error: error.message }, "streaming");
-      return false;
-    }
-  }
-
-  async getOrCreateAudioContext() {
-    if (this.persistentAudioContext && this.persistentAudioContext.state !== "closed") {
-      if (this.persistentAudioContext.state === "suspended") {
-        await this.persistentAudioContext.resume();
-      }
-      return this.persistentAudioContext;
-    }
-    this.persistentAudioContext = new AudioContext({ sampleRate: 16000 });
-    this.workletModuleLoaded = false;
-    return this.persistentAudioContext;
+  async warmupStreamingConnection() {
+    return false;
   }
 
   async startStreamingRecording() {
-    let microphone;
-    const target = { token: null, released: false };
-    try {
-      if (this.streamingStartInProgress) {
-        return false;
-      }
-      this.streamingStartInProgress = true;
-
-      if (this.isRecording || this.isStreaming || this.isProcessing) {
-        this.streamingStartInProgress = false;
-        return false;
-      }
-
-      this.stopRequestedDuringStreamingStart = false;
-      this._recordingTarget = target;
-      await this.captureRecordingTarget(target);
-      if (target.released || !this.streamingStartInProgress) return false;
-      await this.snapshotCaptureSettings(target);
-      if (target.released || !this.streamingStartInProgress) return false;
-
-      const t0 = performance.now();
-      const constraints = await this.getAudioConstraints();
-      const tConstraints = performance.now();
-
-      // 1. Get mic stream (can take 10-15s on cold macOS mic driver)
-      microphone = await openRecordingMicrophone(constraints, this.context === "notes" ? "notes" : "dictation", () => target.released);
-      this._streamingMicrophone = microphone;
-      const { stream } = microphone;
-      this.streamingStream = stream;
-      const tMedia = performance.now();
-
-      const audioTrack = stream.getAudioTracks()[0];
-      if (audioTrack) {
-        const settings = audioTrack.getSettings();
-        logger.info(
-          "Streaming recording started with microphone",
-          {
-            label: audioTrack.label,
-            deviceId: settings.deviceId?.slice(0, 20) + "...",
-            sampleRate: settings.sampleRate,
-            usedCachedId: !!this.cachedMicDeviceId,
-          },
-          "audio"
-        );
-      }
-
-      // Start fallback recorder in case streaming produces no results
-      try {
-        this.streamingFallbackChunks = [];
-        this.streamingFallbackRecorder = new MediaRecorder(stream);
-        this.streamingFallbackRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0) this.streamingFallbackChunks.push(e.data);
-        };
-        this.streamingFallbackRecorder.start();
-      } catch (e) {
-        logger.debug("Fallback recorder failed to start", { error: e.message }, "streaming");
-        this.streamingFallbackRecorder = null;
-      }
-
-      // 2. Set up audio pipeline so frames flow the instant WebSocket is ready.
-      //    Frames sent before WebSocket connects are silently dropped by sendAudio().
-      const audioContext = await this.getOrCreateAudioContext();
-      if (target.released) return false;
-      this.streamingAudioContext = audioContext;
-      this.streamingSource = audioContext.createMediaStreamSource(stream);
-      this.streamingStream = stream;
-
-      if (!this.workletModuleLoaded) {
-        await audioContext.audioWorklet.addModule(this.getWorkletBlobUrl());
-        this.workletModuleLoaded = true;
-      }
-
-      if (target.released) return false;
-      this.streamingProcessor = new AudioWorkletNode(audioContext, "pcm-streaming-processor");
-      const provider = this.getStreamingProvider();
-
-      this.streamingProcessor.port.onmessage = (event) => {
-        if (!this.isStreaming) return;
-        provider.send(event.data);
-      };
-
-      this.isStreaming = true;
-      this.streamingSource.connect(this.streamingProcessor);
-      const tPipeline = performance.now();
-
-      // 3. Register IPC event listeners BEFORE connecting, so no transcript
-      //    events are lost during the connect handshake.
-      this.streamingFinalText = "";
-      this.streamingPartialText = "";
-      this.streamingTextResolve = null;
-      this.streamingTextDebounce = null;
-
-      const partialCleanup = provider.onPartial((text) => {
-        this.streamingPartialText = text;
-        this.onPartialTranscript?.(text);
-      });
-
-      const finalCleanup = provider.onFinal((text) => {
-        // text = accumulated final text from streaming provider.
-        // Extract just the new segment (delta from previous accumulated final).
-        const prevLen = this.streamingFinalText.length;
-        this.streamingFinalText = text;
-        this.streamingPartialText = "";
-        const newSegment = text.slice(prevLen);
-        if (newSegment) {
-          this.onStreamingCommit?.(newSegment);
-        }
-      });
-
-      const errorCleanup = provider.onError((error) => {
-        logger.error("Streaming provider error", { error }, "streaming");
-        this.onError?.({
-          title: "Streaming Error",
-          description: error,
-        });
-        if (this.isStreaming) {
-          logger.warn("Connection lost during streaming, auto-stopping", {}, "streaming");
-          this.stopStreamingRecording().catch((e) => {
-            logger.error(
-              "Auto-stop after connection loss failed",
-              { error: e.message },
-              "streaming"
-            );
-          });
-        }
-      });
-
-      const sessionEndCleanup = provider.onSessionEnd((data) => {
-        logger.debug("Streaming session ended", data, "streaming");
-        if (data.text) {
-          this.streamingFinalText = data.text;
-        }
-      });
-
-      this.streamingCleanupFns = [partialCleanup, finalCleanup, errorCleanup, sessionEndCleanup];
-      this.isRecording = true;
-      this.recordingStartTime = Date.now();
-      this.onStateChange?.({ isRecording: true, isProcessing: false, isStreaming: true });
-
-      // 4. Connect WebSocket — audio is already flowing from the pipeline above,
-      //    so Deepgram receives data immediately (no idle timeout).
-      const result = await withSessionRefresh(async () => {
-        const preferredLang = this.processingSettings().preferredLanguage;
-        const res = await provider.start({
-          sampleRate: 16000,
-          language: preferredLang && preferredLang !== "auto" ? preferredLang : undefined,
-          keyterms: this.getKeyterms(),
-        });
-
-        if (!res.success) {
-          if (res.code === "NO_API") {
-            return { needsFallback: true };
-          }
-          const err = new Error(res.error || "Failed to start streaming session");
-          err.code = res.code;
-          throw err;
-        }
-        return res;
-      });
-      if (target.released) return false;
-      const tWs = performance.now();
-
-      if (result.needsFallback) {
-        this.isRecording = false;
-        this.recordingStartTime = null;
-        this.stopRequestedDuringStreamingStart = false;
-        await this.cleanupStreaming();
-        this.onStateChange?.({ isRecording: false, isProcessing: false, isStreaming: false });
-        this.streamingStartInProgress = false;
-        logger.debug(
-          "Streaming API not configured, falling back to regular recording",
-          {},
-          "streaming"
-        );
-        return this.startRecording({ recordingTarget: target });
-      }
-
-      logger.info(
-        "Streaming start timing",
-        {
-          constraintsMs: Math.round(tConstraints - t0),
-          getUserMediaMs: Math.round(tMedia - tConstraints),
-          pipelineMs: Math.round(tPipeline - tMedia),
-          wsConnectMs: Math.round(tWs - tPipeline),
-          totalMs: Math.round(tWs - t0),
-          usedWarmConnection: result.usedWarmConnection,
-          micDriverWarmedUp: !!this.micDriverWarmedUp,
-        },
-        "streaming"
-      );
-
-      this.streamingStartInProgress = false;
-      if (this.stopRequestedDuringStreamingStart) {
-        this.stopRequestedDuringStreamingStart = false;
-        logger.debug("Applying deferred streaming stop requested during startup", {}, "streaming");
-        return this.stopStreamingRecording();
-      }
-      return true;
-    } catch (error) {
-      this.streamingStartInProgress = false;
-      this.stopRequestedDuringStreamingStart = false;
-      this.releaseRecordingTarget(target);
-      logger.error("Failed to start streaming recording", { error: error.message }, "streaming");
-
-      let errorTitle = "Streaming Error";
-      let errorDescription = `Failed to start streaming: ${error.message}`;
-
-      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-        errorTitle = "Microphone Access Denied";
-        errorDescription =
-          "Please grant microphone permission in your system settings and try again.";
-      } else if (error.code === "AUTH_EXPIRED" || error.code === "AUTH_REQUIRED") {
-        errorTitle = "Sign-in Required";
-        errorDescription =
-          "Your OpenWhispr Cloud session is unavailable. Please sign in again from Settings.";
-      }
-
-      this.onError?.({
-        title: errorTitle,
-        description: errorDescription,
-      });
-
-      await this.cleanupStreaming();
-      this.isRecording = false;
-      this.recordingStartTime = null;
-      this.onStateChange?.({ isRecording: false, isProcessing: false, isStreaming: false });
-      return false;
-    } finally {
-      if (target.released) {
-        if (microphone) await microphone.release();
-        this.streamingStartInProgress = false;
-      }
-    }
-  }
-
-  async cancelStreamingRecording() {
-    this.releaseRecordingTarget();
-    if (this._evidenceOperation) {
-      this._evidenceOperation.cancelled = true;
-      this.releaseRecordingTarget(this._evidenceOperation.target);
-    }
-    this.stopRequestedDuringStreamingStart = false;
-    this.isStreaming = false;
-    this.isRecording = false;
-    this.isProcessing = false;
-    await this.cleanupStreaming();
-    try { await this.getStreamingProvider().stop?.(); } catch {}
-    this.onStateChange?.({ isRecording: false, isProcessing: false, isStreaming: false });
-    return true;
+    return false;
   }
 
   async stopStreamingRecording() {
-    if (this.streamingStartInProgress) {
-      this.stopRequestedDuringStreamingStart = true;
-      logger.debug("Streaming stop requested while start is in progress", {}, "streaming");
-      return true;
-    }
-
-    if (!this.isStreaming) return false;
-    const target = this._recordingTarget;
-    this._recordingTarget = null;
-    const operation = { cancelled: false, target };
-    this._evidenceOperation = operation;
-
-    try {
-    const durationSeconds = this.recordingStartTime
-      ? (Date.now() - this.recordingStartTime) / 1000
-      : null;
-
-    const t0 = performance.now();
-    let finalText = this.streamingFinalText || "";
-
-    // 1. Update UI immediately
-    this.isRecording = false;
-    this.recordingStartTime = null;
-    this.onStateChange?.({ isRecording: false, isProcessing: true, isStreaming: false });
-
-    // 2. Stop the processor — it flushes its remaining buffer on "stop".
-    //    Keep isStreaming TRUE so the port.onmessage handler forwards the flush to WebSocket.
-    if (this.streamingProcessor) {
-      try {
-        this.streamingProcessor.port.postMessage("stop");
-        this.streamingProcessor.disconnect();
-      } catch (e) {
-        // Ignore
-      }
-      this.streamingProcessor = null;
-    }
-    if (this.streamingSource) {
-      try {
-        this.streamingSource.disconnect();
-      } catch (e) {
-        // Ignore
-      }
-      this.streamingSource = null;
-    }
-    this.streamingAudioContext = null;
-
-    // Stop fallback recorder before stopping media tracks
-    let fallbackBlob = null;
-    if (this.streamingFallbackRecorder?.state === "recording") {
-      fallbackBlob = await new Promise((resolve) => {
-        this.streamingFallbackRecorder.onstop = () => {
-          const mimeType = this.streamingFallbackRecorder.mimeType || "audio/webm";
-          resolve(new Blob(this.streamingFallbackChunks, { type: mimeType }));
-        };
-        this.streamingFallbackRecorder.stop();
-      });
-    }
-    this.streamingFallbackRecorder = null;
-    this.streamingFallbackChunks = [];
-
-    if (this._streamingMicrophone) {
-      void this._streamingMicrophone.release().catch(() => {});
-      this._streamingMicrophone = null;
-    } else {
-      this.streamingStream?.getTracks().forEach((track) => track.stop());
-    }
-    this.streamingStream = null;
-    const tAudioCleanup = performance.now();
-
-    // 3. Wait for flushed buffer to travel: port -> main thread -> IPC -> WebSocket -> server.
-    //    Then mark streaming done so no further audio is forwarded.
-    await new Promise((resolve) => setTimeout(resolve, 120));
-    this.isStreaming = false;
-
-    // 4. Finalize tells the provider to process any buffered audio and send final results.
-    //    Wait briefly so the server sends back the finalized transcript before disconnect.
-    const provider = this.getStreamingProvider();
-    provider.finalize?.();
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    const tForceEndpoint = performance.now();
-
-    const stopResult = await provider.stop().catch((e) => {
-      logger.debug("Streaming disconnect error", { error: e.message }, "streaming");
-      return { success: false };
-    });
-    const tTerminate = performance.now();
-
-    finalText = this.streamingFinalText || "";
-
-    if (!finalText && this.streamingPartialText) {
-      finalText = this.streamingPartialText;
-      logger.debug("Using partial text as fallback", { textLength: finalText.length }, "streaming");
-    }
-
-    if (!finalText && stopResult?.text) {
-      finalText = stopResult.text;
-      logger.debug(
-        "Using disconnect result text as fallback",
-        { textLength: finalText.length },
-        "streaming"
-      );
-    }
-
-    let streamingRawText = finalText;
-    this.cleanupStreamingListeners();
-
-    logger.info(
-      "Streaming stop timing",
-      {
-        durationSeconds,
-        audioCleanupMs: Math.round(tAudioCleanup - t0),
-        flushWaitMs: Math.round(tForceEndpoint - tAudioCleanup),
-        terminateRoundTripMs: Math.round(tTerminate - tForceEndpoint),
-        totalStopMs: Math.round(tTerminate - t0),
-        textLength: finalText.length,
-      },
-      "streaming"
-    );
-
-    const stSettings = this.processingSettings();
-    const streamingSttModel = stopResult?.model || "nova-3";
-    const streamingSttProcessingMs = Math.round(tTerminate - t0);
-    const streamingAudioBytesSent = stopResult?.audioBytesSent || 0;
-    const streamingSttLanguage = getBaseLanguageCode(stSettings.preferredLanguage) || undefined;
-    const streamingSttWordCount = finalText ? finalText.split(/\s+/).filter(Boolean).length : 0;
-
-    const streamEvidence = { rawText: streamingRawText, polished: false, snapshot: this.captureSnapshot, operation };
-    if (finalText) finalText = await this.processTranscription(finalText, "streaming", streamEvidence);
-    const usedCloudReasoning = streamEvidence.polished && streamEvidence.snapshot?.provider === "openwhispr";
-
-    // If streaming produced no text, fall back to batch transcription
-    // (batch fallback records usage server-side via /api/transcribe)
-    let usedBatchFallback = false;
-    if (!streamingRawText && durationSeconds > 2 && fallbackBlob?.size > 0) {
-      logger.info(
-        "Streaming produced no text, falling back to batch transcription",
-        { durationSeconds, blobSize: fallbackBlob.size },
-        "streaming"
-      );
-      try {
-        const batchResult = await this.processWithOpenWhisprCloud(fallbackBlob, {
-          durationSeconds,
-        });
-        if (batchResult?.success && typeof batchResult.text === "string") {
-          finalText = batchResult.text;
-          streamingRawText = batchResult.rawText || batchResult.text;
-          usedBatchFallback = true;
-          logger.info("Batch fallback succeeded", { textLength: finalText.length }, "streaming");
-        }
-      } catch (fallbackErr) {
-        logger.error("Batch fallback failed", { error: fallbackErr.message }, "streaming");
-      }
-    }
-
-    // A nonempty provider transcript may intentionally clean to an empty result.
-    // Keep its raw evidence and complete without restoring words or retrying STT.
-    if (finalText || streamingRawText) {
-      const tBeforePaste = performance.now();
-      const clientTotalMs = Math.round(tBeforePaste - t0);
-      const captureId = await this.createEvidence(fallbackBlob, { durationSeconds });
-      const completion = { success: true, text: finalText, rawText: streamingRawText || finalText,
-        targetToken: operation.target?.token || null, captureSnapshot: this.captureSnapshot, polished: streamEvidence.polished, captureId, source: `${this.sttConfig?.streamingProvider || "deepgram"}-streaming`,
-        isCancelled: () => operation.cancelled || this._evidenceOperation !== operation };
-      try {
-        if (!this.onTranscriptionComplete) { completion.evidenceFinalText = ""; completion.evidenceError = "Recording window unavailable"; }
-        if (!completion.isCancelled()) await this.onTranscriptionComplete?.(completion);
-        if (completion.isCancelled()) { completion.evidenceError = "Transcription delivery was cancelled"; completion.evidenceFinalText ??= ""; }
-        await this.finishEvidence(captureId, { rawText: completion.rawText, finalText: completion.evidenceFinalText ?? finalText, historyId: completion.historyId, error: completion.evidenceError });
-      } catch {
-        await this.finishEvidence(captureId, { rawText: completion.rawText, error: "Transcription delivery failed" });
-      }
-
-      if (!usedBatchFallback) {
-        (async () => {
-          try {
-            await withSessionRefresh(async () => {
-              const res = await window.electronAPI.cloudStreamingUsage(
-                finalText,
-                durationSeconds ?? 0,
-                {
-                  sendLogs: !usedCloudReasoning,
-                  sttProvider: this.sttConfig?.streamingProvider || "deepgram",
-                  sttModel: streamingSttModel,
-                  sttProcessingMs: streamingSttProcessingMs,
-                  sttLanguage: streamingSttLanguage,
-                  audioSizeBytes: streamingAudioBytesSent || undefined,
-                  audioFormat: "linear16",
-                  clientTotalMs,
-                }
-              );
-              if (!res.success) {
-                const err = new Error(res.error || "Streaming usage recording failed");
-                err.code = res.code;
-                throw err;
-              }
-            });
-          } catch (err) {
-            logger.error("Failed to report streaming usage", { error: err.message }, "streaming");
-          }
-          window.dispatchEvent(new Event("usage-changed"));
-        })();
-      } else {
-        window.dispatchEvent(new Event("usage-changed"));
-      }
-
-      logger.info(
-        "Streaming total processing",
-        {
-          totalProcessingMs: Math.round(tBeforePaste - t0),
-          hasReasoning: stSettings.useReasoningModel,
-        },
-        "streaming"
-      );
-    }
-
-    if (this._evidenceOperation === operation) {
-      this._evidenceOperation = null;
-      this.isProcessing = false;
-      this.onStateChange?.({ isRecording: false, isProcessing: false, isStreaming: false });
-    }
-
-    if (this.shouldUseStreaming()) {
-      this.warmupStreamingConnection().catch((e) => {
-        logger.debug("Background re-warm failed", { error: e.message }, "streaming");
-      });
-    }
-
-    return true;
-    } finally { this.releaseRecordingTarget(operation.target); }
+    return false;
   }
 
-  cleanupStreamingAudio() {
-    if (this.streamingFallbackRecorder?.state === "recording") {
-      try {
-        this.streamingFallbackRecorder.stop();
-      } catch {}
-    }
-    this.streamingFallbackRecorder = null;
-    this.streamingFallbackChunks = [];
-
-    if (this.streamingProcessor) {
-      try {
-        this.streamingProcessor.port.postMessage("stop");
-        this.streamingProcessor.disconnect();
-      } catch (e) {
-        // Ignore
-      }
-      this.streamingProcessor = null;
-    }
-
-    if (this.streamingSource) {
-      try {
-        this.streamingSource.disconnect();
-      } catch (e) {
-        // Ignore
-      }
-      this.streamingSource = null;
-    }
-
-    this.streamingAudioContext = null;
-
-    if (this._streamingMicrophone) {
-      void this._streamingMicrophone.release().catch(() => {});
-      this._streamingMicrophone = null;
-    } else {
-      this.streamingStream?.getTracks().forEach((track) => track.stop());
-    }
-    this.streamingStream = null;
-
-    this.isStreaming = false;
-  }
-
-  cleanupStreamingListeners() {
-    for (const cleanup of this.streamingCleanupFns) {
-      try {
-        cleanup?.();
-      } catch (e) {
-        // Ignore cleanup errors
-      }
-    }
-    this.streamingCleanupFns = [];
-    this.streamingFinalText = "";
-    this.streamingPartialText = "";
-    this.streamingTextResolve = null;
-    clearTimeout(this.streamingTextDebounce);
-    this.streamingTextDebounce = null;
-  }
-
-  async cleanupStreaming() {
-    this.cleanupStreamingAudio();
-    this.cleanupStreamingListeners();
+  async cancelStreamingRecording() {
+    return false;
   }
 
   cleanup() {
@@ -3032,32 +2198,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       this._cancelledRecordingAttempt = this._recordingStartAttempt;
       this.releaseLocalInference();
     }
-    if (this.isStreaming) {
-      this.cleanupStreaming();
-    }
     if (this.mediaRecorder?.state === "recording") {
       this.cancelRecording();
     }
     this.cleanupSilenceDetection();
-    if (this.persistentAudioContext && this.persistentAudioContext.state !== "closed") {
-      this.persistentAudioContext.close().catch(() => {});
-      this.persistentAudioContext = null;
-      this.workletModuleLoaded = false;
-    }
-    if (this.workletBlobUrl) {
-      URL.revokeObjectURL(this.workletBlobUrl);
-      this.workletBlobUrl = null;
-    }
-    try {
-      this.getStreamingProvider().stop?.();
-    } catch (e) {
-      // Ignore errors during cleanup (page may be unloading)
-    }
     this.onStateChange = null;
     this.onError = null;
     this.onTranscriptionComplete = null;
-    this.onPartialTranscript = null;
-    this.onStreamingCommit = null;
     if (this._onApiKeyChanged) {
       window.removeEventListener("api-key-changed", this._onApiKeyChanged);
     }

@@ -1,10 +1,11 @@
 const { spawn } = require("child_process");
 const fs = require("fs");
-const net = require("net");
 const path = require("path");
 const http = require("http");
 const debugLogger = require("./debugLogger");
 const { killProcess } = require("../utils/process");
+const { findAvailablePort } = require("../utils/serverUtils");
+const ownedProcesses = require("./ownedProcesses");
 const { getSafeTempDir } = require("./safeTempDir");
 const { app } = require("electron");
 
@@ -16,6 +17,7 @@ const HEALTH_CHECK_INTERVAL_MS = 5000;
 const HEALTH_CHECK_TIMEOUT_MS = 2000;
 const STARTUP_POLL_INTERVAL_MS = 500;
 const HEALTH_CHECK_FAILURE_THRESHOLD = 3;
+const INFERENCE_TIMEOUT_MS = 300000;
 
 class LlamaServerManager {
   constructor() {
@@ -28,6 +30,7 @@ class LlamaServerManager {
     this.healthCheckFailures = 0;
     this.cachedServerBinaryPaths = null;
     this.activeBackend = null;
+    this.inflight = new Set();
   }
 
   getServerBinaryPaths() {
@@ -92,23 +95,8 @@ class LlamaServerManager {
     return Object.keys(paths).length > 0;
   }
 
-  async findAvailablePort() {
-    for (let port = PORT_RANGE_START; port <= PORT_RANGE_END; port++) {
-      if (await this.isPortAvailable(port)) return port;
-    }
-    throw new Error(`No available ports in range ${PORT_RANGE_START}-${PORT_RANGE_END}`);
-  }
-
-  isPortAvailable(port) {
-    return new Promise((resolve) => {
-      const server = net.createServer();
-      server.once("error", () => resolve(false));
-      server.once("listening", () => {
-        server.close();
-        resolve(true);
-      });
-      server.listen(port, "127.0.0.1");
-    });
+  findAvailablePort() {
+    return findAvailablePort(PORT_RANGE_START, PORT_RANGE_END);
   }
 
   async start(modelPath, options = {}) {
@@ -234,6 +222,7 @@ class LlamaServerManager {
         cwd: getSafeTempDir(),
         env,
       });
+      ownedProcesses.track(this.process, { name: "llama-server", binary: binaryPath });
 
       let stderrBuffer = "";
       let exitCode = null;
@@ -313,7 +302,11 @@ class LlamaServerManager {
         }
 
         if (Date.now() - startTime >= timeoutMs) {
-          settle(() => reject(new Error(`llama-server failed to start within ${timeoutMs}ms`)));
+          // Don't leave a model loading in the background after giving up on it.
+          settle(() => {
+            this._killCurrentProcess().catch(() => {});
+            reject(new Error(`llama-server failed to start within ${timeoutMs}ms`));
+          });
           return;
         }
 
@@ -391,6 +384,13 @@ class LlamaServerManager {
         }
         if (await this.checkHealth()) {
           this.healthCheckFailures = 0;
+          // A slow check (sleep/wake, a long generation) only marks the server
+          // unready; once it answers again it is the same healthy model, so
+          // don't let the next request kill and reload it.
+          if (!this.ready && this.process && !this.startupPromise) {
+            debugLogger.info("llama-server health check recovered");
+            this.ready = true;
+          }
         } else {
           this.healthCheckFailures++;
           if (this.healthCheckFailures >= HEALTH_CHECK_FAILURE_THRESHOLD) {
@@ -425,8 +425,19 @@ class LlamaServerManager {
       stream: false,
     });
 
+    const timeoutMs = options.timeoutMs > 0 ? options.timeoutMs : INFERENCE_TIMEOUT_MS;
+
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
+      let entry = null;
+      let deadline = null;
+      const finish = (fn, value) => {
+        if (!entry) return;
+        clearTimeout(deadline);
+        this.inflight.delete(entry);
+        entry = null;
+        fn(value);
+      };
 
       const req = http.request(
         {
@@ -438,7 +449,6 @@ class LlamaServerManager {
             "Content-Type": "application/json",
             "Content-Length": Buffer.byteLength(body),
           },
-          timeout: 300000,
         },
         (res) => {
           let data = "";
@@ -452,32 +462,49 @@ class LlamaServerManager {
             });
 
             if (res.statusCode !== 200) {
-              reject(new Error(`llama-server returned status ${res.statusCode}: ${data}`));
+              finish(reject, new Error(`llama-server returned status ${res.statusCode}: ${data}`));
               return;
             }
 
             try {
               const response = JSON.parse(data);
               const text = response.choices?.[0]?.message?.content || "";
-              resolve(text.trim());
+              finish(resolve, text.trim());
             } catch (e) {
-              reject(new Error(`Failed to parse llama-server response: ${e.message}`));
+              finish(reject, new Error(`Failed to parse llama-server response: ${e.message}`));
             }
           });
         }
       );
 
+      // Destroying the socket is what makes llama-server drop the task; a
+      // timeout that only stops waiting leaves it generating and holding the
+      // slot the next dictation needs.
+      entry = {
+        abort: (reason) => {
+          req.destroy();
+          finish(reject, new Error(reason));
+        },
+      };
+      this.inflight.add(entry);
+      deadline = setTimeout(() => entry?.abort("llama-server request timed out"), timeoutMs);
+
       req.on("error", (error) => {
-        reject(new Error(`llama-server request failed: ${error.message}`));
-      });
-      req.on("timeout", () => {
-        req.destroy();
-        reject(new Error("llama-server request timed out"));
+        finish(reject, new Error(`llama-server request failed: ${error.message}`));
       });
 
       req.write(body);
       req.end();
     });
+  }
+
+  /// Cancels every in-flight completion (polish timeout or cancel). Returns
+  /// how many requests were aborted.
+  abortInflight(reason = "llama-server request aborted") {
+    const entries = [...this.inflight];
+    for (const entry of entries) entry.abort(reason);
+    if (entries.length) debugLogger.info("llama-server requests aborted", { count: entries.length });
+    return entries.length;
   }
 
   async stop() {

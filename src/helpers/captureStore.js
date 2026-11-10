@@ -54,9 +54,7 @@ class CaptureStore {
     this.root = fs.realpathSync(root);
     this.now = now;
     this.configPath = path.join(this.root, "settings.json");
-    this.retentionDays = fs.existsSync(this.configPath) ? json(this.configPath).retentionDays : 7;
-    if (!RETENTION.includes(this.retentionDays))
-      throw new Error("Invalid capture retention policy");
+    this.retentionDays = this.loadRetention();
     if (!fs.existsSync(this.configPath))
       atomic(this.configPath, { retentionDays: this.retentionDays });
     // No conversion jobs survive process restart. Remove only recognized work names,
@@ -65,6 +63,30 @@ class CaptureStore {
       try {
         this.cleanupWork(id);
       } catch {}
+    }
+  }
+  // An unreadable settings file (power loss can leave it zero-length) is moved
+  // aside and the default retention used, so it never stops the app launching.
+  loadRetention() {
+    if (!fs.existsSync(this.configPath)) return 7;
+    try {
+      const { retentionDays } = json(this.configPath);
+      if (!RETENTION.includes(retentionDays)) throw new Error("Invalid capture retention policy");
+      return retentionDays;
+    } catch (error) {
+      const aside = `${this.configPath}.corrupt-${this.now()}`;
+      try {
+        fs.renameSync(this.configPath, aside);
+      } catch {
+        fs.rmSync(this.configPath, { force: true, recursive: true });
+      }
+      try {
+        require("./debugLogger").warn("Dictation capture settings were unreadable; using defaults", {
+          error: error.message,
+          movedTo: path.basename(aside),
+        });
+      } catch {}
+      return 7;
     }
   }
   directory(id) {

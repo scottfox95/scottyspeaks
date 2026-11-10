@@ -198,9 +198,7 @@ function initializeCoreManagers() {
     parakeetManager,
     windowManager,
     updateManager,
-    windowsKeyManager: null,
     textEditMonitor,
-    whisperCudaManager: null,
     getTrayManager: () => trayManager,
     getPedalManager: () => pedalManager,
   });
@@ -253,6 +251,19 @@ function initializeDeferredManagers() {
 
 // Main application startup
 async function startApp() {
+  // A crashed run can leave llama/whisper/sherpa servers holding their models
+  // in RAM; stop the ones we recorded before anything starts new copies.
+  try {
+    const reaped = require("./src/helpers/ownedProcesses").reapStale();
+    if (reaped.length) {
+      require("./src/helpers/debugLogger").warn("Stopped servers left by a previous run", {
+        servers: reaped.map((entry) => `${entry.name}:${entry.pid}`),
+      });
+    }
+  } catch (error) {
+    logProcessFault("Stale server cleanup failed", error);
+  }
+
   // Request microphone permission on macOS (must be done from main process).
   // Deliberately NOT awaited: the system dialog would otherwise block the
   // entire app boot (no windows) until the user answers it.
@@ -825,13 +836,6 @@ async function startApp() {
     mouseHandsFree = false;
   });
 }
-
-// Listen for usage limit reached from dictation overlay, forward to control panel
-ipcMain.on("limit-reached", (_event, data) => {
-  if (isLiveWindow(windowManager?.controlPanelWindow)) {
-    windowManager.controlPanelWindow.webContents.send("limit-reached", data);
-  }
-});
 
 // App event handlers
 if (gotSingleInstanceLock) {

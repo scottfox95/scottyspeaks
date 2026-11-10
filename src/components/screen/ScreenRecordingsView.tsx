@@ -13,6 +13,7 @@ import {
   Presentation,
 } from "lucide-react";
 import RecordingAlertBanner from "../RecordingAlertBanner";
+import { startGatedPolling } from "../../utils/pollingGate.mjs";
 import type { CaptureStatus, MeetingResult } from "../../types/meeting";
 import { Button } from "../ui/button";
 import { Toggle } from "../ui/toggle";
@@ -129,9 +130,8 @@ export default function ScreenRecordingsView() {
         previous = busyNow;
       } catch {}
     };
-    void tick();
-    const timer = setInterval(tick, 1000);
-    return () => clearInterval(timer);
+    // Live elapsed/size stays visible while unfocused; only a hidden window pauses.
+    return startGatedPolling(() => void tick(), 1000);
   }, [api, refreshFiles]);
 
   useEffect(() => {

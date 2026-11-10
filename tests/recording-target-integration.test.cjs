@@ -117,49 +117,6 @@ test("safePaste retains declined canonical text without remembering it as an act
   assert.equal(audio.lastPastedText, "previous real paste");
   assert.deepEqual(errors, ["PASTE_FAILED"]);
 });
-test("streaming start captures target first and microphone failure releases it", async () => {
-  const { audio, events, released } = harness();
-  audio.cleanupStreaming = async () => {};
-  assert.equal(await audio.startStreamingRecording(), false);
-  assert.deepEqual(events, ["target", "settings", "microphone"]);
-  assert.deepEqual(released, ["target-1"]);
-});
-test("streaming completion carries its recording token and releases after delivery", async () => {
-  const { audio, released } = harness();
-  const delivered = [];
-  audio._recordingTarget = { token: "stream", released: false };
-  Object.assign(audio, {
-    isStreaming: true,
-    streamingFinalText: "synthetic",
-    recordingStartTime: Date.now(),
-    getStreamingProvider: () => ({ stop: async () => ({ success: true, text: "synthetic" }) }),
-    cleanupStreamingListeners: () => {},
-    shouldUseStreaming: () => false,
-    processTranscription: async (text) => text,
-    onTranscriptionComplete: async (result) => {
-      assert.deepEqual(released, []);
-      delivered.push(result.targetToken);
-    },
-  });
-  await audio.stopStreamingRecording();
-  assert.deepEqual(delivered, ["stream"]);
-  assert.deepEqual(released, ["stream"]);
-});
-test("streaming cancellation releases target and never delivers a transcription", async () => {
-  const { audio, released } = harness();
-  let deliveries = 0;
-  Object.assign(audio, {
-    _recordingTarget: { token: "cancel", released: false },
-    isStreaming: true,
-    cleanupStreaming: async () => {},
-    getStreamingProvider: () => ({ stop: async () => ({ text: "do not deliver" }) }),
-    onTranscriptionComplete: () => deliveries++,
-  });
-  await audio.cancelStreamingRecording();
-  assert.equal(audio.isStreaming, false);
-  assert.equal(deliveries, 0);
-  assert.deepEqual(released, ["cancel"]);
-});
 function delivery(audio, api = {}, extras = {}) {
   const source = fs.readFileSync(require.resolve("../src/hooks/useAudioRecording"), "utf8");
   const start =

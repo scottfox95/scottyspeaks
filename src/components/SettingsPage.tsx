@@ -4,37 +4,21 @@ import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
-import { ProviderTabs } from "./ui/ProviderTabs";
 import {
   RefreshCw,
   Download,
-  Command,
   Mic,
   Shield,
   FolderOpen,
-  LogOut,
-  UserCircle,
   Sun,
   Moon,
   Monitor,
-  Cloud,
-  Key,
-  ChevronDown,
-  Sparkles,
-  AlertTriangle,
-  Loader2,
-  Check,
-  Mail,
 } from "lucide-react";
-import { useAuth } from "../hooks/useAuth";
-import { NEON_AUTH_URL, signOut } from "../lib/neonAuth";
 import MicPermissionWarning from "./ui/MicPermissionWarning";
 import MicrophoneSettings from "./ui/MicrophoneSettings";
 import PermissionCard from "./ui/PermissionCard";
-import PasteToolsInfo from "./ui/PasteToolsInfo";
 import TranscriptionModelPicker from "./TranscriptionModelPicker";
 import { ConfirmDialog, AlertDialog } from "./ui/dialog";
-import { Alert, AlertTitle, AlertDescription } from "./ui/alert";
 import { useSettings } from "../hooks/useSettings";
 import { useDialogs } from "../hooks/useDialogs";
 import { useAgentName } from "../utils/agentName";
@@ -46,7 +30,6 @@ import { useUpdater } from "../hooks/useUpdater";
 import PromptStudio from "./ui/PromptStudio";
 import ReasoningModelSelector from "./ReasoningModelSelector";
 import { HotkeyInput } from "./ui/HotkeyInput";
-import HotkeyGuidanceAccordion from "./ui/HotkeyGuidanceAccordion";
 import { useHotkeyRegistration } from "../hooks/useHotkeyRegistration";
 import { getValidationMessage } from "../utils/hotkeyValidator";
 import { getPlatform, getCachedPlatform } from "../utils/platform";
@@ -57,20 +40,14 @@ import DiagnosticsPanel from "./DiagnosticsPanel";
 import { Toggle } from "./ui/toggle";
 import DeveloperSection from "./DeveloperSection";
 import LanguageSelector from "./ui/LanguageSelector";
-import { Skeleton } from "./ui/skeleton";
-import { Progress } from "./ui/progress";
 import { useToast } from "./ui/Toast";
 import { useTheme } from "../hooks/useTheme";
 import type { LocalTranscriptionProvider } from "../types/electron";
 import logger from "../utils/logger";
 import { SettingsRow } from "./ui/SettingsSection";
-import { useUsage } from "../hooks/useUsage";
-import { cn } from "./lib/utils";
 import PasteLastHotkeySetting from "./PasteLastHotkeySetting";
 
 export type SettingsSectionType =
-  | "account"
-  | "plansBilling"
   | "general"
   | "hotkeys"
   | "transcription"
@@ -137,9 +114,6 @@ function SectionHeader({ title, description }: { title: string; description?: st
 }
 
 interface TranscriptionSectionProps {
-  isSignedIn: boolean;
-  cloudTranscriptionMode: string;
-  setCloudTranscriptionMode: (mode: string) => void;
   useLocalWhisper: boolean;
   setUseLocalWhisper: (value: boolean) => void;
   updateTranscriptionSettings: (settings: { useLocalWhisper: boolean }) => void;
@@ -163,18 +137,9 @@ interface TranscriptionSectionProps {
   setCustomTranscriptionApiKey: (key: string) => void;
   cloudTranscriptionBaseUrl?: string;
   setCloudTranscriptionBaseUrl: (url: string) => void;
-  toast: (opts: {
-    title: string;
-    description: string;
-    variant?: "default" | "destructive" | "success";
-    duration?: number;
-  }) => void;
 }
 
 function TranscriptionSection({
-  isSignedIn,
-  cloudTranscriptionMode,
-  setCloudTranscriptionMode,
   useLocalWhisper,
   setUseLocalWhisper,
   updateTranscriptionSettings,
@@ -198,11 +163,8 @@ function TranscriptionSection({
   setCustomTranscriptionApiKey,
   cloudTranscriptionBaseUrl,
   setCloudTranscriptionBaseUrl,
-  toast,
 }: TranscriptionSectionProps) {
   const { t } = useTranslation();
-  const isCustomMode = cloudTranscriptionMode === "byok" || useLocalWhisper;
-  const isCloudMode = isSignedIn && cloudTranscriptionMode === "openwhispr" && !useLocalWhisper;
 
   return (
     <div className="space-y-4">
@@ -211,172 +173,38 @@ function TranscriptionSection({
         description={t("settingsPage.transcription.description")}
       />
 
-      {/* Mode selector */}
-      {isSignedIn && (
-        <SettingsPanel>
-          <SettingsPanelRow>
-            <button
-              onClick={() => {
-                if (!isCloudMode) {
-                  setCloudTranscriptionMode("openwhispr");
-                  setUseLocalWhisper(false);
-                  updateTranscriptionSettings({ useLocalWhisper: false });
-                  toast({
-                    title: t("settingsPage.transcription.toasts.switchedCloud.title"),
-                    description: t("settingsPage.transcription.toasts.switchedCloud.description"),
-                    variant: "success",
-                    duration: 3000,
-                  });
-                }
-              }}
-              className="w-full flex items-center gap-3 text-left cursor-pointer group"
-            >
-              <div
-                className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors ${
-                  isCloudMode
-                    ? "bg-primary/10 dark:bg-primary/15"
-                    : "bg-muted/60 dark:bg-surface-raised group-hover:bg-muted dark:group-hover:bg-surface-3"
-                }`}
-              >
-                <Cloud
-                  className={`w-4 h-4 transition-colors ${
-                    isCloudMode ? "text-primary" : "text-muted-foreground"
-                  }`}
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-foreground">
-                    {t("settingsPage.transcription.openwhisprCloud")}
-                  </span>
-                  {isCloudMode && (
-                    <span className="text-xs font-medium text-primary bg-primary/10 dark:bg-primary/15 px-1.5 py-px rounded-sm">
-                      {t("common.active")}
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground/80 mt-0.5">
-                  {t("settingsPage.transcription.openwhisprCloudDescription")}
-                </p>
-              </div>
-              <div
-                className={`w-4 h-4 rounded-full border-2 shrink-0 transition-colors ${
-                  isCloudMode
-                    ? "border-primary bg-primary"
-                    : "border-border-hover dark:border-border-subtle"
-                }`}
-              >
-                {isCloudMode && (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
-                  </div>
-                )}
-              </div>
-            </button>
-          </SettingsPanelRow>
-          <SettingsPanelRow>
-            <button
-              onClick={() => {
-                if (!isCustomMode) {
-                  setCloudTranscriptionMode("byok");
-                  setUseLocalWhisper(false);
-                  updateTranscriptionSettings({ useLocalWhisper: false });
-                  toast({
-                    title: t("settingsPage.transcription.toasts.switchedCustom.title"),
-                    description: t("settingsPage.transcription.toasts.switchedCustom.description"),
-                    variant: "success",
-                    duration: 3000,
-                  });
-                }
-              }}
-              className="w-full flex items-center gap-3 text-left cursor-pointer group"
-            >
-              <div
-                className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors ${
-                  isCustomMode
-                    ? "bg-accent/10 dark:bg-accent/15"
-                    : "bg-muted/60 dark:bg-surface-raised group-hover:bg-muted dark:group-hover:bg-surface-3"
-                }`}
-              >
-                <Key
-                  className={`w-4 h-4 transition-colors ${
-                    isCustomMode ? "text-accent" : "text-muted-foreground"
-                  }`}
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-foreground">
-                    {t("settingsPage.transcription.customSetup")}
-                  </span>
-                  {isCustomMode && (
-                    <span className="text-xs font-medium text-accent bg-accent/10 dark:bg-accent/15 px-1.5 py-px rounded-sm">
-                      {t("common.active")}
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground/80 mt-0.5">
-                  {t("settingsPage.transcription.customSetupDescription")}
-                </p>
-              </div>
-              <div
-                className={`w-4 h-4 rounded-full border-2 shrink-0 transition-colors ${
-                  isCustomMode
-                    ? "border-accent bg-accent"
-                    : "border-border-hover dark:border-border-subtle"
-                }`}
-              >
-                {isCustomMode && (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 rounded-full bg-accent-foreground" />
-                  </div>
-                )}
-              </div>
-            </button>
-          </SettingsPanelRow>
-        </SettingsPanel>
-      )}
-
-      {/* Custom Setup model picker — shown when Custom Setup is active or not signed in */}
-      {(isCustomMode || !isSignedIn) && (
-        <TranscriptionModelPicker
-          selectedCloudProvider={cloudTranscriptionProvider}
-          onCloudProviderSelect={setCloudTranscriptionProvider}
-          selectedCloudModel={cloudTranscriptionModel}
-          onCloudModelSelect={setCloudTranscriptionModel}
-          selectedLocalModel={
-            localTranscriptionProvider === "nvidia" ? parakeetModel : whisperModel
+      <TranscriptionModelPicker
+        selectedCloudProvider={cloudTranscriptionProvider}
+        onCloudProviderSelect={setCloudTranscriptionProvider}
+        selectedCloudModel={cloudTranscriptionModel}
+        onCloudModelSelect={setCloudTranscriptionModel}
+        selectedLocalModel={localTranscriptionProvider === "nvidia" ? parakeetModel : whisperModel}
+        onLocalModelSelect={(modelId) => {
+          if (localTranscriptionProvider === "nvidia") {
+            setParakeetModel(modelId);
+          } else {
+            setWhisperModel(modelId);
           }
-          onLocalModelSelect={(modelId) => {
-            if (localTranscriptionProvider === "nvidia") {
-              setParakeetModel(modelId);
-            } else {
-              setWhisperModel(modelId);
-            }
-          }}
-          selectedLocalProvider={localTranscriptionProvider}
-          onLocalProviderSelect={setLocalTranscriptionProvider}
-          useLocalWhisper={useLocalWhisper}
-          onModeChange={(isLocal) => {
-            setUseLocalWhisper(isLocal);
-            updateTranscriptionSettings({ useLocalWhisper: isLocal });
-            if (isLocal) {
-              setCloudTranscriptionMode("byok");
-            }
-          }}
-          openaiApiKey={openaiApiKey}
-          setOpenaiApiKey={setOpenaiApiKey}
-          groqApiKey={groqApiKey}
-          setGroqApiKey={setGroqApiKey}
-          mistralApiKey={mistralApiKey}
-          setMistralApiKey={setMistralApiKey}
-          customTranscriptionApiKey={customTranscriptionApiKey}
-          setCustomTranscriptionApiKey={setCustomTranscriptionApiKey}
-          cloudTranscriptionBaseUrl={cloudTranscriptionBaseUrl}
-          setCloudTranscriptionBaseUrl={setCloudTranscriptionBaseUrl}
-          variant="settings"
-        />
-      )}
+        }}
+        selectedLocalProvider={localTranscriptionProvider}
+        onLocalProviderSelect={setLocalTranscriptionProvider}
+        useLocalWhisper={useLocalWhisper}
+        onModeChange={(isLocal) => {
+          setUseLocalWhisper(isLocal);
+          updateTranscriptionSettings({ useLocalWhisper: isLocal });
+        }}
+        openaiApiKey={openaiApiKey}
+        setOpenaiApiKey={setOpenaiApiKey}
+        groqApiKey={groqApiKey}
+        setGroqApiKey={setGroqApiKey}
+        mistralApiKey={mistralApiKey}
+        setMistralApiKey={setMistralApiKey}
+        customTranscriptionApiKey={customTranscriptionApiKey}
+        setCustomTranscriptionApiKey={setCustomTranscriptionApiKey}
+        cloudTranscriptionBaseUrl={cloudTranscriptionBaseUrl}
+        setCloudTranscriptionBaseUrl={setCloudTranscriptionBaseUrl}
+        variant="settings"
+      />
     </div>
   );
 }
@@ -421,9 +249,6 @@ export function DictationCleanupControls() {
 }
 
 interface AiModelsSectionProps {
-  isSignedIn: boolean;
-  cloudReasoningMode: string;
-  setCloudReasoningMode: (mode: string) => void;
   useReasoningModel: boolean;
   setUseReasoningModel: (value: boolean) => void;
   reasoningModel: string;
@@ -442,19 +267,9 @@ interface AiModelsSectionProps {
   setGroqApiKey: (key: string) => void;
   customReasoningApiKey: string;
   setCustomReasoningApiKey: (key: string) => void;
-  showAlertDialog: (dialog: { title: string; description: string }) => void;
-  toast: (opts: {
-    title: string;
-    description: string;
-    variant?: "default" | "destructive" | "success";
-    duration?: number;
-  }) => void;
 }
 
 function AiModelsSection({
-  isSignedIn,
-  cloudReasoningMode,
-  setCloudReasoningMode,
   useReasoningModel,
   setUseReasoningModel,
   reasoningModel,
@@ -473,12 +288,8 @@ function AiModelsSection({
   setGroqApiKey,
   customReasoningApiKey,
   setCustomReasoningApiKey,
-  showAlertDialog,
-  toast,
 }: AiModelsSectionProps) {
   const { t } = useTranslation();
-  const isCustomMode = cloudReasoningMode === "byok";
-  const isCloudMode = isSignedIn && cloudReasoningMode === "openwhispr";
 
   return (
     <div className="space-y-4">
@@ -502,152 +313,24 @@ function AiModelsSection({
       </SettingsPanel>
 
       {useReasoningModel && (
-        <>
-          {/* Mode selector */}
-          {isSignedIn && (
-            <SettingsPanel>
-              <SettingsPanelRow>
-                <button
-                  onClick={() => {
-                    if (!isCloudMode) {
-                      setCloudReasoningMode("openwhispr");
-                      window.electronAPI?.llamaServerStop?.();
-                      toast({
-                        title: t("settingsPage.aiModels.toasts.switchedCloud.title"),
-                        description: t("settingsPage.aiModels.toasts.switchedCloud.description"),
-                        variant: "success",
-                        duration: 3000,
-                      });
-                    }
-                  }}
-                  className="w-full flex items-center gap-3 text-left cursor-pointer group"
-                >
-                  <div
-                    className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors ${
-                      isCloudMode
-                        ? "bg-primary/10 dark:bg-primary/15"
-                        : "bg-muted/60 dark:bg-surface-raised group-hover:bg-muted dark:group-hover:bg-surface-3"
-                    }`}
-                  >
-                    <Cloud
-                      className={`w-4 h-4 transition-colors ${
-                        isCloudMode ? "text-primary" : "text-muted-foreground"
-                      }`}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-foreground">
-                        {t("settingsPage.aiModels.openwhisprCloud")}
-                      </span>
-                      {isCloudMode && (
-                        <span className="text-xs font-medium text-primary bg-primary/10 dark:bg-primary/15 px-1.5 py-px rounded-sm">
-                          {t("common.active")}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground/80 mt-0.5">
-                      {t("settingsPage.aiModels.openwhisprCloudDescription")}
-                    </p>
-                  </div>
-                  <div
-                    className={`w-4 h-4 rounded-full border-2 shrink-0 transition-colors ${
-                      isCloudMode
-                        ? "border-primary bg-primary"
-                        : "border-border-hover dark:border-border-subtle"
-                    }`}
-                  >
-                    {isCloudMode && (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
-                      </div>
-                    )}
-                  </div>
-                </button>
-              </SettingsPanelRow>
-              <SettingsPanelRow>
-                <button
-                  onClick={() => {
-                    if (!isCustomMode) {
-                      setCloudReasoningMode("byok");
-                      toast({
-                        title: t("settingsPage.aiModels.toasts.switchedCustom.title"),
-                        description: t("settingsPage.aiModels.toasts.switchedCustom.description"),
-                        variant: "success",
-                        duration: 3000,
-                      });
-                    }
-                  }}
-                  className="w-full flex items-center gap-3 text-left cursor-pointer group"
-                >
-                  <div
-                    className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors ${
-                      isCustomMode
-                        ? "bg-accent/10 dark:bg-accent/15"
-                        : "bg-muted/60 dark:bg-surface-raised group-hover:bg-muted dark:group-hover:bg-surface-3"
-                    }`}
-                  >
-                    <Key
-                      className={`w-4 h-4 transition-colors ${
-                        isCustomMode ? "text-accent" : "text-muted-foreground"
-                      }`}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-foreground">
-                        {t("settingsPage.aiModels.customSetup")}
-                      </span>
-                      {isCustomMode && (
-                        <span className="text-xs font-medium text-accent bg-accent/10 dark:bg-accent/15 px-1.5 py-px rounded-sm">
-                          {t("common.active")}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground/80 mt-0.5">
-                      {t("settingsPage.aiModels.customSetupDescription")}
-                    </p>
-                  </div>
-                  <div
-                    className={`w-4 h-4 rounded-full border-2 shrink-0 transition-colors ${
-                      isCustomMode
-                        ? "border-accent bg-accent"
-                        : "border-border-hover dark:border-border-subtle"
-                    }`}
-                  >
-                    {isCustomMode && (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 rounded-full bg-accent-foreground" />
-                      </div>
-                    )}
-                  </div>
-                </button>
-              </SettingsPanelRow>
-            </SettingsPanel>
-          )}
-
-          {/* Custom Setup model picker — shown when Custom Setup is active or not signed in */}
-          {(isCustomMode || !isSignedIn) && (
-            <ReasoningModelSelector
-              reasoningModel={reasoningModel}
-              setReasoningModel={setReasoningModel}
-              localReasoningProvider={reasoningProvider}
-              setLocalReasoningProvider={setReasoningProvider}
-              cloudReasoningBaseUrl={cloudReasoningBaseUrl}
-              setCloudReasoningBaseUrl={setCloudReasoningBaseUrl}
-              openaiApiKey={openaiApiKey}
-              setOpenaiApiKey={setOpenaiApiKey}
-              anthropicApiKey={anthropicApiKey}
-              setAnthropicApiKey={setAnthropicApiKey}
-              geminiApiKey={geminiApiKey}
-              setGeminiApiKey={setGeminiApiKey}
-              groqApiKey={groqApiKey}
-              setGroqApiKey={setGroqApiKey}
-              customReasoningApiKey={customReasoningApiKey}
-              setCustomReasoningApiKey={setCustomReasoningApiKey}
-            />
-          )}
-        </>
+        <ReasoningModelSelector
+          reasoningModel={reasoningModel}
+          setReasoningModel={setReasoningModel}
+          localReasoningProvider={reasoningProvider}
+          setLocalReasoningProvider={setReasoningProvider}
+          cloudReasoningBaseUrl={cloudReasoningBaseUrl}
+          setCloudReasoningBaseUrl={setCloudReasoningBaseUrl}
+          openaiApiKey={openaiApiKey}
+          setOpenaiApiKey={setOpenaiApiKey}
+          anthropicApiKey={anthropicApiKey}
+          setAnthropicApiKey={setAnthropicApiKey}
+          geminiApiKey={geminiApiKey}
+          setGeminiApiKey={setGeminiApiKey}
+          groqApiKey={groqApiKey}
+          setGroqApiKey={setGroqApiKey}
+          customReasoningApiKey={customReasoningApiKey}
+          setCustomReasoningApiKey={setCustomReasoningApiKey}
+        />
       )}
     </div>
   );
@@ -801,23 +484,15 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     setAutoLearnCorrections,
     updateTranscriptionSettings,
     updateReasoningSettings,
-    cloudTranscriptionMode,
-    setCloudTranscriptionMode,
-    cloudReasoningMode,
-    setCloudReasoningMode,
     audioCuesEnabled,
     setAudioCuesEnabled,
     floatingIconAutoHide,
     setFloatingIconAutoHide,
-    cloudBackupEnabled,
-    setCloudBackupEnabled,
-    telemetryEnabled,
-    setTelemetryEnabled,
     customDictionary,
     setCustomDictionary,
   } = useSettings();
 
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   const [currentVersion, setCurrentVersion] = useState<string>("");
@@ -909,22 +584,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
   ]);
 
   const { theme, setTheme } = useTheme();
-  const usage = useUsage();
-  const hasShownApproachingToast = useRef(false);
-  useEffect(() => {
-    if (usage?.isApproachingLimit && !hasShownApproachingToast.current) {
-      hasShownApproachingToast.current = true;
-      toast({
-        title: t("settingsPage.account.toasts.approachingLimit.title"),
-        description: t("settingsPage.account.toasts.approachingLimit.description", {
-          used: usage.wordsUsed.toLocaleString(i18n.language),
-          limit: usage.limit.toLocaleString(i18n.language),
-        }),
-        duration: 6000,
-      });
-    }
-  }, [usage?.isApproachingLimit, usage?.wordsUsed, usage?.limit, toast, t, i18n.language]);
-
   const installTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { registerHotkey, isRegistering: isHotkeyRegistering } = useHotkeyRegistration({
@@ -940,8 +599,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     (hotkey: string) => getValidationMessage(hotkey, getPlatform()),
     []
   );
-
-  const [isUsingGnomeHotkeys, setIsUsingGnomeHotkeys] = useState(false);
 
   const platform = getCachedPlatform();
 
@@ -1002,21 +659,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
       clearTimeout(timer);
     };
   }, [whisperHook.checkWhisperInstallation, getAppVersion]);
-
-  useEffect(() => {
-    const checkHotkeyMode = async () => {
-      try {
-        const info = await window.electronAPI?.getHotkeyModeInfo();
-        if (info?.isUsingGnome) {
-          setIsUsingGnomeHotkeys(true);
-          setActivationMode("tap");
-        }
-      } catch (error) {
-        logger.error("Failed to check hotkey mode", error, "settings");
-      }
-    };
-    checkHotkeyMode();
-  }, [setActivationMode]);
 
   useEffect(() => {
     if (updateError) {
@@ -1109,639 +751,8 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     });
   }, [isRemovingModels, cachePathHint, showConfirmDialog, showAlertDialog, t]);
 
-  const { isSignedIn, isLoaded, user } = useAuth();
-  const [isSigningOut, setIsSigningOut] = useState(false);
-  const [isOpeningBilling, setIsOpeningBilling] = useState(false);
-  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("monthly");
-
-  useEffect(() => {
-    if (usage?.billingInterval) {
-      setBillingPeriod(usage.billingInterval);
-    }
-  }, [usage?.billingInterval]);
-
-  const startOnboarding = useCallback(() => {
-    localStorage.setItem("pendingCloudMigration", "true");
-    localStorage.setItem("onboardingCurrentStep", "0");
-    localStorage.removeItem("onboardingCompleted");
-    window.location.reload();
-  }, []);
-
-  const handleSignOut = useCallback(async () => {
-    setIsSigningOut(true);
-    try {
-      await signOut();
-      window.location.reload();
-    } catch (error) {
-      logger.error("Sign out failed", error, "auth");
-      showAlertDialog({
-        title: t("settingsPage.account.signOut.failedTitle"),
-        description: t("settingsPage.account.signOut.failedDescription"),
-      });
-    } finally {
-      setIsSigningOut(false);
-    }
-  }, [showAlertDialog, t]);
-
   const renderSectionContent = () => {
     switch (activeSection) {
-      case "account":
-        return (
-          <div className="space-y-5">
-            {!NEON_AUTH_URL ? (
-              <>
-                <SectionHeader
-                  title={t("settingsPage.account.title")}
-                  description={t("settingsPage.account.notConfigured")}
-                />
-                <SettingsPanel>
-                  <SettingsPanelRow>
-                    <SettingsRow
-                      label={t("settingsPage.account.featuresDisabled")}
-                      description={t("settingsPage.account.featuresDisabledDescription")}
-                    >
-                      <Badge variant="warning">{t("settingsPage.account.disabled")}</Badge>
-                    </SettingsRow>
-                  </SettingsPanelRow>
-                </SettingsPanel>
-              </>
-            ) : isLoaded && isSignedIn && user ? (
-              <>
-                <SectionHeader title={t("settingsPage.account.title")} />
-                <SettingsPanel>
-                  <SettingsPanelRow>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 overflow-hidden bg-primary/10 dark:bg-primary/15">
-                        {user.image ? (
-                          <img
-                            src={user.image}
-                            alt={user.name || t("settingsPage.account.user")}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <UserCircle className="w-5 h-5 text-primary" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-foreground truncate">
-                          {user.name || t("settingsPage.account.user")}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                      </div>
-                      <Badge variant="success">{t("settingsPage.account.signedIn")}</Badge>
-                    </div>
-                  </SettingsPanelRow>
-                </SettingsPanel>
-
-                <SettingsPanel>
-                  <SettingsPanelRow>
-                    <Button
-                      onClick={handleSignOut}
-                      variant="outline"
-                      disabled={isSigningOut}
-                      size="sm"
-                      className="w-full text-destructive border-destructive/30 hover:bg-destructive/10 hover:border-destructive/50"
-                    >
-                      <LogOut className="mr-1.5 h-3.5 w-3.5" />
-                      {isSigningOut
-                        ? t("settingsPage.account.signOut.signingOut")
-                        : t("settingsPage.account.signOut.signOut")}
-                    </Button>
-                  </SettingsPanelRow>
-                </SettingsPanel>
-              </>
-            ) : isLoaded ? (
-              <>
-                <SectionHeader title={t("settingsPage.account.title")} />
-                <SettingsPanel>
-                  <SettingsPanelRow>
-                    <SettingsRow
-                      label={t("settingsPage.account.notSignedIn")}
-                      description={t("settingsPage.account.notSignedInDescription")}
-                    >
-                      <Badge variant="outline">{t("settingsPage.account.offline")}</Badge>
-                    </SettingsRow>
-                  </SettingsPanelRow>
-                </SettingsPanel>
-
-                <div className="rounded-lg border border-primary/20 dark:border-primary/15 bg-primary/3 dark:bg-primary/6 p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-md bg-primary/10 dark:bg-primary/15 flex items-center justify-center shrink-0 mt-0.5">
-                      <Sparkles className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-2.5">
-                      <div>
-                        <p className="text-xs font-medium text-foreground">
-                          {t("settingsPage.account.trialCta.title")}
-                        </p>
-                        <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">
-                          {t("settingsPage.account.trialCta.description")}
-                        </p>
-                      </div>
-                      <Button onClick={startOnboarding} size="sm" className="w-full">
-                        <UserCircle className="mr-1.5 h-3.5 w-3.5" />
-                        {t("settingsPage.account.trialCta.button")}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <SectionHeader title={t("settingsPage.account.title")} />
-                <SettingsPanel>
-                  <SettingsPanelRow>
-                    <div className="flex items-center justify-between">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-5 w-16 rounded-full" />
-                    </div>
-                  </SettingsPanelRow>
-                </SettingsPanel>
-              </>
-            )}
-          </div>
-        );
-
-      case "plansBilling":
-        return (
-          <div className="space-y-5">
-            {!NEON_AUTH_URL ? (
-              <>
-                <SectionHeader
-                  title={t("settingsPage.account.pricing.title")}
-                  description={t("settingsPage.account.notConfigured")}
-                />
-                <SettingsPanel>
-                  <SettingsPanelRow>
-                    <SettingsRow
-                      label={t("settingsPage.account.featuresDisabled")}
-                      description={t("settingsPage.account.featuresDisabledDescription")}
-                    >
-                      <Badge variant="warning">{t("settingsPage.account.disabled")}</Badge>
-                    </SettingsRow>
-                  </SettingsPanelRow>
-                </SettingsPanel>
-              </>
-            ) : isLoaded ? (
-              <>
-                <SectionHeader title={t("settingsPage.account.pricing.title")} />
-                <div className="space-y-2.5">
-                  <div className="flex justify-center">
-                    <div className="inline-flex rounded-md bg-muted/40 dark:bg-surface-2/40 p-0.5 border border-border/30 dark:border-border-subtle/40">
-                      <button
-                        onClick={() => setBillingPeriod("monthly")}
-                        className={cn(
-                          "px-3 py-1 text-[11px] font-medium rounded-[3px] transition-all duration-150",
-                          billingPeriod === "monthly"
-                            ? "bg-background dark:bg-surface-raised text-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        {t("settingsPage.account.pricing.monthly")}
-                      </button>
-                      <button
-                        onClick={() => setBillingPeriod("annual")}
-                        className={cn(
-                          "px-3 py-1 text-[11px] font-medium rounded-[3px] transition-all duration-150 flex items-center gap-1",
-                          billingPeriod === "annual"
-                            ? "bg-background dark:bg-surface-raised text-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        {t("settingsPage.account.pricing.annual")}
-                        <span className="text-[9px] font-semibold text-primary">
-                          {t("settingsPage.account.pricing.annualBadge")}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2">
-                    {/* Free */}
-                    <div
-                      className={cn(
-                        "rounded-md border p-2.5 flex flex-col",
-                        !usage?.isSubscribed && !usage?.isTrial
-                          ? "border-primary/30 bg-primary/3 dark:border-primary/20 dark:bg-primary/5"
-                          : "border-border/50 dark:border-border-subtle/60 bg-card/30 dark:bg-surface-2/30"
-                      )}
-                    >
-                      <p className="text-[11px] font-semibold text-foreground">
-                        {t("settingsPage.account.pricing.free.name")}
-                      </p>
-                      <div className="flex items-baseline gap-0.5 mt-0.5">
-                        <span className="text-sm font-bold text-foreground">
-                          {t("settingsPage.account.pricing.free.price")}
-                        </span>
-                        <span className="text-[9px] text-muted-foreground">
-                          {t("settingsPage.account.pricing.free.period")}
-                        </span>
-                      </div>
-                      <p className="text-[9px] font-medium text-primary/80 mt-1.5">
-                        {t("settingsPage.account.pricing.free.trialNote")}
-                      </p>
-                      <ul className="space-y-0.5 mt-2 flex-1">
-                        {(
-                          t("settingsPage.account.pricing.free.features", {
-                            returnObjects: true,
-                          }) as string[]
-                        ).map((feature, i) => (
-                          <li
-                            key={i}
-                            className="flex items-start gap-1 text-[10px] text-muted-foreground leading-tight"
-                          >
-                            <Check size={9} className="mt-[2px] text-primary/70 shrink-0" />
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
-                      {isSignedIn && !usage?.isSubscribed && !usage?.isTrial ? (
-                        <div className="mt-2 text-center">
-                          <span className="text-[9px] font-medium text-primary/70">
-                            {t("settingsPage.account.pricing.currentPlan")}
-                          </span>
-                        </div>
-                      ) : !isSignedIn ? (
-                        <Button
-                          onClick={startOnboarding}
-                          variant="outline"
-                          size="sm"
-                          className="mt-2 w-full h-6 text-[10px]"
-                        >
-                          {t("settingsPage.account.signedOutPlans.button")}
-                        </Button>
-                      ) : null}
-                    </div>
-
-                    {/* Pro */}
-                    <div
-                      className={cn(
-                        "rounded-md border-2 p-2.5 flex flex-col",
-                        usage?.isSubscribed || usage?.isTrial
-                          ? "border-primary/40 bg-primary/5 dark:border-primary/30 dark:bg-primary/8"
-                          : "border-primary/20 bg-primary/2 dark:border-primary/15 dark:bg-primary/3"
-                      )}
-                    >
-                      <p className="text-[11px] font-semibold text-foreground">
-                        {t("settingsPage.account.pricing.pro.name")}
-                      </p>
-                      <div className="flex items-baseline gap-0.5 mt-0.5">
-                        <span className="text-sm font-bold text-foreground">
-                          {billingPeriod === "monthly"
-                            ? t("settingsPage.account.pricing.pro.monthlyPrice")
-                            : t("settingsPage.account.pricing.pro.annualPrice")}
-                        </span>
-                        <span className="text-[9px] text-muted-foreground">
-                          {billingPeriod === "monthly"
-                            ? t("settingsPage.account.pricing.pro.monthlyPeriod")
-                            : t("settingsPage.account.pricing.pro.annualPeriod")}
-                        </span>
-                        {billingPeriod === "annual" && (
-                          <span className="text-[9px] font-semibold text-primary ml-1">
-                            {t("settingsPage.account.pricing.annualBadge")}
-                          </span>
-                        )}
-                      </div>
-                      <ul className="space-y-0.5 mt-2 flex-1">
-                        {(
-                          t("settingsPage.account.pricing.pro.features", {
-                            returnObjects: true,
-                          }) as string[]
-                        ).map((feature, i) => (
-                          <li
-                            key={i}
-                            className="flex items-start gap-1 text-[10px] text-muted-foreground leading-tight"
-                          >
-                            <Check size={9} className="mt-[2px] text-primary shrink-0" />
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
-                      {usage?.isSubscribed && !usage?.isTrial ? (
-                        billingPeriod === "annual" ? (
-                          <Button
-                            onClick={async () => {
-                              const result = await usage.openBillingPortal();
-                              if (!result.success) {
-                                toast({
-                                  title: t("settingsPage.account.billing.couldNotOpenTitle"),
-                                  description: t(
-                                    "settingsPage.account.billing.couldNotOpenDescription"
-                                  ),
-                                  variant: "destructive",
-                                });
-                              }
-                            }}
-                            variant="outline"
-                            size="sm"
-                            className="mt-2 w-full h-6 text-[10px]"
-                            disabled={usage?.checkoutLoading}
-                          >
-                            {t("settingsPage.account.pricing.pro.switchToAnnual")}
-                          </Button>
-                        ) : (
-                          <div className="mt-2 text-center">
-                            <span className="text-[9px] font-medium text-primary">
-                              {t("settingsPage.account.pricing.currentPlan")}
-                            </span>
-                          </div>
-                        )
-                      ) : usage?.isTrial ? (
-                        <div className="mt-2 text-center">
-                          <span className="text-[9px] font-medium text-primary">
-                            {t("settingsPage.account.pricing.currentPlan")}
-                          </span>
-                        </div>
-                      ) : (
-                        <Button
-                          onClick={() =>
-                            window.electronAPI?.openExternal?.(
-                              `https://openwhispr.com/get-started?plan=${billingPeriod}`
-                            )
-                          }
-                          size="sm"
-                          className="mt-2 w-full h-6 text-[10px]"
-                        >
-                          {t("settingsPage.account.pricing.pro.cta")}
-                        </Button>
-                      )}
-                    </div>
-
-                    {/* Enterprise */}
-                    <div className="rounded-md border border-border/50 dark:border-border-subtle/60 bg-card/30 dark:bg-surface-2/30 p-2.5 flex flex-col">
-                      <p className="text-[11px] font-semibold text-foreground">
-                        {t("settingsPage.account.pricing.enterprise.name")}
-                      </p>
-                      <div className="flex items-baseline gap-0.5 mt-0.5">
-                        <span className="text-sm font-bold text-foreground">
-                          {t("settingsPage.account.pricing.enterprise.price")}
-                        </span>
-                      </div>
-                      <ul className="space-y-0.5 mt-2 flex-1">
-                        {(
-                          t("settingsPage.account.pricing.enterprise.features", {
-                            returnObjects: true,
-                          }) as string[]
-                        ).map((feature, i) => (
-                          <li
-                            key={i}
-                            className="flex items-start gap-1 text-[10px] text-muted-foreground leading-tight"
-                          >
-                            <Check
-                              size={9}
-                              className="mt-[2px] text-purple-500 dark:text-purple-400 shrink-0"
-                            />
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-2 w-full h-6 text-[10px]"
-                        onClick={() =>
-                          window.electronAPI?.openExternal?.("mailto:gabe@openwhispr.com")
-                        }
-                      >
-                        <Mail size={10} />
-                        {t("settingsPage.account.pricing.enterprise.cta")}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                {isSignedIn ? (
-                  <>
-                    <SectionHeader title={t("settingsPage.account.planTitle")} />
-                    {!usage || !usage.hasLoaded ? (
-                      <SettingsPanel>
-                        <SettingsPanelRow>
-                          <div className="flex items-center justify-between">
-                            <Skeleton className="h-4 w-24" />
-                            <Skeleton className="h-5 w-16 rounded-full" />
-                          </div>
-                        </SettingsPanelRow>
-                        <SettingsPanelRow>
-                          <div className="space-y-2">
-                            <Skeleton className="h-3 w-48" />
-                            <Skeleton className="h-8 w-full rounded" />
-                          </div>
-                        </SettingsPanelRow>
-                      </SettingsPanel>
-                    ) : (
-                      <SettingsPanel>
-                        {usage.isPastDue && (
-                          <SettingsPanelRow>
-                            <Alert
-                              variant="warning"
-                              className="dark:bg-amber-950/50 dark:border-amber-800 dark:text-amber-200 dark:[&>svg]:text-amber-400"
-                            >
-                              <AlertTriangle className="h-4 w-4" />
-                              <AlertTitle>{t("settingsPage.account.pastDue.title")}</AlertTitle>
-                              <AlertDescription>
-                                {t("settingsPage.account.pastDue.description")}
-                              </AlertDescription>
-                            </Alert>
-                          </SettingsPanelRow>
-                        )}
-
-                        <SettingsPanelRow>
-                          <SettingsRow
-                            label={
-                              usage.isTrial
-                                ? t("settingsPage.account.planLabels.trial")
-                                : usage.isPastDue
-                                  ? t("settingsPage.account.planLabels.free")
-                                  : usage.isSubscribed
-                                    ? t("settingsPage.account.planLabels.pro")
-                                    : t("settingsPage.account.planLabels.free")
-                            }
-                            description={
-                              usage.isTrial
-                                ? t("settingsPage.account.planDescriptions.trial", {
-                                    days: usage.trialDaysLeft,
-                                  })
-                                : usage.isPastDue
-                                  ? t("settingsPage.account.planDescriptions.pastDue", {
-                                      used: usage.wordsUsed.toLocaleString(i18n.language),
-                                      limit: usage.limit.toLocaleString(i18n.language),
-                                    })
-                                  : usage.isSubscribed
-                                    ? usage.currentPeriodEnd
-                                      ? t("settingsPage.account.planDescriptions.nextBilling", {
-                                          date: new Date(usage.currentPeriodEnd).toLocaleDateString(
-                                            i18n.language,
-                                            { month: "short", day: "numeric", year: "numeric" }
-                                          ),
-                                        })
-                                      : t("settingsPage.account.planDescriptions.unlimited")
-                                    : t("settingsPage.account.planDescriptions.freeUsage", {
-                                        used: usage.wordsUsed.toLocaleString(i18n.language),
-                                        limit: usage.limit.toLocaleString(i18n.language),
-                                      })
-                            }
-                          >
-                            {usage.isTrial ? (
-                              <Badge variant="info">{t("settingsPage.account.badges.trial")}</Badge>
-                            ) : usage.isPastDue ? (
-                              <Badge variant="destructive">
-                                {t("settingsPage.account.badges.pastDue")}
-                              </Badge>
-                            ) : usage.isSubscribed ? (
-                              <Badge variant="success">
-                                {t("settingsPage.account.badges.pro")}
-                              </Badge>
-                            ) : usage.isOverLimit ? (
-                              <Badge variant="warning">
-                                {t("settingsPage.account.badges.limitReached")}
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline">
-                                {t("settingsPage.account.badges.free")}
-                              </Badge>
-                            )}
-                          </SettingsRow>
-                        </SettingsPanelRow>
-
-                        {!usage.isSubscribed && !usage.isTrial && (
-                          <SettingsPanelRow>
-                            <div className="space-y-1.5">
-                              <Progress
-                                value={
-                                  usage.limit > 0
-                                    ? Math.min(100, (usage.wordsUsed / usage.limit) * 100)
-                                    : 0
-                                }
-                                className={cn(
-                                  "h-1.5",
-                                  usage.isOverLimit
-                                    ? "[&>div]:bg-destructive"
-                                    : usage.isApproachingLimit
-                                      ? "[&>div]:bg-warning"
-                                      : "[&>div]:bg-primary"
-                                )}
-                              />
-                              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <span className="tabular-nums">
-                                  {usage.wordsUsed.toLocaleString(i18n.language)} /{" "}
-                                  {usage.limit.toLocaleString(i18n.language)}
-                                </span>
-                                {usage.isApproachingLimit && (
-                                  <span className="text-warning">
-                                    {t("settingsPage.account.wordsRemaining", {
-                                      remaining: usage.wordsRemaining.toLocaleString(i18n.language),
-                                    })}
-                                  </span>
-                                )}
-                                {!usage.isApproachingLimit && !usage.isOverLimit && (
-                                  <span>{t("settingsPage.account.rollingWeeklyLimit")}</span>
-                                )}
-                              </div>
-                            </div>
-                          </SettingsPanelRow>
-                        )}
-
-                        <SettingsPanelRow>
-                          {usage.isPastDue ? (
-                            <Button
-                              onClick={async () => {
-                                setIsOpeningBilling(true);
-                                try {
-                                  const result = await usage.openBillingPortal();
-                                  if (!result.success) {
-                                    toast({
-                                      title: t("settingsPage.account.billing.couldNotOpenTitle"),
-                                      description: t(
-                                        "settingsPage.account.billing.couldNotOpenDescription"
-                                      ),
-                                      variant: "destructive",
-                                    });
-                                  }
-                                } finally {
-                                  setIsOpeningBilling(false);
-                                }
-                              }}
-                              disabled={isOpeningBilling}
-                              size="sm"
-                              className="w-full"
-                            >
-                              {isOpeningBilling ? (
-                                <>
-                                  <Loader2 size={14} className="animate-spin" />
-                                  {t("settingsPage.account.billing.opening")}
-                                </>
-                              ) : (
-                                t("settingsPage.account.billing.updatePaymentMethod")
-                              )}
-                            </Button>
-                          ) : usage.isSubscribed && !usage.isTrial ? (
-                            <Button
-                              onClick={async () => {
-                                const result = await usage.openBillingPortal();
-                                if (!result.success) {
-                                  toast({
-                                    title: t("settingsPage.account.billing.couldNotOpenTitle"),
-                                    description: t(
-                                      "settingsPage.account.billing.couldNotOpenDescription"
-                                    ),
-                                    variant: "destructive",
-                                  });
-                                }
-                              }}
-                              variant="outline"
-                              size="sm"
-                              className="w-full"
-                              disabled={usage.checkoutLoading}
-                            >
-                              {usage.checkoutLoading
-                                ? t("settingsPage.account.billing.opening")
-                                : t("settingsPage.account.billing.manageBilling")}
-                            </Button>
-                          ) : (
-                            <Button
-                              onClick={async () => {
-                                const result = await usage.openCheckout(billingPeriod);
-                                if (!result.success) {
-                                  toast({
-                                    title: t("settingsPage.account.checkout.couldNotOpenTitle"),
-                                    description: t(
-                                      "settingsPage.account.checkout.couldNotOpenDescription"
-                                    ),
-                                    variant: "destructive",
-                                  });
-                                }
-                              }}
-                              size="sm"
-                              className="w-full"
-                              disabled={usage.checkoutLoading}
-                            >
-                              {usage.checkoutLoading
-                                ? t("settingsPage.account.checkout.opening")
-                                : t("settingsPage.account.checkout.upgradeToPro")}
-                            </Button>
-                          )}
-                        </SettingsPanelRow>
-                      </SettingsPanel>
-                    )}
-                  </>
-                ) : null}
-              </>
-            ) : (
-              <>
-                <SectionHeader title={t("settingsPage.account.pricing.title")} />
-                <SettingsPanel>
-                  <SettingsPanelRow>
-                    <div className="flex items-center justify-between">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-5 w-16 rounded-full" />
-                    </div>
-                  </SettingsPanelRow>
-                </SettingsPanel>
-              </>
-            )}
-          </div>
-        );
-
       case "general":
         return (
           <div className="space-y-6">
@@ -1946,14 +957,12 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
                   )}
                 </SettingsPanelRow>
 
-                {!isUsingGnomeHotkeys && (
-                  <SettingsPanelRow>
-                    <p className="text-xs font-medium text-muted-foreground/80 mb-2">
-                      {t("settingsPage.general.hotkey.activationMode")}
-                    </p>
-                    <ActivationModeSelector value={activationMode} onChange={setActivationMode} />
-                  </SettingsPanelRow>
-                )}
+                <SettingsPanelRow>
+                  <p className="text-xs font-medium text-muted-foreground/80 mb-2">
+                    {t("settingsPage.general.hotkey.activationMode")}
+                  </p>
+                  <ActivationModeSelector value={activationMode} onChange={setActivationMode} />
+                </SettingsPanelRow>
               </SettingsPanel>
             </div>
 
@@ -2007,9 +1016,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
       case "transcription":
         return (
           <TranscriptionSection
-            isSignedIn={isSignedIn ?? false}
-            cloudTranscriptionMode={cloudTranscriptionMode}
-            setCloudTranscriptionMode={setCloudTranscriptionMode}
             useLocalWhisper={useLocalWhisper}
             setUseLocalWhisper={setUseLocalWhisper}
             updateTranscriptionSettings={updateTranscriptionSettings}
@@ -2033,7 +1039,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
             setCustomTranscriptionApiKey={setCustomTranscriptionApiKey}
             cloudTranscriptionBaseUrl={cloudTranscriptionBaseUrl}
             setCloudTranscriptionBaseUrl={setCloudTranscriptionBaseUrl}
-            toast={toast}
           />
         );
 
@@ -2228,9 +1233,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
       case "aiModels":
         return (
           <AiModelsSection
-            isSignedIn={isSignedIn ?? false}
-            cloudReasoningMode={cloudReasoningMode}
-            setCloudReasoningMode={setCloudReasoningMode}
             useReasoningModel={useReasoningModel}
             setUseReasoningModel={(value) => {
               setUseReasoningModel(value);
@@ -2252,8 +1254,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
             setGroqApiKey={setGroqApiKey}
             customReasoningApiKey={customReasoningApiKey}
             setCustomReasoningApiKey={setCustomReasoningApiKey}
-            showAlertDialog={showAlertDialog}
-            toast={toast}
           />
         );
 
@@ -2371,9 +1371,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
           <div className="space-y-6">
             {/* Text Cleanup (AI Models) */}
             <AiModelsSection
-              isSignedIn={isSignedIn ?? false}
-              cloudReasoningMode={cloudReasoningMode}
-              setCloudReasoningMode={setCloudReasoningMode}
               useReasoningModel={useReasoningModel}
               setUseReasoningModel={(value) => {
                 updateReasoningSettings({ useReasoningModel: value });
@@ -2394,8 +1391,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
               setGroqApiKey={setGroqApiKey}
               customReasoningApiKey={customReasoningApiKey}
               setCustomReasoningApiKey={setCustomReasoningApiKey}
-              showAlertDialog={showAlertDialog}
-              toast={toast}
             />
 
             {/* Agent Config */}
@@ -2512,40 +1507,8 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
       case "privacyData":
         return (
           <div className="space-y-6">
-            {/* Privacy */}
-            <div>
-              <SectionHeader
-                title={t("settingsPage.privacy.title")}
-                description={t("settingsPage.privacy.description")}
-              />
-
-              {isSignedIn && (
-                <SettingsPanel className="mb-4">
-                  <SettingsPanelRow>
-                    <SettingsRow
-                      label={t("settingsPage.privacy.cloudBackup")}
-                      description={t("settingsPage.privacy.cloudBackupDescription")}
-                    >
-                      <Toggle checked={cloudBackupEnabled} onChange={setCloudBackupEnabled} />
-                    </SettingsRow>
-                  </SettingsPanelRow>
-                </SettingsPanel>
-              )}
-
-              <SettingsPanel>
-                <SettingsPanelRow>
-                  <SettingsRow
-                    label={t("settingsPage.privacy.usageAnalytics")}
-                    description={t("settingsPage.privacy.usageAnalyticsDescription")}
-                  >
-                    <Toggle checked={telemetryEnabled} onChange={setTelemetryEnabled} />
-                  </SettingsRow>
-                </SettingsPanelRow>
-              </SettingsPanel>
-            </div>
-
             {/* Permissions */}
-            <div className="border-t border-border/40 pt-6">
+            <div>
               <SectionHeader
                 title={t("settingsPage.permissions.title")}
                 description={t("settingsPage.permissions.description")}
@@ -2583,15 +1546,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
                 />
               )}
 
-              {platform === "linux" &&
-                permissionsHook.pasteToolsInfo &&
-                !permissionsHook.pasteToolsInfo.available && (
-                  <PasteToolsInfo
-                    pasteToolsInfo={permissionsHook.pasteToolsInfo}
-                    isChecking={permissionsHook.isCheckingPasteTools}
-                    onCheck={permissionsHook.checkPasteToolsAvailability}
-                  />
-                )}
 
               {platform === "darwin" && (
                 <div className="mt-5">

@@ -95,6 +95,25 @@ class WindowManager {
     this.isMainWindowInteractive = shouldCapture;
   }
 
+  /**
+   * The overlay never takes focus, so Escape can't reach it as a key event.
+   * While a dictation is live the card asks for a global Escape; it is
+   * released as soon as the dictation ends so other apps get Escape back.
+   */
+  setOverlayEscape(enabled) {
+    const { globalShortcut } = require("electron");
+    if (enabled && !this.overlayEscapeRegistered) {
+      this.overlayEscapeRegistered = globalShortcut.register("Escape", () => {
+        if (this.mainWindow && !this.mainWindow.isDestroyed())
+          this.mainWindow.webContents.send("overlay-escape");
+      });
+    } else if (!enabled && this.overlayEscapeRegistered) {
+      globalShortcut.unregister("Escape");
+      this.overlayEscapeRegistered = false;
+    }
+    return { success: true, registered: !!this.overlayEscapeRegistered };
+  }
+
   resizeMainWindow(sizeKey) {
     if (!this.mainWindow || this.mainWindow.isDestroyed()) {
       return { success: false, message: "Window not available" };
@@ -243,9 +262,10 @@ class WindowManager {
       }
     }, MIN_HOLD_DURATION_MS);
 
-    // Detect key release by polling macOS modifier state via CGEventSourceFlagsState.
-    // This uses Python3 ctypes to read the system modifier flags directly — no
-    // Accessibility permission or native binary required.
+    // Detect key release by polling macOS modifier state (CGEventSourceFlagsState)
+    // through the bundled Globe listener's --wait-release mode. Reading flag
+    // state needs no permission, so this also covers the case where the
+    // listener's own MODIFIER_UP events are unavailable.
     this._startModifierPoll(requiredModifiers);
   }
 
@@ -263,30 +283,29 @@ class WindowManager {
     return mask;
   }
 
+  _getModifierPollerBinary() {
+    if (this._modifierPollerBinary === undefined) {
+      const GlobeKeyManager = require("./globeKeyManager");
+      this._modifierPollerBinary = new GlobeKeyManager().resolveListenerBinary();
+    }
+    return this._modifierPollerBinary;
+  }
+
   _startModifierPoll(requiredModifiers) {
     const mask = this._getModifierMask(requiredModifiers);
     if (mask === 0) return;
 
-    const pyScript = [
-      "import ctypes, time, sys",
-      "cg = ctypes.cdll.LoadLibrary('/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics')",
-      "cg.CGEventSourceFlagsState.restype = ctypes.c_uint64",
-      "cg.CGEventSourceFlagsState.argtypes = [ctypes.c_int32]",
-      `mask = ${mask}`,
-      // Wait briefly for the initial keypress to register, then poll until released
-      "time.sleep(0.2)",
-      "while True:",
-      "    flags = cg.CGEventSourceFlagsState(0)",
-      "    if not (flags & mask):",
-      "        sys.stdout.write('RELEASED\\n')",
-      "        sys.stdout.flush()",
-      "        break",
-      "    time.sleep(0.08)",
-    ].join("\n");
+    // Never python3: on a Mac without Command Line Tools /usr/bin/python3 is a
+    // shim that pops an "install developer tools" dialog on every press.
+    const listener = this._getModifierPollerBinary();
+    if (!listener) {
+      debugLogger.warn("[PTT] Globe listener missing; release relies on MODIFIER_UP events", undefined, "ptt");
+      return;
+    }
 
     debugLogger.debug("[PTT] Starting modifier poll", { mask: `0x${mask.toString(16)}` }, "ptt");
 
-    const poller = spawn("python3", ["-u", "-c", pyScript], {
+    const poller = spawn(listener, ["--wait-release", String(mask)], {
       stdio: ["ignore", "pipe", "ignore"],
     });
 
@@ -301,8 +320,8 @@ class WindowManager {
 
     poller.on("error", (err) => {
       debugLogger.warn("[PTT] Modifier poller failed to start", { error: err.message }, "ptt");
-      // If python3 isn't available, recording will run until safety timeout
-      // or until the native binary MODIFIER_UP event fires
+      // Recording then stops on the listener's MODIFIER_UP event or the
+      // safety timeout.
     });
 
     poller.on("exit", (code) => {

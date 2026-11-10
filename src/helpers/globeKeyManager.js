@@ -11,9 +11,14 @@ const ARCH_CPU_TYPE = {
 };
 
 // Maximum number of rapid automatic restarts before giving up
-const MAX_RESTART_ATTEMPTS = 3;
-// Delay between restart attempts (ms)
+const MAX_RESTART_ATTEMPTS = 5;
+// First restart delay (ms); doubles per attempt up to RESTART_MAX_DELAY_MS
 const RESTART_DELAY_MS = 1000;
+const RESTART_MAX_DELAY_MS = 16000;
+
+function restartDelayMs(attempt) {
+  return Math.min(RESTART_DELAY_MS * 2 ** attempt, RESTART_MAX_DELAY_MS);
+}
 // After this much sustained uptime, reset restart counter (allows future restarts after sleep/wake)
 const RESTART_RESET_MS = 10000;
 
@@ -26,6 +31,7 @@ class GlobeKeyManager extends EventEmitter {
     this._isStopping = false;
     this._restartCount = 0;
     this._restartResetTimer = null;
+    this._restartTimer = null;
   }
 
   start() {
@@ -147,8 +153,12 @@ class GlobeKeyManager extends EventEmitter {
       this.process = null;
     });
 
-    this.process.on("exit", (code, signal) => {
+    // "close" (not "exit") so stderr — e.g. "Failed to create event tap" — has
+    // been read before deciding whether a restart can help.
+    const child = this.process;
+    this.process.on("close", (code, signal) => {
       debugLogger.info("[GlobeKeyManager] Process exited", { code, signal });
+      if (this.process !== child) return; // superseded (reportError or a restart)
       this.process = null;
       if (this._restartResetTimer) {
         clearTimeout(this._restartResetTimer);
@@ -160,26 +170,28 @@ class GlobeKeyManager extends EventEmitter {
         return;
       }
 
-      if (code !== 0) {
-        const error = new Error(
-          `Globe key listener exited with code ${code ?? "null"} signal ${signal ?? "null"}`
-        );
-        this.reportError(error);
+      // A permission failure was already reported (and killed the process);
+      // restarting it would only fail the same way.
+      if (this.hasReportedError) {
         return;
       }
 
-      // Exit code 0 but we didn't request stop — the event tap was likely
-      // invalidated (e.g. after sleep/wake). Attempt automatic restart.
+      // Unrequested exit: the event tap was invalidated (sleep/wake → code 0),
+      // the listener crashed, or something killed it. Without a restart the
+      // hotkey is dead until relaunch, so retry with exponential backoff.
       if (this._restartCount < MAX_RESTART_ATTEMPTS) {
+        const delay = restartDelayMs(this._restartCount);
         this._restartCount++;
         debugLogger.warn(
-          `[GlobeKeyManager] Unexpected exit (code 0), restarting (attempt ${this._restartCount}/${MAX_RESTART_ATTEMPTS})`
+          `[GlobeKeyManager] Unexpected exit (code ${code ?? "null"}, signal ${signal ?? "null"}), restarting in ${delay}ms (attempt ${this._restartCount}/${MAX_RESTART_ATTEMPTS})`
         );
-        setTimeout(() => {
+        if (this._restartTimer) clearTimeout(this._restartTimer);
+        this._restartTimer = setTimeout(() => {
+          this._restartTimer = null;
           if (!this._isStopping && !this.process) {
             this.start();
           }
-        }, RESTART_DELAY_MS);
+        }, delay);
       } else {
         debugLogger.error(
           "GlobeKeyManager exhausted restart attempts",
@@ -198,6 +210,10 @@ class GlobeKeyManager extends EventEmitter {
 
   stop() {
     this._isStopping = true;
+    if (this._restartTimer) {
+      clearTimeout(this._restartTimer);
+      this._restartTimer = null;
+    }
     if (this._restartResetTimer) {
       clearTimeout(this._restartResetTimer);
       this._restartResetTimer = null;
@@ -320,3 +336,4 @@ class GlobeKeyManager extends EventEmitter {
 }
 
 module.exports = GlobeKeyManager;
+module.exports.restartDelayMs = restartDelayMs;

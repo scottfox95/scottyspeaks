@@ -24,6 +24,9 @@ const ENGINE_ONNX = "onnx";
 // Comfortably covers a healthy CoreML start (~150-220ms) while bailing out of
 // a weights download or an ANE recompile.
 const COREML_READY_BUDGET_MS = 1500;
+// sherpa-onnx only stands in while CoreML comes up; once CoreML is ready and
+// the stand-in has sat idle this long, its ~670MB model is released.
+const ONNX_IDLE_STOP_MS = 120000;
 
 class ParakeetServerManager {
   constructor() {
@@ -31,6 +34,26 @@ class ParakeetServerManager {
     this.coremlServer = new ParakeetCoremlServer();
     this.engine = null; // null = auto-select
     this._coremlProvisioning = null;
+    this._coremlLastError = null;
+    this._onnxIdleTimer = null;
+  }
+
+  _scheduleOnnxIdleStop(delayMs = ONNX_IDLE_STOP_MS) {
+    if (this._onnxIdleTimer) clearTimeout(this._onnxIdleTimer);
+    this._onnxIdleTimer = null;
+    if (!this.isCoreml() || !this.wsServer.process) return;
+
+    this._onnxIdleTimer = setTimeout(() => {
+      this._onnxIdleTimer = null;
+      if (!this.isCoreml() || !this.coremlServer.ready || !this.wsServer.process) return;
+      if (this.wsServer.transcribing) {
+        this._scheduleOnnxIdleStop(delayMs);
+        return;
+      }
+      debugLogger.info("Stopping idle sherpa-onnx stand-in; CoreML is serving dictation");
+      this.wsServer.stop().catch(() => {});
+    }, delayMs);
+    this._onnxIdleTimer.unref?.();
   }
 
   /// Explicit preference wins; otherwise prefer the Neural Engine backend,
@@ -135,9 +158,12 @@ class ParakeetServerManager {
     this._coremlProvisioning = this.coremlServer
       .start(modelName)
       .then(() => {
+        this._coremlLastError = null;
         debugLogger.info("CoreML backend provisioned and ready for subsequent dictations");
+        this._scheduleOnnxIdleStop();
       })
       .catch((error) => {
+        this._coremlLastError = error.message;
         debugLogger.warn("CoreML background provisioning failed (staying on sherpa-onnx)", {
           error: error.message,
         });
@@ -195,15 +221,35 @@ class ParakeetServerManager {
     // evicts the ANE bundle cache, forcing a ~14s recompile. Rather than
     // guessing which case we're in, give it a short budget and fall back to
     // sherpa-onnx for this one dictation if it doesn't come up in time.
+    // Without the sherpa-onnx model there is nothing to fall back to, so the
+    // dictation fails fast with a clear message instead of blocking the
+    // inference lane (and the hotkey) for the download or recompile.
     let coreml = this.isCoreml();
-    if (coreml && !wordTimings && !this.coremlServer.ready && this._onnxCanServe(modelName)) {
+    if (coreml && !wordTimings && !this.coremlServer.ready) {
       const startedInTime = await this._awaitCoremlReady(modelName);
       if (!startedInTime) {
-        debugLogger.info("CoreML not ready within budget — serving via sherpa-onnx this request", {
-          modelName,
-          budgetMs: COREML_READY_BUDGET_MS,
-        });
-        coreml = false;
+        if (this._onnxCanServe(modelName)) {
+          debugLogger.info("CoreML not ready within budget — serving via sherpa-onnx this request", {
+            modelName,
+            budgetMs: COREML_READY_BUDGET_MS,
+          });
+          coreml = false;
+        } else {
+          debugLogger.warn("CoreML not ready within budget and no sherpa-onnx fallback", {
+            modelName,
+            budgetMs: COREML_READY_BUDGET_MS,
+            provisioning: !!this._coremlProvisioning,
+            lastError: this._coremlLastError || undefined,
+          });
+          const error = new Error(
+            this._coremlProvisioning
+              ? "Speech model is still being prepared"
+              : `Speech model failed to start: ${this._coremlLastError || "unknown error"}`
+          );
+          error.code = "PARAKEET_WARMING_UP";
+          if (!this._coremlProvisioning) error.startupError = this._coremlLastError || "unknown error";
+          throw error;
+        }
       }
     }
 
@@ -292,6 +338,7 @@ class ParakeetServerManager {
       return { text: texts.join(" "), elapsed: totalElapsed, language };
     } finally {
       this._cleanupFiles(filesToCleanup);
+      if (!coreml && this.isCoreml()) this._scheduleOnnxIdleStop();
     }
   }
 
@@ -342,6 +389,8 @@ class ParakeetServerManager {
   /// Stops both backends: switching engines at runtime must not leave the
   /// previous one holding its model in memory.
   async stopServer() {
+    if (this._onnxIdleTimer) clearTimeout(this._onnxIdleTimer);
+    this._onnxIdleTimer = null;
     await Promise.all([this.wsServer.stop(), this.coremlServer.stop()]);
   }
 

@@ -46,10 +46,10 @@
 }
 
 :root {
-  /* Typography */
+  /* Typography: the macOS system font. No web font is fetched at launch, so
+     first paint never waits on the network. */
   --font-family-sans:
-    "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
-    sans-serif;
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
 
   /* Opacities */
   --opacity-subtle: 0.1;

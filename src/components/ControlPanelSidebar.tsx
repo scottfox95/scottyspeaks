@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "./lib/utils";
+import { startGatedPolling } from "../utils/pollingGate.mjs";
 
 export type ControlPanelView =
   | "home"
@@ -53,11 +54,10 @@ export default function ControlPanelSidebar({
         })
         .catch(() => {});
     };
-    refresh();
-    const timer = setInterval(refresh, 1500);
+    const stop = startGatedPolling(refresh, 1500, { whenUnfocused: true });
     return () => {
       mounted = false;
-      clearInterval(timer);
+      stop();
     };
   }, []);
 

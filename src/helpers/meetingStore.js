@@ -5,14 +5,37 @@ const { withFolderLabels } = require("./folderLabels");
 const { speakerLabels } = require("../utils/meetingSpeakers.mjs");
 const ID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const hash = (value) => crypto.createHash("sha256").update(value).digest("hex");
+// Compact, and flushed to disk before the rename, so power loss leaves either
+// the old file or the new one, never a zero-length one. A call's session.json
+// is rewritten after every transcribed chunk, so it is not pretty-printed.
 function atomicJson(file, value) {
   const temp = `${file}.${crypto.randomUUID()}.tmp`;
   try {
-    fs.writeFileSync(temp, JSON.stringify(value, null, 2), { mode: 0o600, flag: "wx" });
+    const fd = fs.openSync(temp, "wx", 0o600);
+    try {
+      fs.writeFileSync(fd, JSON.stringify(value));
+      fs.fsyncSync(fd);
+    } finally {
+      fs.closeSync(fd);
+    }
     fs.renameSync(temp, file);
   } finally {
     if (fs.existsSync(temp)) fs.unlinkSync(temp);
   }
+}
+const DEFAULT_CONFIG = {
+  provider: "local",
+  localEngine: "nvidia",
+  localModel: "parakeet-tdt-0.6b-v3",
+};
+// Scratch files a job leaves behind if the app crashes or quits mid-job:
+// transcription work directories, trim outputs and playback mixdowns.
+const STALE_WORK = /^(?:work-[a-f0-9-]{36}|trim-[a-f0-9-]{36}\.[a-z0-9]+|playback-[a-f0-9-]{36}\.tmp\.mp3)$/;
+const STALE_WORK_AGE_MS = 3 * 3600 * 1000;
+function warn(message, meta) {
+  try {
+    require("./debugLogger").warn(message, meta);
+  } catch {}
 }
 function timestamp(seconds) {
   const s = Math.max(0, Math.floor(seconds || 0));
@@ -66,13 +89,7 @@ class MeetingStore {
     this.root = fs.realpathSync(root);
     root = this.root;
     this.indexPath = path.join(root, "index.json");
-    this.index = fs.existsSync(this.indexPath)
-      ? JSON.parse(fs.readFileSync(this.indexPath, "utf8"))
-      : {
-          folders: [],
-          config: { provider: "local", localEngine: "nvidia", localModel: "parakeet-tdt-0.6b-v3" },
-          ids: [],
-        };
+    this.index = this.loadIndex();
     // A native child cannot be resumed after its owning app exited.
     for (const id of this.index.ids) {
       try {
@@ -80,6 +97,17 @@ class MeetingStore {
         const recovery = {};
         if (["recording", "transcribing", "queued"].includes(item.status))
           recovery.status = "interrupted";
+        // A take whose recorder never wrote its files is not recoverable audio.
+        if (item.status === "recording" && Array.isArray(item.audio)) {
+          const written = item.audio.filter((entry) => {
+            try {
+              return fs.statSync(path.join(this.directory(id), entry.file)).size > 0;
+            } catch {
+              return false;
+            }
+          });
+          if (written.length !== item.audio.length) recovery.audio = written;
+        }
         if (
           item.transcriptionCache?.split &&
           Object.keys(item.transcriptionCache.split).length > 0 &&
@@ -91,6 +119,81 @@ class MeetingStore {
         /* Keep other recoverable drafts accessible. */
       }
     }
+  }
+  // A missing index starts empty. An unreadable one (power loss can leave it
+  // zero-length) is moved aside and rebuilt from the call folders, so a bad
+  // index never stops the app launching. Pinned folders and call settings
+  // return to their defaults; the corrupt copy is kept for inspection.
+  loadIndex() {
+    if (!fs.existsSync(this.indexPath)) return { folders: [], config: { ...DEFAULT_CONFIG }, ids: [] };
+    try {
+      const index = JSON.parse(fs.readFileSync(this.indexPath, "utf8"));
+      if (!index || typeof index !== "object" || !Array.isArray(index.ids))
+        throw new Error("Index has no call list");
+      if (!Array.isArray(index.folders)) index.folders = [];
+      if (!index.config || typeof index.config !== "object") index.config = { ...DEFAULT_CONFIG };
+      return index;
+    } catch (error) {
+      const aside = `${this.indexPath}.corrupt-${Date.now()}`;
+      try {
+        fs.renameSync(this.indexPath, aside);
+      } catch {}
+      const ids = [];
+      for (const name of fs.readdirSync(this.root)) {
+        if (!ID.test(name)) continue;
+        try {
+          const item = JSON.parse(fs.readFileSync(path.join(this.root, name, "session.json"), "utf8"));
+          if (item?.id === name) ids.push({ id: name, createdAt: String(item.createdAt || "") });
+        } catch {}
+      }
+      ids.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      const index = { folders: [], config: { ...DEFAULT_CONFIG }, ids: ids.map((entry) => entry.id) };
+      warn("Call notes index was unreadable; rebuilt it from the call folders", {
+        error: error.message,
+        calls: index.ids.length,
+        movedTo: path.basename(aside),
+      });
+      atomicJson(this.indexPath, index);
+      return index;
+    }
+  }
+  // Removes scratch files older than `olderThanMs` that no running job owns.
+  // Run at launch, when no job from a previous run can still be alive.
+  cleanStaleWork({ olderThanMs = STALE_WORK_AGE_MS, busy = () => false, now = Date.now() } = {}) {
+    let removed = 0;
+    for (const id of this.index.ids) {
+      if (busy(id)) continue;
+      let directory;
+      try {
+        directory = this.directory(id);
+      } catch {
+        continue;
+      }
+      const candidates = [];
+      const scan = (folder) => {
+        let names = [];
+        try {
+          names = fs.readdirSync(folder);
+        } catch {
+          return;
+        }
+        for (const name of names) {
+          const full = path.join(folder, name);
+          if (STALE_WORK.test(name)) candidates.push(full);
+          else if (folder === directory && /^take-[a-f0-9-]{36}$/.test(name)) scan(full);
+        }
+      };
+      scan(directory);
+      for (const full of candidates)
+        try {
+          const stat = fs.lstatSync(full);
+          if (now - stat.mtimeMs < olderThanMs) continue;
+          fs.rmSync(full, { recursive: true, force: true });
+          removed++;
+        } catch {}
+    }
+    if (removed) warn("Removed stale call work files", { count: removed });
+    return removed;
   }
   directory(id) {
     if (typeof id !== "string" || !ID.test(id)) throw new Error("Invalid meeting ID");

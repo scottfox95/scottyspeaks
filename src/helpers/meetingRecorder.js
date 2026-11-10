@@ -9,6 +9,25 @@ const AUTO_STOP_WARNING_SECONDS = 30;
 // failure the person has to hear about.
 const HEALTH_CHECK_MS = 2000;
 const STALL_MS = 20000;
+// Calls are ~460 MB an hour. Starting needs room for a few hours; a running
+// call stops itself before the disk fills so its files can still be finalized.
+const MIN_FREE_TO_START = 2 * 1024 ** 3;
+const MIN_FREE_WHILE_RECORDING = 1024 ** 3;
+const DISK_CHECK_MS = 30000;
+
+function freeBytes(directory) {
+  const stats = fs.statfsSync(directory);
+  return stats.bavail * stats.bsize;
+}
+
+function nonEmptyFile(file) {
+  try {
+    const stat = fs.statSync(file);
+    return stat.isFile() && stat.size > 0;
+  } catch {
+    return false;
+  }
+}
 
 function captureBytes(directory) {
   let total = 0;
@@ -35,6 +54,8 @@ class MeetingRecorder {
     this.healthCheckMs = options.healthCheckMs || HEALTH_CHECK_MS;
     this.stallMs = options.stallMs || STALL_MS;
     this.now = options.now || Date.now;
+    this.freeBytes = options.freeBytes || freeBytes;
+    this.diskCheckMs = options.diskCheckMs || DISK_CHECK_MS;
   }
   status() {
     const active = this.active;
@@ -77,10 +98,13 @@ class MeetingRecorder {
         "Recovered or imported audio can be transcribed. Start a new call to record more without overlapping its timestamps."
       );
     }
+    if (this.freeBytes(this.store.directory(id)) < MIN_FREE_TO_START)
+      throw Object.assign(new Error("Less than 2 GB of disk space is free"), { code: "disk" });
     const take = `take-${crypto.randomUUID()}`;
     const directory = path.join(this.store.directory(id), take);
     fs.mkdirSync(directory, { mode: 0o700 });
     const offset = item.recordedDuration || 0;
+    const isTakeFile = (entry) => entry.file?.startsWith(`${take}/`);
     const audio = [
       ...(item.audio || []),
       ...["microphone", "system"].map((source) => ({
@@ -135,27 +159,51 @@ class MeetingRecorder {
       clearTimeout(active.stopTimer);
       clearTimeout(active.limitTimer);
       clearInterval(active.healthTimer);
-      const error = active.error || (!settled ? "Call recording stopped before it started" : null);
-      if (!settled) {
+      clearInterval(active.diskTimer);
+      const started = settled;
+      const error = active.error || (!started ? "Call recording stopped before it started" : null);
+      if (!started) {
         settled = true;
-        rejectStart(new Error(error));
+        rejectStart(Object.assign(new Error(error), active.code ? { code: active.code } : {}));
       }
       try {
-        this.store.update(id, {
-          status: error ? "interrupted" : "recorded",
-          recordedDuration:
-            offset + (active.duration || Math.max(0, (Date.now() - active.startedAt) / 1000)),
-          lastError: error,
-          lastErrorCode: null,
-          lastErrorStatus: null,
-          autoStopped: !error && active.autoStopped,
-          ...(active.autoStopped ? { autoStopSeconds: active.autoStopSeconds } : {}),
-        });
+        const current = this.store.get(id).audio || [];
+        if (!started) {
+          // The recorder never confirmed capture, so this take holds no
+          // recording. Unregister it and put the call back as it was, so
+          // playback, export, trim and later takes are unaffected.
+          fs.rmSync(directory, { recursive: true, force: true });
+          this.store.update(id, {
+            status: item.status,
+            audio: current.filter((entry) => !isTakeFile(entry)),
+            needsTranscription: item.needsTranscription,
+            lastError: error,
+            lastErrorCode: null,
+            lastErrorStatus: null,
+          });
+        } else {
+          this.store.update(id, {
+            status: error ? "interrupted" : "recorded",
+            // A track the recorder never wrote (for example no call audio) is
+            // not registered.
+            audio: current.filter(
+              (entry) =>
+                !isTakeFile(entry) || nonEmptyFile(path.join(directory, path.basename(entry.file)))
+            ),
+            recordedDuration:
+              offset + (active.duration || Math.max(0, (Date.now() - active.startedAt) / 1000)),
+            lastError: error,
+            lastErrorCode: null,
+            lastErrorStatus: null,
+            autoStopped: !error && active.autoStopped,
+            ...(active.autoStopped ? { autoStopSeconds: active.autoStopSeconds } : {}),
+          });
+        }
       } finally {
         if (active.speechToken) this.speech.endRecording(active.speechToken, "native-call");
         if (this.active === active) this.active = null;
         resolveDone(this.store.get(id));
-        this.alertForFinish(active, error, settled);
+        this.alertForFinish(active, error, started);
       }
     };
     try {
@@ -219,6 +267,16 @@ class MeetingRecorder {
         },
         6 * 3600 * 1000
       );
+      active.diskTimer = setInterval(() => {
+        try {
+          if (this.active !== active || active.stopping) return;
+          if (this.freeBytes(directory) < MIN_FREE_WHILE_RECORDING) {
+            active.stopReason ||= "disk";
+            this.stop(id).catch(() => {});
+          }
+        } catch {}
+      }, this.diskCheckMs);
+      active.diskTimer.unref?.();
     } catch (error) {
       active.error = error.message;
       finish();
@@ -233,6 +291,7 @@ class MeetingRecorder {
     if (error) return this.onAlert({ ...base, reason: "failed", message: error });
     if (active.autoStopped)
       return this.onAlert({ ...base, reason: "autoStopped", seconds: active.autoStopSeconds });
+    if (active.stopReason === "disk") return this.onAlert({ ...base, reason: "disk" });
     if (active.stopReason === "limit") return this.onAlert({ ...base, reason: "limit" });
   }
   // Polls the capture files; "Recording" is shown only once they grow, and a
@@ -322,4 +381,10 @@ class MeetingRecorder {
     return active.done;
   }
 }
-module.exports = { MeetingRecorder, AUTO_STOP_WARNING_SECONDS, captureBytes };
+module.exports = {
+  MeetingRecorder,
+  AUTO_STOP_WARNING_SECONDS,
+  captureBytes,
+  MIN_FREE_TO_START,
+  MIN_FREE_WHILE_RECORDING,
+};

@@ -1,5 +1,6 @@
 const path = require("path");
 const { ScreenRecorder } = require("./screenRecorder");
+const { guardQuit, waitUntil } = require("./quitGuard");
 
 const SCREEN_PRIVACY_URL =
   "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture";
@@ -77,14 +78,20 @@ function registerScreenRecordingHandlers({
       }
     });
 
-  // Quitting mid-recording finalizes the file first.
-  let quitting = false;
-  app.on("before-quit", (event) => {
-    if (recorder.status().recording && !quitting) {
-      event.preventDefault();
-      quitting = true;
-      recorder.stop().finally(() => app.quit());
-    }
+  // Quitting mid-recording, or during the mixdown after a stop, finalizes the
+  // file first.
+  guardQuit(app, {
+    busy: () => {
+      const status = recorder.status();
+      return status.recording || status.finalizing;
+    },
+    drain: async () => {
+      if (recorder.status().recording) await recorder.stop({ requestedBy: "user" }).catch(() => {});
+      await waitUntil(() => {
+        const status = recorder.status();
+        return status.recording || status.finalizing;
+      });
+    },
   });
   return { recorder };
 }

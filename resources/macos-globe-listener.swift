@@ -2,6 +2,29 @@ import Cocoa
 import Foundation
 import Darwin
 
+// `--wait-release <mask>`: poll the session's modifier flags until none of the
+// bits in <mask> (CGEventFlags, decimal or 0x-hex) are held, print RELEASED and
+// exit. Compound push-to-talk uses this to detect key release. Reading flag
+// state needs no event tap and no permission, so it also works when the
+// listener itself can't run. (Replaces a python3 ctypes poller, which on a Mac
+// without Command Line Tools is a shim that prompts to install them.)
+let cliArgs = CommandLine.arguments
+if let flagIndex = cliArgs.firstIndex(of: "--wait-release") {
+    let raw = flagIndex + 1 < cliArgs.count ? cliArgs[flagIndex + 1] : ""
+    let parsed = raw.lowercased().hasPrefix("0x") ? UInt64(raw.dropFirst(2), radix: 16) : UInt64(raw)
+    guard let releaseMask = parsed, releaseMask != 0 else {
+        FileHandle.standardError.write("--wait-release needs a non-zero modifier mask\n".data(using: .utf8)!)
+        exit(2)
+    }
+    // Give the initial key press a moment to register, as the old poller did.
+    usleep(200_000)
+    while CGEventSource.flagsState(.combinedSessionState).rawValue & releaseMask != 0 {
+        usleep(80_000)
+    }
+    FileHandle.standardOutput.write("RELEASED\n".data(using: .utf8)!)
+    exit(0)
+}
+
 let mask = CGEventMask(
     (1 << CGEventType.flagsChanged.rawValue) |
     (1 << CGEventType.otherMouseDown.rawValue) |

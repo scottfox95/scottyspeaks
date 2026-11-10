@@ -6,6 +6,9 @@ import { playStartCue, playStopCue } from "../utils/dictationCues";
 import { getSettings } from "../stores/settingsStore";
 import { getRecordingErrorTitle } from "../utils/recordingErrors";
 
+const FAILED_LABEL_MS = 4000;
+const LEVEL_HISTORY = 28; // ~2.8 s of meter at 100 ms per sample
+
 export const useAudioRecording = (toast, options = {}) => {
   const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
@@ -14,11 +17,44 @@ export const useAudioRecording = (toast, options = {}) => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [partialTranscript, setPartialTranscript] = useState("");
+  // Overlay v2 (destination card): what the card shows besides the stage.
+  const [levels, setLevels] = useState(() => new Array(LEVEL_HISTORY).fill(0));
+  const [targetApp, setTargetApp] = useState("");
+  const [startedAt, setStartedAt] = useState(null);
+  const [outcome, setOutcome] = useState(null);
   const audioManagerRef = useRef(null);
   const startLockRef = useRef(false);
   const stopLockRef = useRef(false);
   const commandModeRef = useRef(false);
-  const { onToggle } = options;
+  const { onToggle, card = false } = options;
+  // In card mode dictation outcomes (pasted, on clipboard, failed) belong to
+  // the card, not to toasts.
+  const cardRef = useRef(card);
+  cardRef.current = card;
+  const targetAppRef = useRef("");
+  const pipelineStageRef = useRef("idle");
+  pipelineStageRef.current = pipelineStage;
+  // The dictation engine must live for the whole window: tearing it down
+  // because `t` (language load), `toast` or `onToggle` changed identity can
+  // drop a hotkey press that arrives during the swap. Read them through refs.
+  const tRef = useRef(t);
+  const toastRef = useRef(toast);
+  const onToggleRef = useRef(onToggle);
+  useEffect(() => {
+    tRef.current = t;
+    toastRef.current = toast;
+    onToggleRef.current = onToggle;
+  });
+
+  // "Failed" under the idle button is a notice, not a state: clear it after a
+  // few seconds (the next dictation also replaces it).
+  useEffect(() => {
+    if (pipelineStage !== "failed") return;
+    const timer = setTimeout(() => {
+      setPipelineStage((current) => (current === "failed" ? "idle" : current));
+    }, FAILED_LABEL_MS);
+    return () => clearTimeout(timer);
+  }, [pipelineStage]);
 
   const performStartRecording = useCallback(async () => {
     if (startLockRef.current) return false;
@@ -79,10 +115,28 @@ export const useAudioRecording = (toast, options = {}) => {
   }, []);
 
   useEffect(() => {
+    const t = (...args) => tRef.current(...args);
+    const toast = (...args) => toastRef.current(...args);
+    const onToggle = () => onToggleRef.current?.();
     audioManagerRef.current = new AudioManager();
 
     audioManagerRef.current.setCallbacks({
+      onLevel: (level) => {
+        setLevels((previous) => [...previous.slice(1), level]);
+      },
+      onTarget: ({ appName }) => {
+        targetAppRef.current = appName || "";
+        setTargetApp(appName || "");
+      },
       onStateChange: ({ isRecording, isProcessing, isStreaming, pipelineStage }) => {
+        if (isRecording) {
+          // A new take: start the timer, clear the last outcome and meter.
+          setStartedAt((previous) => previous ?? Date.now());
+          setOutcome(null);
+        } else if (!isProcessing) {
+          setStartedAt(null);
+          setLevels(new Array(LEVEL_HISTORY).fill(0));
+        }
         setIsRecording(isRecording);
         setIsProcessing(isProcessing);
         setPipelineStage((previous) => pipelineStage || (isRecording ? "recording" : isProcessing ? "transcribing" : previous === "failed" ? "failed" : "idle"));
@@ -100,6 +154,14 @@ export const useAudioRecording = (toast, options = {}) => {
         // Say which gate fired and where, so a refusal is never a mystery.
         const reasonKey = `recordingTarget.reasons.${error.reason || "unknown"}`;
         const reasonText = t(reasonKey) === reasonKey ? t("recordingTarget.reasons.unknown") : t(reasonKey);
+        if (cardRef.current && error.code !== "POLISH_UNAVAILABLE") {
+          setOutcome(
+            error.code === "PASTE_FAILED"
+              ? { kind: error.onClipboard ? "clipboard" : "manual", app: error.appName || targetAppRef.current, reason: reasonText }
+              : { kind: "failed", title, description: error.description || "" }
+          );
+          return;
+        }
         const pasteDescription =
           error.onClipboard && error.appName
             ? t("recordingTarget.clipboardDescriptionApp", { app: error.appName, reason: reasonText })
@@ -169,6 +231,9 @@ export const useAudioRecording = (toast, options = {}) => {
                 const saved = await manager.saveTranscription(result.evidenceFinalText, result.rawText);
                 result.historyId = saved?.transcription?.id;
                 if (!saved?.success) result.evidenceError = "History could not be saved";
+                // A failed safePaste has already shown its own paste-failure
+                // toast; a second "Text ready to copy" would only repeat it.
+                if (res.usedSelection && !replaced) return;
                 toast({
                   title: replaced ? `✨ ${transcribedText}` : t("recordingTarget.manualTitle"),
                   description: replaced
@@ -254,6 +319,12 @@ export const useAudioRecording = (toast, options = {}) => {
 
           result.evidenceFinalText = pasteResult?.text ?? finalText;
           if (pasteResult === false || pasteResult?.success === false) result.evidenceError = "Result retained for manual copy; original target could not be verified";
+          else if (cardRef.current && !cancelled())
+            setOutcome({
+              kind: "pasted",
+              app: pasteResult?.appName || targetAppRef.current,
+              words: (pasteResult?.text ?? finalText).split(/\s+/).filter(Boolean).length,
+            });
           if (cancelled()) return;
           const saved = await manager.saveTranscription(result.evidenceFinalText, result.rawText);
           result.historyId = saved?.transcription?.id;
@@ -350,6 +421,14 @@ export const useAudioRecording = (toast, options = {}) => {
     });
 
     const handleNoAudioDetected = () => {
+      if (cardRef.current) {
+        setOutcome({
+          kind: "failed",
+          title: t("hooks.audioRecording.noAudio.title"),
+          description: t("hooks.audioRecording.noAudio.description"),
+        });
+        return;
+      }
       toast({
         title: t("hooks.audioRecording.noAudio.title"),
         description: t("hooks.audioRecording.noAudio.description"),
@@ -370,7 +449,7 @@ export const useAudioRecording = (toast, options = {}) => {
         audioManagerRef.current.cleanup();
       }
     };
-  }, [toast, onToggle, performStartRecording, performStopRecording, t]);
+  }, [performStartRecording, performStopRecording]);
 
   const startRecording = async () => {
     return performStartRecording();
@@ -383,20 +462,28 @@ export const useAudioRecording = (toast, options = {}) => {
   const cancelRecording = async () => {
     if (audioManagerRef.current) {
       const state = audioManagerRef.current.getState();
-      if (state.isStreaming || audioManagerRef.current.streamingStartInProgress) {
-        return await audioManagerRef.current.cancelStreamingRecording();
-      }
-      return audioManagerRef.current.cancelRecording();
+      const cancelled =
+        state.isStreaming || audioManagerRef.current.streamingStartInProgress
+          ? await audioManagerRef.current.cancelStreamingRecording()
+          : audioManagerRef.current.cancelRecording();
+      if (cancelled) setOutcome({ kind: "cancelled" });
+      return cancelled;
     }
     return false;
   };
 
+  /** During polish this pastes the unrefined text (see D23); earlier it discards the take. */
   const cancelProcessing = () => {
     if (audioManagerRef.current) {
-      return audioManagerRef.current.cancelProcessing();
+      const refining = pipelineStageRef.current === "refining";
+      const cancelled = audioManagerRef.current.cancelProcessing();
+      if (cancelled && !refining) setOutcome({ kind: "cancelled" });
+      return cancelled;
     }
     return false;
   };
+
+  const dismissOutcome = useCallback(() => setOutcome(null), []);
 
   const toggleListening = async () => {
     const currentState = audioManagerRef.current?.getState();
@@ -424,5 +511,10 @@ export const useAudioRecording = (toast, options = {}) => {
     cancelRecording,
     cancelProcessing,
     toggleListening,
+    levels,
+    targetApp,
+    startedAt,
+    outcome,
+    dismissOutcome,
   };
 };
