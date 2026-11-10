@@ -259,7 +259,9 @@ export function useUpdater() {
     isInstallingRef.current = true;
 
     try {
-      await window.electronAPI.installUpdate();
+      const result = await window.electronAPI.installUpdate();
+      // Refused (for example while a recording is running): surface why.
+      if (result && result.success === false) throw new Error(result.message);
 
       // Set a timeout to reset state if app doesn't quit
       setTimeout(() => {

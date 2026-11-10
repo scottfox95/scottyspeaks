@@ -16,7 +16,8 @@
     },
     "openControlPanel": "打开控制面板",
     "quit": "退出 ScottySpeaks",
-    "tooltip": "ScottySpeaks - 语音听写"
+    "tooltip": "ScottySpeaks - 语音听写",
+    "recordingProblem": "⚠ 录制已停止。打开 SS2"
   },
   "menu": {
     "appLabel": "ScottySpeaks",
@@ -947,11 +948,7 @@
         "enterprise": {
           "name": "企业版",
           "price": "自定义",
-          "features": [
-            "云端同步",
-            "团队功能（即将推出）",
-            "SSO 与合规"
-          ],
+          "features": ["云端同步", "团队功能（即将推出）", "SSO 与合规"],
           "cta": "联系我们"
         },
         "currentPlan": "当前套餐"
@@ -1740,7 +1737,9 @@
       "label": "静音后自动停止",
       "off": "关闭",
       "minutes_other": "{{count}} 分钟",
-      "stopped_other": "已连续 {{count}} 分钟无人说话,录音已自动停止。"
+      "stopped_other": "已连续 {{count}} 分钟无人说话,录音已自动停止。",
+      "warning": "未检测到语音。{{seconds}} 秒后停止录制。",
+      "heldBy": "{{app}} 通话进行中，自动停止已暂停"
     },
     "trim": {
       "button": "裁剪",
@@ -1755,7 +1754,9 @@
       "apply": "裁剪到 {{time}}",
       "cancel": "取消",
       "warning": "最后 {{removed}} 的音频将被永久删除。需要重新转写该通话。"
-    }
+    },
+    "verifying": "正在启动，检查音频是否在保存…",
+    "stalled": "未在保存，请检查录制"
   },
   "replay": {
     "open": "回放与修正",
@@ -2022,6 +2023,76 @@
       "body": "macOS 阻止了 SS2 录制屏幕。请打开 系统设置 → 隐私与安全性 → 屏幕与系统录音，打开 SS2，然后重新打开 SS2。",
       "open": "打开系统设置",
       "retry": "重新检查"
+    },
+    "verifying": "正在启动，检查音频是否在保存…",
+    "stalled": "文件已停止增长，此录制可能未在保存。",
+    "fellBack": "所选窗口不可用，SS2 正在录制它所在的显示器。",
+    "windowNote": "如果开始录制时窗口已最小化、位于其他空间或已关闭，SS2 会改为录制其所在显示器。",
+    "demo": {
+      "start": "录制演示",
+      "help": "录制整个屏幕（含系统音频和麦克风），同时录制通话作为备份。一个失败时另一个继续。",
+      "screenFailed": "屏幕录制未能开始：{{error}}",
+      "callFailed": "备份通话录制未能开始：{{error}}",
+      "callBackup": "备份通话录制",
+      "stopCall": "停止通话录制"
+    }
+  },
+  "recordingAlerts": {
+    "dismiss": "关闭",
+    "keepRecording": "继续录制",
+    "autoStopWarning": {
+      "title": "通话录制即将停止",
+      "body": "未检测到语音。录制将在 {{seconds}} 秒后停止。打开 SS2 可继续录制。"
+    },
+    "autoStopped": {
+      "title": "通话录制已停止",
+      "body": "SS2 已 {{minutes}} 分钟未听到语音，已停止录制。音频已保存。"
+    },
+    "stalledCall": {
+      "title": "通话录制未在保存",
+      "body": "录制文件已停止增长。请立即检查 SS2，可能需要重新开始录制。"
+    },
+    "stalledScreen": {
+      "title": "屏幕录制未在保存",
+      "body": "录制文件已停止增长。请立即检查 SS2，可能需要重新开始录制。"
+    },
+    "fellBack": {
+      "title": "改为录制整个屏幕",
+      "body": "所选窗口不可用，SS2 正在录制它所在的显示器。"
+    },
+    "limit": {
+      "title": "通话录制已停止",
+      "body": "录制已达 6 小时上限。音频已保存。"
+    },
+    "disk": {
+      "title": "屏幕录制已停止",
+      "body": "磁盘剩余空间不足 1 GB。录制已保存。"
+    },
+    "startFailedCall": {
+      "title": "通话录制未能开始",
+      "body": "{{message}}"
+    },
+    "startFailedScreen": {
+      "title": "屏幕录制未能开始",
+      "body": "{{message}}"
+    },
+    "failedCall": {
+      "title": "通话录制意外停止",
+      "body": "{{message}}"
+    },
+    "failedScreen": {
+      "title": "屏幕录制意外停止",
+      "body": "{{message}}"
+    }
+  },
+  "updaterNotice": {
+    "updated": {
+      "title": "SS2 已更新到 {{version}}",
+      "body": "之前的版本：{{previous}}"
+    },
+    "ready": {
+      "title": "SS2 {{version}} 已就绪",
+      "body": "将在下次退出 SS2 时安装，也可在设置中立即安装。"
     }
   }
 }

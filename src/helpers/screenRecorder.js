@@ -7,6 +7,10 @@ const { spawn, execFile } = require("child_process");
 const MIN_FREE_TO_START = 2 * 1024 ** 3;
 const MIN_FREE_WHILE_RECORDING = 1024 ** 3;
 const DISK_CHECK_MS = 30000;
+// The .mov gains a fragment every 5 s while anything is captured. "Recording"
+// is shown only once it grows, and a stall is raised as a failure.
+const HEALTH_CHECK_MS = 2000;
+const STALL_MS = 20000;
 const VIDEO_EXTENSIONS = new Set([".mp4", ".mov"]);
 
 function ffmpegPath() {
@@ -73,6 +77,12 @@ class ScreenRecorder {
           )
         ));
     this.keepAwake = options.keepAwake || (() => () => {});
+    // Receives { source: "screen", reason, message } for every stop or failure
+    // the person did not ask for, and when a window recording fell back.
+    this.onAlert = options.onAlert || (() => {});
+    this.healthCheckMs = options.healthCheckMs || HEALTH_CHECK_MS;
+    this.stallMs = options.stallMs || STALL_MS;
+    this.now = options.now || Date.now;
     this.active = null;
     this.finalizing = new Set();
     this.lastResult = null;
@@ -89,6 +99,9 @@ class ScreenRecorder {
           startedAt: active.startedAt,
           name: active.name,
           bytes: this.size(active.file),
+          // "verifying" until the file is seen growing, then "ok"; "stalled" when it stops.
+          health: active.health,
+          fellBack: active.fellBack,
           finalizing: this.finalizing.size > 0,
           last: this.lastResult,
         }
@@ -121,7 +134,12 @@ class ScreenRecorder {
       });
     });
   }
-  async start({ source = { type: "display" }, systemAudio = true, microphone = true } = {}) {
+  async start({
+    source = { type: "display" },
+    systemAudio = true,
+    microphone = true,
+    fellBack = false,
+  } = {}) {
     if (this.active) throw new Error("A screen recording is already running");
     fs.mkdirSync(this.directory, { recursive: true });
     if (this.freeBytes(this.directory) < MIN_FREE_TO_START)
@@ -154,6 +172,10 @@ class ScreenRecorder {
       reason: null,
       duration: 0,
       hasVideo: true,
+      health: "verifying",
+      fellBack,
+      fallbackDisplay: null,
+      requestedBy: null,
     };
     this.active = active;
     const release = this.keepAwake();
@@ -176,11 +198,16 @@ class ScreenRecorder {
         if (event.event === "started" && !settled) {
           settled = true;
           clearTimeout(active.startTimer);
+          this.watchGrowth(active);
+          if (active.fellBack) this.onAlert({ source: "screen", reason: "fellBack" });
           resolveStart(this.status());
         }
         if (event.event === "error") {
           active.error = String(event.message || "Screen recording failed").slice(0, 500);
-          active.code = event.code === "permission" ? "permission" : "capture";
+          active.code = ["permission", "window-unavailable"].includes(event.code)
+            ? event.code
+            : "capture";
+          if (Number.isInteger(event.displayID)) active.fallbackDisplay = event.displayID;
         }
         if (event.event === "stopped") {
           if (Number.isFinite(event.duration)) active.duration = event.duration;
@@ -198,20 +225,39 @@ class ScreenRecorder {
       clearTimeout(active.startTimer);
       clearTimeout(active.stopTimer);
       clearInterval(active.diskTimer);
+      clearInterval(active.healthTimer);
       release();
       if (this.active === active) this.active = null;
       if (!settled) {
         settled = true;
-        rejectStart(
-          Object.assign(new Error(active.error || "Screen recording stopped before it started"), {
-            code: active.code,
-          })
-        );
         fs.rmSync(file, { force: true });
         resolveDone(null);
+        // The chosen window was off screen: record the display it was on instead.
+        if (active.code === "window-unavailable" && source.type === "window" && !active.stopping) {
+          const display = Number.isInteger(active.fallbackDisplay)
+            ? { type: "display", id: active.fallbackDisplay }
+            : { type: "display" };
+          this.start({ source: display, systemAudio, microphone, fellBack: true }).then(
+            resolveStart,
+            rejectStart
+          );
+          return;
+        }
+        const error = active.error || "Screen recording stopped before it started";
+        if (active.code !== "permission")
+          this.onAlert({ source: "screen", reason: "startFailed", message: error });
+        rejectStart(Object.assign(new Error(error), { code: active.code }));
         return;
       }
-      this.finish(active).then(resolveDone);
+      this.finish(active).then((result) => {
+        if (active.requestedBy !== "user")
+          this.onAlert({
+            source: "screen",
+            reason: active.reason === "disk" ? "disk" : "failed",
+            message: active.error || undefined,
+          });
+        resolveDone(result);
+      });
     });
     active.startTimer = setTimeout(() => {
       active.error ||= "Screen recording did not start. Check the Screen Recording permission.";
@@ -221,16 +267,40 @@ class ScreenRecorder {
       try {
         if (this.freeBytes(this.directory) < MIN_FREE_WHILE_RECORDING) {
           active.reason = "disk";
-          this.stop().catch(() => {});
+          this.stop({ requestedBy: "disk" }).catch(() => {});
         }
       } catch {}
     }, DISK_CHECK_MS);
     return started;
   }
-  async stop() {
+  // Polls the output file. Video-only recordings of a static screen write no
+  // fragments (idle frames are skipped), so they are not stall-checked.
+  watchGrowth(active) {
+    let bytes = this.size(active.file);
+    let grewAt = this.now();
+    active.healthTimer = setInterval(() => {
+      if (this.active !== active || active.stopping) return;
+      const next = this.size(active.file);
+      if (next > bytes) {
+        bytes = next;
+        grewAt = this.now();
+        active.health = "ok";
+      } else if (
+        active.audioTracks > 0 &&
+        this.now() - grewAt >= this.stallMs &&
+        active.health !== "stalled"
+      ) {
+        active.health = "stalled";
+        this.onAlert({ source: "screen", reason: "stalled" });
+      }
+    }, this.healthCheckMs);
+    active.healthTimer.unref?.();
+  }
+  async stop({ requestedBy = "user" } = {}) {
     const active = this.active;
     if (!active) throw new Error("No screen recording is running");
     if (!active.stopping) {
+      active.requestedBy ||= requestedBy;
       active.stopping = true;
       active.child.stdin.write("stop\n");
       active.stopTimer = setTimeout(() => active.child.kill("SIGKILL"), 60000);

@@ -12,6 +12,14 @@
  * validates update signatures in a way that's unproven with the local
  * self-signed identity.
  *
+ * Automatic: checks shortly after launch and every few hours, downloads a
+ * newer release in the background, and installs it when SS2 next quits
+ * (or right away from Settings). The first launch of a new version shows
+ * "Updated to x.y.z". The download must be signed by the same identity as
+ * the running app (its designated requirement pins the certificate), so a
+ * zip signed by anyone else is rejected. Set SS2_AUTO_UPDATE=0 to turn the
+ * automatic part off; manual checks keep working.
+ *
  * The public method names and renderer events (update-available,
  * update-download-progress, update-downloaded, update-error, …) are kept
  * so useUpdater.ts and the Settings UI work unchanged.
@@ -27,6 +35,15 @@ const execFileAsync = promisify(execFile);
 const REPO = "scottfox95/scottyspeaks";
 const LATEST_RELEASE_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
 const ZIP_ASSET_PATTERN = /^SS2-.*\.zip$/i;
+const STARTUP_CHECK_DELAY_MS = 15000;
+const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+// `codesign -d -r-` prints "designated => <requirement>" (on stdout or stderr
+// depending on the macOS version).
+function parseDesignatedRequirement(output) {
+  const match = String(output || "").match(/designated => (.+)/);
+  return match ? match[1].trim() : null;
+}
 
 function parseVersion(v) {
   return String(v || "")
@@ -302,6 +319,36 @@ class UpdateManager {
     } catch (err) {
       throw new Error(`Downloaded app failed signature check: ${err.stderr || err.message}`);
     }
+    // Any valid signature passes --verify; also require the running app's
+    // own signing identity so only Scott's builds can replace it.
+    const requirement = running ? await this.designatedRequirement(running) : null;
+    if (requirement && !(await this.satisfiesRequirement(appPath, requirement)))
+      throw new Error("Downloaded app is signed by a different identity than this SS2");
+  }
+
+  async satisfiesRequirement(appPath, requirement) {
+    try {
+      // "=" marks inline requirement text; without it codesign reads a file path.
+      await execFileAsync("/usr/bin/codesign", [
+        "--verify",
+        "--strict",
+        "-R",
+        `=${requirement}`,
+        appPath,
+      ]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async designatedRequirement(appPath) {
+    try {
+      const { stdout, stderr } = await execFileAsync("/usr/bin/codesign", ["-d", "-r-", appPath]);
+      return parseDesignatedRequirement(`${stdout}\n${stderr}`);
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -379,6 +426,12 @@ rm -f "$0"
     if (this.isInstalling) {
       return { success: false, message: "Update installation already in progress" };
     }
+    if (this.isRecording?.()) {
+      return {
+        success: false,
+        message: "Stop the call or screen recording first; the update installs when SS2 quits.",
+      };
+    }
 
     this.isInstalling = true;
     try {
@@ -427,20 +480,92 @@ rm -f "$0"
     return this.lastUpdateInfo;
   }
 
+  get autoUpdateEnabled() {
+    return process.env.SS2_AUTO_UPDATE !== "0";
+  }
+
+  t(key, options) {
+    return require("./helpers/i18nMain").i18nMain.t(key, options);
+  }
+
+  notify(title, body) {
+    try {
+      const { Notification } = require("electron");
+      if (Notification?.isSupported?.()) new Notification({ title, body }).show();
+    } catch {}
+  }
+
+  // "Updated to x.y.z" on the first launch of a new version.
+  announceIfUpdated() {
+    try {
+      const { app } = require("electron");
+      const file = path.join(app.getPath("userData"), "last-run-version.json");
+      const current = app.getVersion();
+      let previous = null;
+      try {
+        previous = JSON.parse(fs.readFileSync(file, "utf8")).version;
+      } catch {}
+      if (previous !== current) fs.writeFileSync(file, JSON.stringify({ version: current }));
+      if (previous && isNewer(current, previous)) {
+        console.log(`✅ Updated from ${previous} to ${current}`);
+        this.notify(
+          this.t("updaterNotice.updated.title", { version: current }),
+          this.t("updaterNotice.updated.body", { previous })
+        );
+        this.justUpdatedFrom = previous;
+      }
+    } catch (err) {
+      console.warn("Could not record the running version:", err.message || err);
+    }
+  }
+
+  // Quiet check: finds and downloads an update without showing errors; the
+  // will-quit hook installs it.
+  async backgroundCheck() {
+    if (this.isDownloading || this.isInstalling) return;
+    // macOS clears old temp files; a staged copy that vanished is re-downloaded.
+    if (this.updateDownloaded && !(this.stagedAppPath && fs.existsSync(this.stagedAppPath)))
+      this.discardStaged();
+    this.isStartupCheck = true;
+    try {
+      const result = await this.checkForUpdates();
+      if (!result?.updateAvailable || !this.autoUpdateEnabled || this.updateDownloaded) return;
+      const version = this.release.version;
+      await new Promise((resolve, reject) => {
+        this.isDownloading = true;
+        this.performDownload().then(resolve, (err) => {
+          this.isDownloading = false;
+          this.discardStaged();
+          reject(err);
+        });
+      });
+      if (this.announcedReady !== version) {
+        this.announcedReady = version;
+        this.notify(
+          this.t("updaterNotice.ready.title", { version }),
+          this.t("updaterNotice.ready.body")
+        );
+      }
+    } catch (err) {
+      console.warn("Background update check failed:", err.message || err);
+    } finally {
+      this.isStartupCheck = false;
+    }
+  }
+
   checkForUpdatesOnStartup() {
     if (this.isDev) return;
+    this.announceIfUpdated();
     setTimeout(() => {
       console.log("🔄 Checking for updates on startup...");
-      this.isStartupCheck = true;
-      this.checkForUpdates()
-        .catch((err) => console.warn("Startup update check failed:", err.message || err))
-        .finally(() => {
-          this.isStartupCheck = false;
-        });
-    }, 3000);
+      void this.backgroundCheck();
+    }, STARTUP_CHECK_DELAY_MS);
+    this.checkTimer = setInterval(() => void this.backgroundCheck(), CHECK_INTERVAL_MS);
+    this.checkTimer.unref?.();
   }
 
   cleanup() {
+    clearInterval(this.checkTimer);
     // Keep a downloaded update staged: the will-quit hook installs it.
     if (!this.updateDownloaded && this.stagingDir && !this.isDownloading) {
       this.discardStaged();
@@ -448,6 +573,6 @@ rm -f "$0"
   }
 }
 
-UpdateManager._internal = { isNewer, parseVersion };
+UpdateManager._internal = { isNewer, parseVersion, parseDesignatedRequirement };
 
 module.exports = UpdateManager;

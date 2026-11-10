@@ -39,7 +39,7 @@ export default function ControlPanelSidebar({
   const [screenRecording, setScreenRecording] = useState(false);
   useEffect(() => {
     let mounted = true;
-    const refresh = () =>
+    const refresh = () => {
       window.electronAPI.meetings
         ?.captureStatus()
         .then((result) => {
@@ -52,6 +52,7 @@ export default function ControlPanelSidebar({
           if (mounted && result.success) setScreenRecording(result.data.recording);
         })
         .catch(() => {});
+    };
     refresh();
     const timer = setInterval(refresh, 1500);
     return () => {

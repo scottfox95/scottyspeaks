@@ -2,6 +2,7 @@ import { ReadAloud } from "../speech/ReadAloud";
 import { CallAgentPanel } from "./CallAgentPanel";
 import { MeetingAudioPlayer, type MeetingAudioHandle } from "./MeetingAudioPlayer";
 import { TrimRecording } from "./TrimRecording";
+import RecordingAlertBanner from "../RecordingAlertBanner";
 import { editable, changedFields, rebaseDraft } from "./meetingDraft";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { describeSpeakers, speakerLabels } from "../../utils/meetingSpeakers.mjs";
@@ -272,7 +273,10 @@ export default function MeetingsView() {
               setCapture((previous) =>
                 previous.id === value.id &&
                 previous.startedAt === value.startedAt &&
-                previous.stopping === value.stopping
+                previous.stopping === value.stopping &&
+                previous.health === value.health &&
+                previous.heldBy === value.heldBy &&
+                previous.autoStopWarning?.secondsLeft === value.autoStopWarning?.secondsLeft
                   ? previous
                   : value
               );
@@ -360,6 +364,14 @@ export default function MeetingsView() {
     const status = await unwrap(api.startCapture({ id: next.id }));
     captureGeneration.current++;
     setCapture(status);
+  };
+  const keepRecording = async () => {
+    if (!capture.id) return;
+    try {
+      setCapture(await unwrap(api.keepRecording({ id: capture.id })));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
   };
   const stopCapture = async () => {
     if (!capture.id || stoppingRef.current) return;
@@ -504,18 +516,48 @@ export default function MeetingsView() {
           </Button>
         </div>
       )}
+      <RecordingAlertBanner source="call" />
+      {recording && capture.autoStopWarning && (
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-3 border-b border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm md:px-6"
+        >
+          <span>
+            {t("meetings.autoStop.warning", { seconds: capture.autoStopWarning.secondsLeft })}
+          </span>
+          <Button size="sm" onClick={() => void keepRecording()}>
+            {t("recordingAlerts.keepRecording")}
+          </Button>
+        </div>
+      )}
       {recording && (
         <div
           role="status"
           className="flex items-center justify-between gap-3 border-b border-destructive/20 bg-destructive/5 px-4 py-3 text-sm md:px-6"
         >
           <span className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-destructive" />
+            <span
+              className={cn(
+                "size-2 rounded-full",
+                capture.health === "verifying"
+                  ? "animate-pulse bg-muted-foreground"
+                  : "bg-destructive"
+              )}
+            />
             <span>
-              {t("meetings.recording")}{" "}
+              {capture.health === "verifying"
+                ? t("meetings.verifying")
+                : capture.health === "stalled"
+                  ? t("meetings.stalled")
+                  : t("meetings.recording")}{" "}
               <span className="font-mono tabular-nums">
                 {clock((now - (capture.startedAt || now)) / 1000)}
               </span>
+              {capture.heldBy && (
+                <span className="ml-2 text-xs text-muted-foreground">
+                  {t("meetings.autoStop.heldBy", { app: capture.heldBy })}
+                </span>
+              )}
             </span>
           </span>
           <Button
@@ -560,7 +602,7 @@ export default function MeetingsView() {
                 }
               >
                 <option value={0}>{t("meetings.autoStop.off")}</option>
-                {[1, 2, 5, 10].map((minutes) => (
+                {[1, 2, 5, 10, 15, 30].map((minutes) => (
                   <option key={minutes} value={minutes}>
                     {t("meetings.autoStop.minutes", { count: minutes })}
                   </option>

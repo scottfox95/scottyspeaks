@@ -11,6 +11,7 @@ function registerScreenRecordingHandlers({
   systemPreferences,
   powerSaveBlocker,
   windowManager,
+  recordingAlerts = null,
 }) {
   const directory = path.join(app.getPath("videos"), "SS2 Screen Recordings");
   const binary = app.isPackaged
@@ -24,6 +25,7 @@ function registerScreenRecordingHandlers({
       const id = powerSaveBlocker.start("prevent-app-suspension");
       return () => powerSaveBlocker.stop(id);
     },
+    onAlert: (alert) => recordingAlerts?.raise(alert),
   });
   const permission = () =>
     process.platform === "darwin" ? systemPreferences.getMediaAccessStatus("screen") : "granted";
@@ -43,7 +45,7 @@ function registerScreenRecordingHandlers({
         microphone: microphone === true,
       });
     },
-    stop: () => recorder.stop(),
+    stop: () => recorder.stop({ requestedBy: "user" }),
     open: async ({ name }) => {
       const error = await shell.openPath(recorder.resolve(name));
       if (error) throw new Error(error);

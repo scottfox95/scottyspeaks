@@ -66,6 +66,8 @@ let whisperManager = null;
 let parakeetManager = null;
 let trayManager = null;
 let updateManager = null;
+// True while a call or screen recording is running (set once handlers exist).
+let recordingActive = () => false;
 let globeKeyManager = null;
 let textEditMonitor = null;
 let pedalManager = null;
@@ -129,6 +131,12 @@ function initializeCoreManagers() {
   const localSpeech = speechHandlers.createLocalSpeech(app);
   speechHandlers.registerSpeechHandlers({ app, ipcMain, windowManager, manager: localSpeech });
 
+  const recordingAlerts = require("./src/helpers/recordingAlertHandlers").registerRecordingAlertHandlers({
+    ipcMain,
+    Notification: require("electron").Notification,
+    windowManager,
+    getTrayManager: () => trayManager,
+  });
   const audioEvidence = new (require("./src/helpers/audioEvidence").AudioEvidence)();
   protocol.handle("ss2-audio", (request) => audioEvidence.handle(request));
   const { meetings, captures } = require("./src/helpers/transcriptionHandlers")
@@ -147,15 +155,18 @@ function initializeCoreManagers() {
       audioEvidence,
       localSpeech,
       callDiarizer: new (require("./src/helpers/callDiarizer").CallDiarizer)(),
+      recordingAlerts,
     });
-  require("./src/helpers/screenRecordingHandlers").registerScreenRecordingHandlers({
+  const screen = require("./src/helpers/screenRecordingHandlers").registerScreenRecordingHandlers({
     app,
     ipcMain,
     shell: require("electron").shell,
     systemPreferences,
     powerSaveBlocker: require("electron").powerSaveBlocker,
     windowManager,
+    recordingAlerts,
   });
+  recordingActive = () => !!meetings.recorder.status().id || screen.recorder.status().recording;
   require("./src/helpers/callAgentHandlers").registerCallAgentHandlers({
     app, ipcMain, windowManager, meetingStore: meetings.store, localSpeech,
   });
@@ -386,6 +397,7 @@ async function startApp() {
   await trayManager.createTray();
 
   updateManager.setWindows(windowManager.mainWindow, windowManager.controlPanelWindow);
+  updateManager.isRecording = () => recordingActive();
   updateManager.checkForUpdatesOnStartup();
 
   // macOS Globe/Fn key handling

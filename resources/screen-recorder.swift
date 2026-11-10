@@ -134,8 +134,25 @@ final class Recorder: NSObject, SCStreamDelegate, SCStreamOutput, @unchecked Sen
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
         let filter: SCContentFilter
         if let windowID {
-            guard let window = content.windows.first(where: { $0.windowID == windowID }) else {
-                throw NSError(domain: "ScreenRecorder", code: 1, userInfo: [NSLocalizedDescriptionKey: "That window is no longer available"])
+            // SCContentFilter(desktopIndependentWindow:) aborts inside SkyLight when the
+            // window's frame meets no display (minimized, on another Space, closed or
+            // replaced since it was listed; Teams does this when sharing starts). That
+            // abort can't be caught, so the window must be checked first. On failure the
+            // app falls back to recording the display the window was on.
+            let window = content.windows.first(where: { $0.windowID == windowID })
+            let frame = window?.frame ?? .zero
+            func overlap(_ display: SCDisplay) -> CGFloat {
+                let shared = display.frame.intersection(frame)
+                return shared.isNull ? 0 : shared.width * shared.height
+            }
+            let onDisplay = content.displays.max(by: { overlap($0) < overlap($1) })
+            let visible = window?.isOnScreen == true && frame.width >= 1 && frame.height >= 1 &&
+                (onDisplay.map(overlap) ?? 0) > 0
+            guard let window, visible else {
+                var event: [String: Any] = ["event": "error", "code": "window-unavailable", "message": "That window isn't on screen"]
+                if let onDisplay, overlap(onDisplay) > 0 { event["displayID"] = Int(onDisplay.displayID) }
+                emit(event)
+                exit(3)
             }
             filter = SCContentFilter(desktopIndependentWindow: window)
         } else {

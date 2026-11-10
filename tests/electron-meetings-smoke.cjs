@@ -114,7 +114,14 @@ app.whenReady().then(async () => {
     let folderDialogParent = null;
     const exportedAudio = path.join(temp, "shared-call-audio.mp3");
     let localTranscriptions = 0;
+    const alerts = require("../src/helpers/recordingAlertHandlers").registerRecordingAlertHandlers({
+      ipcMain,
+      Notification: null,
+      windowManager: { controlPanelWindow: window },
+      getTrayManager: () => null,
+    });
     const service = registerMeetingHandlers({
+      recordingAlerts: alerts,
       app,
       ipcMain,
       safeStorage,
@@ -171,6 +178,17 @@ app.whenReady().then(async () => {
       () => js(`document.body.textContent.includes('A notebook for your conversations')`),
       "empty view"
     );
+    alerts.raise({ source: "call", reason: "autoStopped", seconds: 600 });
+    await waitFor(
+      () => js("document.body.textContent.includes('SS2 heard no speech for 10 minutes')"),
+      "persistent recording alert banner"
+    );
+    await js(`document.querySelector('[role=alert] button[aria-label="Dismiss"]').click()`);
+    await waitFor(
+      () => js("!document.body.textContent.includes('SS2 heard no speech')"),
+      "alert dismissed"
+    );
+    assert.equal(alerts.state().hasError, false);
     window.setSize(760, 560);
     await waitFor(() => js("innerWidth < 800"), "small window");
     assert.equal(
@@ -257,7 +275,8 @@ app.whenReady().then(async () => {
       "trim panel closed"
     );
     assert.equal(
-      fs.statSync(path.join(service.store.directory(imported.id), "call.wav")).size < 44 + 6 * 32000,
+      fs.statSync(path.join(service.store.directory(imported.id), "call.wav")).size <
+        44 + 6 * 32000,
       true
     );
     await click("Transcribe again");
@@ -444,6 +463,7 @@ app.whenReady().then(async () => {
         success: true,
         checks: [
           "real UI + preload + IPC",
+          "recording alert banner persists until dismissed",
           "autosave",
           "parented folder picker, cancel and pin from empty view",
           "small window visible Add folder and filing actions",

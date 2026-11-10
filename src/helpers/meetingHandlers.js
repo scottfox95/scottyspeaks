@@ -23,8 +23,12 @@ const {
 } = require("./meetingDiarization");
 const debugLogger = require("./debugLogger");
 const { analyzeFile, mergeSegments, trimSuggestions } = require("./speechActivity");
-const AUTO_STOP_MINUTES = [0, 1, 2, 5, 10];
-const DEFAULT_AUTO_STOP_MINUTES = 2;
+const { createMeetingActivity } = require("./meetingActivity");
+const AUTO_STOP_MINUTES = [0, 1, 2, 5, 10, 15, 30];
+// Was 2 until Nov 2026, when a talk-heavy demo was cut off at 11 minutes.
+// Configs still on the old default move to the new one once.
+const DEFAULT_AUTO_STOP_MINUTES = 10;
+const OLD_DEFAULT_AUTO_STOP_MINUTES = 2;
 const TRANSCRIPTION_CACHE_VERSION = 3;
 function isTransientCloudError(error) {
   const status = Number(error?.status);
@@ -51,13 +55,29 @@ function registerMeetingHandlers({
   localSpeech,
   cloudFetch,
   callDiarizer = null,
+  recordingAlerts = null,
+  meetingActive = createMeetingActivity(),
 }) {
   const root = path.join(app.getPath("userData"), "call-notes");
   const store = new MeetingStore(root);
   const binary = app.isPackaged
     ? path.join(process.resourcesPath, "bin", `meeting-recorder-${process.arch}`)
     : path.join(__dirname, "../../resources/bin", `meeting-recorder-${process.arch}`);
-  const recorder = new MeetingRecorder(store, { binary, localSpeech });
+  const recorder = new MeetingRecorder(store, {
+    binary,
+    localSpeech,
+    meetingActive,
+    onAlert: (alert) =>
+      alert.reason === "warningCleared"
+        ? recordingAlerts?.clearWarnings("call")
+        : recordingAlerts?.raise(alert),
+  });
+  if (!store.index.config?.autoStopDefaultMigrated) {
+    if (store.index.config?.autoStopMinutes === OLD_DEFAULT_AUTO_STOP_MINUTES)
+      store.index.config.autoStopMinutes = DEFAULT_AUTO_STOP_MINUTES;
+    store.index.config = { ...store.index.config, autoStopDefaultMigrated: true };
+    store.persistIndex();
+  }
   const keyPath = path.join(root, "openrouter-key.enc");
   let keyLoaded = false;
   let cachedKey = "";
@@ -128,7 +148,9 @@ function registerMeetingHandlers({
     if (!callDiarizer?.isAvailable()) return results;
     const attributed = [...results];
     for (const group of groups) {
-      const members = chunks.flatMap((chunk, index) => (chunk.group === group.index ? [index] : []));
+      const members = chunks.flatMap((chunk, index) =>
+        chunk.group === group.index ? [index] : []
+      );
       if (!members.every((index) => results[index].timed || !results[index].text)) continue;
       const words = members.flatMap((index) => results[index].words);
       if (!words.length) continue;
@@ -530,8 +552,13 @@ function registerMeetingHandlers({
         starting.delete(id);
       }
     },
-    stopCapture: ({ id }) => recorder.stop(id),
+    stopCapture: ({ id }) => recorder.stop(id, { requestedBy: "user" }),
     captureStatus: () => recorder.status(),
+    keepRecording: ({ id }) => {
+      const status = recorder.keepRecording(id);
+      recordingAlerts?.clearWarnings("call");
+      return status;
+    },
     playback: async ({ id, source = "all" }) => {
       if (recorder.status().id === id) throw new Error("Stop recording before playback");
       const original = store.get(id);
@@ -728,7 +755,7 @@ function registerMeetingHandlers({
     if (active.id && !quitting) {
       event.preventDefault();
       quitting = true;
-      recorder.stop(active.id).finally(() => app.quit());
+      recorder.stop(active.id, { requestedBy: "user" }).finally(() => app.quit());
     }
   });
   return { store, recorder, inferenceScheduler, readCloudKey: readKey };

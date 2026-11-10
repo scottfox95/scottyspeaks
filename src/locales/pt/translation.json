@@ -16,7 +16,8 @@
     },
     "openControlPanel": "Abrir painel de controle",
     "quit": "Sair do ScottySpeaks",
-    "tooltip": "ScottySpeaks - Ditado por voz"
+    "tooltip": "ScottySpeaks - Ditado por voz",
+    "recordingProblem": "⚠ Uma gravação parou. Abrir SS2"
   },
   "menu": {
     "appLabel": "ScottySpeaks",
@@ -1742,7 +1743,9 @@
       "minutes_one": "{{count}} minuto",
       "minutes_other": "{{count}} minutos",
       "stopped_one": "A gravação parou automaticamente após {{count}} minuto sem fala.",
-      "stopped_other": "A gravação parou automaticamente após {{count}} minutos sem fala."
+      "stopped_other": "A gravação parou automaticamente após {{count}} minutos sem fala.",
+      "warning": "Nenhuma fala detectada. A gravação para em {{seconds}} s.",
+      "heldBy": "Chamada do {{app}} em andamento, parada automática pausada"
     },
     "trim": {
       "button": "Cortar",
@@ -1757,7 +1760,9 @@
       "apply": "Cortar em {{time}}",
       "cancel": "Cancelar",
       "warning": "Os últimos {{removed}} de áudio serão excluídos permanentemente. A chamada precisará ser transcrita novamente."
-    }
+    },
+    "verifying": "Iniciando, verificando se o áudio está sendo salvo…",
+    "stalled": "Não está salvando. Verifique a gravação"
   },
   "replay": {
     "open": "Reproduzir e corrigir",
@@ -2024,6 +2029,76 @@
       "body": "O macOS impediu o SS2 de capturar a tela. Abra Ajustes do Sistema → Privacidade e Segurança → Gravação de Tela e Áudio do Sistema, ative o SS2 e reabra o SS2.",
       "open": "Abrir Ajustes do Sistema",
       "retry": "Verificar novamente"
+    },
+    "verifying": "Iniciando, verificando se o áudio está sendo salvo…",
+    "stalled": "O arquivo parou de crescer. Esta gravação pode não estar sendo salva.",
+    "fellBack": "A janela escolhida não estava disponível, então o SS2 está gravando a tela em que ela estava.",
+    "windowNote": "Se a janela estiver minimizada, em outro Espaço ou fechada ao iniciar, o SS2 grava a tela dela.",
+    "demo": {
+      "start": "Gravar demo",
+      "help": "Grava a tela inteira com áudio do sistema e microfone, mais uma gravação de chamada como backup. Se uma falhar, a outra continua.",
+      "screenFailed": "A gravação de tela não começou: {{error}}",
+      "callFailed": "A gravação de backup da chamada não começou: {{error}}",
+      "callBackup": "Gravação de chamada de backup",
+      "stopCall": "Parar gravação da chamada"
+    }
+  },
+  "recordingAlerts": {
+    "dismiss": "Dispensar",
+    "keepRecording": "Continuar gravando",
+    "autoStopWarning": {
+      "title": "A gravação da chamada vai parar em breve",
+      "body": "Nenhuma fala detectada. A gravação para em {{seconds}} segundos. Abra o SS2 para continuar gravando."
+    },
+    "autoStopped": {
+      "title": "Gravação da chamada parada",
+      "body": "O SS2 não ouviu fala por {{minutes}} minutos e parou a gravação. O áudio foi salvo."
+    },
+    "stalledCall": {
+      "title": "A gravação da chamada não está sendo salva",
+      "body": "O arquivo de gravação parou de crescer. Verifique o SS2 agora; talvez seja preciso iniciar uma nova gravação."
+    },
+    "stalledScreen": {
+      "title": "A gravação de tela não está sendo salva",
+      "body": "O arquivo de gravação parou de crescer. Verifique o SS2 agora; talvez seja preciso iniciar uma nova gravação."
+    },
+    "fellBack": {
+      "title": "Gravando a tela inteira",
+      "body": "A janela escolhida não estava disponível, então o SS2 está gravando a tela em que ela estava."
+    },
+    "limit": {
+      "title": "Gravação da chamada parada",
+      "body": "A gravação atingiu o limite de 6 horas. O áudio foi salvo."
+    },
+    "disk": {
+      "title": "Gravação de tela parada",
+      "body": "Resta menos de 1 GB de espaço. A gravação foi salva."
+    },
+    "startFailedCall": {
+      "title": "A gravação da chamada não começou",
+      "body": "{{message}}"
+    },
+    "startFailedScreen": {
+      "title": "A gravação de tela não começou",
+      "body": "{{message}}"
+    },
+    "failedCall": {
+      "title": "A gravação da chamada parou inesperadamente",
+      "body": "{{message}}"
+    },
+    "failedScreen": {
+      "title": "A gravação de tela parou inesperadamente",
+      "body": "{{message}}"
+    }
+  },
+  "updaterNotice": {
+    "updated": {
+      "title": "SS2 atualizado para {{version}}",
+      "body": "Você estava na {{previous}}."
+    },
+    "ready": {
+      "title": "SS2 {{version}} está pronto",
+      "body": "Será instalado na próxima vez que o SS2 for fechado, ou agora em Ajustes."
     }
   }
 }
