@@ -37,7 +37,7 @@ test("capture is exclusive and stop persists finalized audio", async (t) => {
   assert.equal(store.get(a.id).recordedDuration, 2);
   assert.equal(recorder.status().id, null);
 });
-test("native failure rejects startup and preserves recoverable session", async (t) => {
+test("native failure rejects startup and leaves the call as it was", async (t) => {
   const { store, child, recorder } = setup(t);
   const a = store.create();
   store.update(a.id, {
@@ -49,7 +49,10 @@ test("native failure rejects startup and preserves recoverable session", async (
   child.stdout.write('{"event":"error","message":"Screen recording permission denied"}\n');
   child.emit("close", 1);
   await assert.rejects(starting, /permission denied/);
-  assert.equal(store.get(a.id).status, "interrupted");
+  // The take was never captured, so it is not registered (R2).
+  assert.equal(store.get(a.id).status, "draft");
+  assert.deepEqual(store.get(a.id).audio, []);
+  assert.match(store.get(a.id).lastError, /permission denied/);
   assert.equal(store.get(a.id).lastErrorCode, null);
   assert.equal(store.get(a.id).lastErrorStatus, null);
   assert.equal(recorder.status().id, null);

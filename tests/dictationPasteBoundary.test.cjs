@@ -61,7 +61,6 @@ test("paste-text applies canonical dictionary spelling at the clipboard boundary
     parakeetManager: {},
     windowManager: { mainWindow: null, controlPanelWindow: { webContents: sender } },
     updateManager: {},
-    windowsKeyManager: {},
     textEditMonitor,
   });
 
@@ -96,7 +95,6 @@ test("auto-learn casing upgrade can be undone without losing the prior spelling"
     parakeetManager: {},
     windowManager: { showDictationPanel: () => {} },
     updateManager: {},
-    windowsKeyManager: {},
     textEditMonitor,
   });
   instance.broadcastToWindows = () => {};
@@ -133,7 +131,6 @@ test("disabling auto-learn prevents a queued correction from changing the dictio
     parakeetManager: {},
     windowManager: { showDictationPanel: () => {} },
     updateManager: {},
-    windowsKeyManager: {},
     textEditMonitor,
   });
 

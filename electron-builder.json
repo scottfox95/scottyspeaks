@@ -1,12 +1,6 @@
 {
   "appId": "com.scottfox.scottyspeaks",
   "productName": "SS2",
-  "protocols": {
-    "name": "ScottySpeaks Protocol",
-    "schemes": [
-      "scottyspeaks"
-    ]
-  },
   "directories": {
     "output": "dist"
   },
@@ -51,8 +45,6 @@
     "!**/node_modules/@esbuild/**",
     "!**/node_modules/rollup/**",
     "!**/node_modules/@rollup/**",
-    "!**/node_modules/postcss/**",
-    "!**/node_modules/autoprefixer/**",
     "!**/node_modules/tailwindcss/**",
     "!**/node_modules/@tailwindcss/**",
     "!**/node_modules/lightningcss*/**",
@@ -63,13 +55,9 @@
     "!**/node_modules/class-variance-authority/**",
     "!**/node_modules/clsx/**",
     "!**/node_modules/tailwind-merge/**",
-    "!**/node_modules/tw-animate-css/**",
-    "!**/node_modules/react-markdown/**",
-    "!**/node_modules/shadcn-ui/**",
     "!**/node_modules/@types/**",
     "!**/node_modules/concurrently/**",
     "!**/node_modules/cross-env/**",
-    "!**/node_modules/@electron/notarize/**",
     "!**/node_modules/**/test/**",
     "!**/node_modules/**/tests/**",
     "!**/node_modules/**/*.ts",
@@ -97,12 +85,6 @@
         "sherpa-onnx-*",
         "parakeet-coreml-*",
         "call-diarizer-*",
-        "linux-fast-paste",
-        "linux-text-monitor",
-        "windows-fast-paste.exe",
-        "windows-key-listener.exe",
-        "windows-text-monitor.exe",
-        "nircmd.exe",
         "*.dylib",
         "meeting-recorder-arm64",
         "meeting-recorder-x64",

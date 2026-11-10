@@ -32,13 +32,13 @@ export function useActionProcessing({ onSuccess, onError }: UseActionProcessingO
     async (
       action: ActionItem,
       noteContent: string,
-      options: { isCloudMode: boolean; modelId: string }
+      options: { modelId: string }
     ) => {
       if (processingRef.current) return;
 
       const modelId = getEffectiveReasoningModel() || options.modelId;
 
-      if (!modelId && !options.isCloudMode) {
+      if (!modelId) {
         onError(t("notes.actions.errors.noModel"));
         return;
       }

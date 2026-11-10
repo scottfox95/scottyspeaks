@@ -17,9 +17,7 @@ export interface TranscriptionSettings {
   cloudTranscriptionProvider: string;
   cloudTranscriptionModel: string;
   cloudTranscriptionBaseUrl?: string;
-  cloudTranscriptionMode: string;
   customDictionary: string[];
-  assemblyAiStreaming: boolean;
 }
 
 export interface ReasoningSettings {
@@ -27,7 +25,6 @@ export interface ReasoningSettings {
   reasoningModel: string;
   reasoningProvider: string;
   cloudReasoningBaseUrl?: string;
-  cloudReasoningMode: string;
   /** How much the polish pass may rewrite: "balanced" (default) or "verbatim". */
   polishStyle: "verbatim" | "balanced";
   dictationExact: boolean;
@@ -54,11 +51,6 @@ export interface ApiKeySettings {
   mistralApiKey: string;
   customTranscriptionApiKey: string;
   customReasoningApiKey: string;
-}
-
-export interface PrivacySettings {
-  cloudBackupEnabled: boolean;
-  telemetryEnabled: boolean;
 }
 
 export interface ThemeSettings {
@@ -171,11 +163,7 @@ function useSettingsInternal() {
     cloudTranscriptionModel: store.cloudTranscriptionModel,
     cloudTranscriptionBaseUrl: store.cloudTranscriptionBaseUrl,
     cloudReasoningBaseUrl: store.cloudReasoningBaseUrl,
-    cloudTranscriptionMode: store.cloudTranscriptionMode,
-    cloudReasoningMode: store.cloudReasoningMode,
     customDictionary: store.customDictionary,
-    assemblyAiStreaming: store.assemblyAiStreaming,
-    setAssemblyAiStreaming: store.setAssemblyAiStreaming,
     useReasoningModel: store.useReasoningModel,
     polishStyle: store.polishStyle,
     dictationExact: store.dictationExact,
@@ -210,8 +198,6 @@ function useSettingsInternal() {
     setCloudTranscriptionModel: store.setCloudTranscriptionModel,
     setCloudTranscriptionBaseUrl: store.setCloudTranscriptionBaseUrl,
     setCloudReasoningBaseUrl: store.setCloudReasoningBaseUrl,
-    setCloudTranscriptionMode: store.setCloudTranscriptionMode,
-    setCloudReasoningMode: store.setCloudReasoningMode,
     setCustomDictionary: store.setCustomDictionary,
     setUseReasoningModel: store.setUseReasoningModel,
     setReasoningModel: store.setReasoningModel,
@@ -239,10 +225,6 @@ function useSettingsInternal() {
     setSelectedMicDeviceId: store.setSelectedMicDeviceId,
     autoLearnCorrections,
     setAutoLearnCorrections,
-    cloudBackupEnabled: store.cloudBackupEnabled,
-    setCloudBackupEnabled: store.setCloudBackupEnabled,
-    telemetryEnabled: store.telemetryEnabled,
-    setTelemetryEnabled: store.setTelemetryEnabled,
     updateTranscriptionSettings: store.updateTranscriptionSettings,
     updateReasoningSettings: store.updateReasoningSettings,
     updateApiKeys: store.updateApiKeys,

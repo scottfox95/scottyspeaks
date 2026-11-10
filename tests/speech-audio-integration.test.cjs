@@ -88,8 +88,6 @@ function harness({ local = false, context = "dictation" } = {}) {
     processingSettings: () => ({ useLocalWhisper: local }),
     getAudioConstraints: async () => ({}),
     processAudio: async () => events.push("transcribe"),
-    streamingCleanupFns: [],
-    getStreamingProvider: () => ({ stop: async () => {} }),
   });
   return {
     audio,
@@ -123,51 +121,4 @@ test("actual batch cancellation while mic is pending stops late tracks before re
   h.resolve();
   assert.equal(await pending, false);
   assert.ok(h.events.indexOf("tracks-stopped") < h.events.indexOf("released"));
-});
-test("actual streaming AudioContext failure stops acquired tracks and releases speech", async () => {
-  const { audio, events } = harness();
-  audio.getOrCreateAudioContext = async () => {
-    throw Error("synthetic context failure");
-  };
-  assert.equal(await audio.startStreamingRecording(), false);
-  assert.ok(events.indexOf("begin:dictation") < events.indexOf("mic"));
-  assert.ok(events.includes("tracks-stopped"));
-  assert.ok(events.indexOf("tracks-stopped") < events.indexOf("released"));
-});
-test("actual streaming cancellation during pending mic retains lease until tracks arrive", async () => {
-  const h = harness();
-  h.defer();
-  const originalRelease = h.audio.releaseRecordingTarget;
-  h.audio.releaseRecordingTarget = (target) => originalRelease(target || h.audio._recordingTarget);
-  const pending = h.audio.startStreamingRecording();
-  while (!h.ready()) await new Promise(setImmediate);
-  await h.audio.cancelStreamingRecording();
-  assert.ok(!h.events.includes("released"));
-  h.resolve();
-  assert.equal(await pending, false);
-  assert.ok(h.events.indexOf("tracks-stopped") < h.events.indexOf("released"));
-});
-test("actual streaming prewarm guards and stops its temporary microphone", async () => {
-  const { audio, events } = harness();
-  audio.shouldUseStreaming = () => true;
-  audio.cacheMicrophoneDeviceId = async () => {};
-  audio.getStreamingProvider = () => ({ warmup: async () => ({ success: true }) });
-  audio.getOrCreateAudioContext = async () => ({ audioWorklet: { addModule: async () => {} } });
-  audio.getWorkletBlobUrl = () => "";
-  audio.getKeyterms = () => [];
-  assert.equal(await audio.warmupStreamingConnection(), true);
-  assert.deepEqual(events, ["begin:dictation", "mic", "tracks-stopped", "released"]);
-});
-test("completed streaming cancellation releases the actual microphone lease", async () => {
-  const h = harness();
-  let released = false;
-  h.audio._streamingMicrophone = {
-    release: async () => {
-      released = true;
-    },
-  };
-  h.audio.streamingStream = { getTracks: () => [{ stop() {} }] };
-  h.audio.isStreaming = true;
-  await h.audio.cancelStreamingRecording();
-  assert.equal(released, true);
 });

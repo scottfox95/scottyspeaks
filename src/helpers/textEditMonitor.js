@@ -120,7 +120,7 @@ class TextEditMonitor extends EventEmitter {
     }
 
     debugLogger.debug("[TextEditMonitor] Spawning monitor", {
-      textPreview: originalText.substring(0, 80),
+      textLength: originalText.length,
     });
 
     this.process = spawn(command, args, {
@@ -207,7 +207,7 @@ class TextEditMonitor extends EventEmitter {
     }
 
     debugLogger.debug("[TextEditMonitor] Text changed", {
-      newFieldValue: newFieldValue.substring(0, 80),
+      newFieldLength: newFieldValue.length,
     });
     this.emit("text-edited", {
       originalText: this.currentOriginalText,
@@ -268,7 +268,7 @@ class TextEditMonitor extends EventEmitter {
 
     debugLogger.debug("[TextEditMonitor] macOS native: starting", {
       targetPid,
-      textPreview: originalText.substring(0, 80),
+      textLength: originalText.length,
     });
 
     await this._enableAccessibility(targetPid);
@@ -359,7 +359,7 @@ class TextEditMonitor extends EventEmitter {
 
     debugLogger.debug("[TextEditMonitor] macOS: starting osascript polling", {
       targetPid,
-      textPreview: originalText.substring(0, 80),
+      textLength: originalText.length,
     });
 
     // Enable accessibility on the target app first (needed for Chromium/Electron apps),
@@ -409,7 +409,7 @@ class TextEditMonitor extends EventEmitter {
 
     this._lastValue = initialValue;
     debugLogger.debug("[TextEditMonitor] macOS: initial value", {
-      valuePreview: initialValue.substring(0, 80),
+      valueLength: initialValue.length,
       attempt,
     });
 
@@ -427,7 +427,7 @@ class TextEditMonitor extends EventEmitter {
       if (currentValue !== this._lastValue) {
         this._lastValue = currentValue;
         debugLogger.debug("[TextEditMonitor] macOS: text changed", {
-          newValuePreview: currentValue.substring(0, 80),
+          newValueLength: currentValue.length,
         });
         this.emit("text-edited", {
           originalText: this.currentOriginalText,

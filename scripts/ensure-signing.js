@@ -12,6 +12,15 @@
  * is fully non-interactive. The certificate does NOT need to be trusted for
  * signing or for TCC matching (trust only matters for Gatekeeper, which does
  * not apply to locally built, unquarantined apps).
+ *
+ * A NEW identity is never minted implicitly. A new identity changes the app's
+ * designated requirement, so every Mac that installs the next build loses its
+ * Accessibility, Microphone and Screen Recording grants, which looks exactly
+ * like "paste broke". If neither the keychain identity nor
+ * ~/.scottyspeaks-signing/identity.p12 exists this script fails, unless the
+ * first-time setup flag SS2_ALLOW_NEW_IDENTITY=1 is set. During a release
+ * (SS2_RELEASE=1, set by `npm run publish`, or --release) that flag is
+ * ignored: restore the existing identity instead.
  */
 const { execFileSync } = require("child_process");
 const fs = require("fs");
@@ -40,8 +49,53 @@ function keychainHasIdentity() {
   }
 }
 
-function ensureP12() {
-  if (fs.existsSync(P12_PATH)) return;
+const truthy = (v) => /^(1|true|yes)$/i.test(String(v || "").trim());
+
+/**
+ * Pure decision: what to do given what exists. Returns
+ *   { action: "unlock" | "import" | "mint" | "fail", warning?, error? }
+ * "mint" is only ever returned when explicitly allowed outside a release.
+ */
+function decideSigningAction({ hasKeychainIdentity, hasP12, allowNew, release }) {
+  if (hasKeychainIdentity) {
+    return {
+      action: "unlock",
+      warning:
+        release && !hasP12
+          ? `${P12_PATH} is missing. The keychain still holds the identity, so this ` +
+            "build signs correctly, but there is no backup to restore it from."
+          : undefined,
+    };
+  }
+  if (hasP12) return { action: "import" };
+  if (allowNew && !release) return { action: "mint" };
+  return {
+    action: "fail",
+    error: [
+      `Signing identity "${IDENTITY_NAME}" not found: neither the build keychain`,
+      `(${KEYCHAIN}) nor ${P12_PATH} exists.`,
+      "",
+      "Refusing to create a new identity. A new identity resets Accessibility,",
+      "Microphone and Screen Recording on every Mac that installs this build.",
+      "",
+      "Restore identity.p12 from its backup to ~/.scottyspeaks-signing/ and rerun.",
+      release
+        ? "This is a release build, so SS2_ALLOW_NEW_IDENTITY is ignored."
+        : "Only on a first-time setup with no existing installs: SS2_ALLOW_NEW_IDENTITY=1.",
+    ].join("\n"),
+  };
+}
+
+function isReleaseBuild(env = process.env, argv = process.argv) {
+  return truthy(env.SS2_RELEASE) || argv.includes("--release");
+}
+
+function signingIdentityState() {
+  return { hasKeychainIdentity: keychainHasIdentity(), hasP12: fs.existsSync(P12_PATH) };
+}
+
+function mintP12() {
+  if (fs.existsSync(P12_PATH)) throw new Error(`${P12_PATH} already exists; refusing to overwrite`);
   fs.mkdirSync(SIGNING_DIR, { recursive: true });
   const cnf = path.join(SIGNING_DIR, "openssl.cnf");
   fs.writeFileSync(
@@ -87,11 +141,22 @@ function ensureP12() {
   );
 }
 
-function main() {
+function main({ env = process.env, argv = process.argv } = {}) {
   if (process.platform !== "darwin") return;
 
-  if (!keychainHasIdentity()) {
-    ensureP12();
+  const release = isReleaseBuild(env, argv);
+  const decision = decideSigningAction({
+    ...signingIdentityState(),
+    allowNew: truthy(env.SS2_ALLOW_NEW_IDENTITY),
+    release,
+  });
+  if (decision.action === "fail") {
+    throw new Error(`[ensure-signing] ${decision.error}`);
+  }
+  if (decision.warning) console.warn(`[ensure-signing] WARNING: ${decision.warning}`);
+
+  if (decision.action !== "unlock") {
+    if (decision.action === "mint") mintP12();
     try {
       run("security", ["delete-keychain", KEYCHAIN]);
     } catch {}
@@ -125,7 +190,20 @@ function main() {
 }
 
 if (require.main === module) {
-  main();
+  try {
+    main();
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
 }
 
-module.exports = { IDENTITY_NAME, KEYCHAIN, ensureSigning: main };
+module.exports = {
+  IDENTITY_NAME,
+  KEYCHAIN,
+  P12_PATH,
+  ensureSigning: main,
+  decideSigningAction,
+  isReleaseBuild,
+  signingIdentityState,
+};

@@ -404,7 +404,7 @@ class ModelManager {
       debugLogger.logReasoning("INFERENCE_SUCCESS", {
         totalTimeMs: totalTime,
         resultLength: result.length,
-        resultPreview: result.substring(0, 200) + (result.length > 200 ? "..." : ""),
+        resultLength: result.length,
       });
 
       return result;

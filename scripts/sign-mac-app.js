@@ -135,8 +135,14 @@ function sign(target, { entitlements, runtime } = {}) {
 function main() {
   if (process.platform !== "darwin") return;
 
-  // Make sure the identity + unlocked keychain are ready
-  ensureSigning();
+  // Make sure the identity + unlocked keychain are ready. This never mints a
+  // new identity unless SS2_ALLOW_NEW_IDENTITY=1 (and never during a release).
+  try {
+    ensureSigning();
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
 
   const appPath = process.argv[2] || findApp();
   if (!appPath || !fs.existsSync(appPath)) {

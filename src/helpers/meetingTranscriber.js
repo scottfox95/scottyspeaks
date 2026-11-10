@@ -76,6 +76,16 @@ function normalizeTranscript(data, offset = 0, chunkId = "chunk", duration = CHU
     words: (data.words || []).map((s) => normalize(s, true)),
   };
 }
+// Parakeet and Whisper both answer a quiet chunk with this result rather than
+// empty text; Parakeet also sets code "noAudio".
+function isNoAudioResult(result) {
+  return (
+    !!result &&
+    !result.success &&
+    !result.error &&
+    (result.code === "noAudio" || result.message === "No audio detected")
+  );
+}
 async function transcribeChunk({
   provider,
   audio,
@@ -92,6 +102,10 @@ async function transcribeChunk({
 }) {
   if (provider === "local") {
     const result = await localTranscribe(audio);
+    // Room noise can pass the chunk's silence check yet sit below the engine's
+    // speech floor; the engine then reports "no audio". That chunk is empty, not
+    // a failed call, exactly like a chunk below the job's own silence check.
+    if (isNoAudioResult(result)) return { text: "", segments: [], words: [] };
     if (!result?.success)
       throw new Error(result?.error || result?.message || "Local transcription failed");
     const text = result.text || "";
@@ -281,6 +295,7 @@ function wavInfo(buffer) {
 module.exports = {
   normalizeTranscript,
   transcribeChunk,
+  isNoAudioResult,
   prepareChunks,
   prepareDiarizationAudio,
   prepareTrackPcm,

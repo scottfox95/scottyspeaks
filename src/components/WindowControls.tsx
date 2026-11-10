@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Minus, Square, X, Copy } from "lucide-react";
+import { startGatedPolling } from "../utils/pollingGate.mjs";
 
 export default function WindowControls() {
   const { t } = useTranslation();
@@ -17,12 +18,11 @@ export default function WindowControls() {
       } catch {}
     };
 
-    syncIsMaximized();
-    const intervalId = setInterval(syncIsMaximized, 1000);
+    const stop = startGatedPolling(syncIsMaximized, 1000, { whenUnfocused: true });
 
     return () => {
       mounted = false;
-      clearInterval(intervalId);
+      stop();
     };
   }, []);
 

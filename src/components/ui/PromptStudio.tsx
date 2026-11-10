@@ -20,7 +20,7 @@ import ReasoningService from "../../services/ReasoningService";
 import { getModelProvider } from "../../models/ModelRegistry";
 import logger from "../../utils/logger";
 import { UNIFIED_SYSTEM_PROMPT } from "../../config/prompts";
-import { useSettingsStore, selectIsCloudReasoningMode } from "../../stores/settingsStore";
+import { useSettingsStore } from "../../stores/settingsStore";
 
 interface PromptStudioProps {
   className?: string;
@@ -70,8 +70,6 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
   const { alertDialog, showAlertDialog, hideAlertDialog } = useDialogs();
   const { agentName } = useAgentName();
 
-  const effectiveModel = useSettingsStore((s) => s.reasoningModel);
-  const isCloudMode = useSettingsStore(selectIsCloudReasoningMode);
   const useReasoningModel = useSettingsStore((s) => s.useReasoningModel);
   const reasoningModel = useSettingsStore((s) => s.reasoningModel);
 
@@ -129,17 +127,12 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
     setTestResult("");
 
     try {
-      const reasoningProvider = isCloudMode
-        ? "openwhispr"
-        : reasoningModel
-          ? getModelProvider(reasoningModel)
-          : "openai";
+      const reasoningProvider = reasoningModel ? getModelProvider(reasoningModel) : "openai";
 
       logger.debug(
         "PromptStudio test starting",
         {
           useReasoningModel,
-          isCloudMode,
           reasoningModel,
           reasoningProvider,
           testTextLength: testText.length,
@@ -153,33 +146,31 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
         return;
       }
 
-      if (!isCloudMode && !reasoningModel) {
+      if (!reasoningModel) {
         setTestResult(t("promptStudio.test.noModelSelected"));
         return;
       }
 
-      if (!isCloudMode) {
-        const providerConfig = PROVIDER_CONFIG[reasoningProvider] || {
-          label: reasoningProvider.charAt(0).toUpperCase() + reasoningProvider.slice(1),
-        };
+      const providerConfig = PROVIDER_CONFIG[reasoningProvider] || {
+        label: reasoningProvider.charAt(0).toUpperCase() + reasoningProvider.slice(1),
+      };
 
-        if (providerConfig.baseStorageKey) {
-          const baseUrl = (useSettingsStore.getState().cloudReasoningBaseUrl || "").trim();
-          if (!baseUrl) {
-            setTestResult(
-              t("promptStudio.test.baseUrlMissing", {
-                provider:
-                  reasoningProvider === "custom"
-                    ? t("promptStudio.test.customEndpoint")
-                    : providerConfig.label,
-              })
-            );
-            return;
-          }
+      if (providerConfig.baseStorageKey) {
+        const baseUrl = (useSettingsStore.getState().cloudReasoningBaseUrl || "").trim();
+        if (!baseUrl) {
+          setTestResult(
+            t("promptStudio.test.baseUrlMissing", {
+              provider:
+                reasoningProvider === "custom"
+                  ? t("promptStudio.test.customEndpoint")
+                  : providerConfig.label,
+            })
+          );
+          return;
         }
       }
 
-      const modelToUse = isCloudMode ? effectiveModel || "auto" : reasoningModel;
+      const modelToUse = reasoningModel;
 
       const currentCustomPrompt = localStorage.getItem("customUnifiedPrompt");
       localStorage.setItem("customUnifiedPrompt", JSON.stringify(editedPrompt));
@@ -359,18 +350,12 @@ export default function PromptStudio({ className = "" }: PromptStudioProps) {
         {/* ── Test Tab ── */}
         {activeTab === "test" &&
           (() => {
-            const reasoningProvider = isCloudMode
-              ? "openwhispr"
-              : reasoningModel
-                ? getModelProvider(reasoningModel)
-                : "openai";
+            const reasoningProvider = reasoningModel ? getModelProvider(reasoningModel) : "openai";
             const providerConfig = PROVIDER_CONFIG[reasoningProvider] || {
               label: reasoningProvider.charAt(0).toUpperCase() + reasoningProvider.slice(1),
             };
 
-            const displayModel = isCloudMode
-              ? t("promptStudio.test.openwhisprCloud")
-              : reasoningModel || t("promptStudio.test.none");
+            const displayModel = reasoningModel || t("promptStudio.test.none");
             const displayProvider =
               reasoningProvider === "custom"
                 ? t("promptStudio.test.customEndpoint")

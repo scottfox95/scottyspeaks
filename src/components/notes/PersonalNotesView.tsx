@@ -17,7 +17,7 @@ import ActionManagerDialog from "./ActionManagerDialog";
 import AddNotesToFolderDialog from "./AddNotesToFolderDialog";
 import { useNoteRecording } from "../../hooks/useNoteRecording";
 import { useActionProcessing } from "../../hooks/useActionProcessing";
-import { useSettingsStore, selectIsCloudReasoningMode } from "../../stores/settingsStore";
+import { useSettingsStore } from "../../stores/settingsStore";
 import { useFolderManagement } from "../../hooks/useFolderManagement";
 import { useNoteDragAndDrop } from "../../hooks/useNoteDragAndDrop";
 import { cn } from "../lib/utils";
@@ -33,7 +33,6 @@ import {
 } from "../../stores/noteStore";
 import { useNotesOnboarding } from "../../hooks/useNotesOnboarding";
 import NotesOnboarding from "./NotesOnboarding";
-import RealtimeTranscriptionBanner from "./RealtimeTranscriptionBanner";
 
 const FOLDER_INPUT_CLASS =
   "w-full h-6 bg-foreground/5 dark:bg-white/5 rounded px-2 text-xs text-foreground outline-none border border-primary/30 focus:border-primary/50";
@@ -42,11 +41,7 @@ function makeContentHash(content: string): string {
   return String(content.length) + "-" + content.slice(0, 50);
 }
 
-interface PersonalNotesViewProps {
-  onOpenSettings?: (section: string) => void;
-}
-
-export default function PersonalNotesView({ onOpenSettings }: PersonalNotesViewProps) {
+export default function PersonalNotesView() {
   const { t } = useTranslation();
   const notes = useNotes();
   const activeNoteId = useActiveNoteId();
@@ -65,14 +60,8 @@ export default function PersonalNotesView({ onOpenSettings }: PersonalNotesViewP
   const localTitleRef = useRef(localTitle);
   localTitleRef.current = localTitle;
   const { toast } = useToast();
-  const isCloudMode = useSettingsStore(selectIsCloudReasoningMode);
   const effectiveModelId = useSettingsStore((s) => s.reasoningModel);
-  const {
-    isComplete: isOnboardingComplete,
-    isProUser,
-    isProLoading,
-    complete: completeOnboarding,
-  } = useNotesOnboarding();
+  const { isComplete: isOnboardingComplete, complete: completeOnboarding } = useNotesOnboarding();
 
   const {
     folders,
@@ -105,9 +94,6 @@ export default function PersonalNotesView({ onOpenSettings }: PersonalNotesViewP
   const {
     isRecording,
     isProcessing,
-    partialTranscript,
-    streamingCommit,
-    consumeStreamingCommit,
     startRecording,
     stopRecording,
   } = useNoteRecording({
@@ -634,11 +620,6 @@ export default function PersonalNotesView({ onOpenSettings }: PersonalNotesViewP
       </div>
 
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        {!isProLoading && !isProUser && (
-          <RealtimeTranscriptionBanner
-            onUpgrade={onOpenSettings ? () => onOpenSettings("plansBilling") : undefined}
-          />
-        )}
         {isMeetingsFolder ? (
           <div className="flex flex-col items-center justify-center h-full -mt-6">
             <svg
@@ -750,11 +731,8 @@ export default function PersonalNotesView({ onOpenSettings }: PersonalNotesViewP
               isSaving={isSaving}
               isRecording={isRecording}
               isProcessing={isProcessing}
-              partialTranscript={partialTranscript}
               finalTranscript={finalTranscript}
               onFinalTranscriptConsumed={handleFinalTranscriptConsumed}
-              streamingCommit={streamingCommit}
-              onStreamingCommitConsumed={consumeStreamingCommit}
               onStartRecording={startRecording}
               onStopRecording={stopRecording}
               onExportNote={handleExportNote}
@@ -773,7 +751,7 @@ export default function PersonalNotesView({ onOpenSettings }: PersonalNotesViewP
                 <ActionPicker
                   onRunAction={(action) => {
                     if (!localContent.trim()) return;
-                    runAction(action, localContent, { isCloudMode, modelId: effectiveModelId });
+                    runAction(action, localContent, { modelId: effectiveModelId });
                   }}
                   onManageActions={() => setShowActionManager(true)}
                   disabled={!localContent.trim() || actionProcessingState === "processing"}

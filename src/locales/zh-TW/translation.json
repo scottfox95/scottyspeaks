@@ -86,21 +86,6 @@
     "quit": "結束",
     "cancel": "取消"
   },
-  "upgradePrompt": {
-    "paymentFailed": "我們無法處理你的付款",
-    "weeklyLimit": "你已達到每週使用上限",
-    "pastDueDescription": "你目前使用的是免費方案，別擔心，每週仍有 {{limit}} 字的額度。\n更新付款方式即可恢復無限制的 Pro 方案。",
-    "limitDescription": "已使用 {{used}} / {{limit}} 字。\n你的轉錄已儲存並貼上。",
-    "updatePayment": "更新付款方式",
-    "updatePaymentDescription": "恢復無限制的 Pro 轉錄。",
-    "upgradeToPro": "升級至 Pro",
-    "upgradeDescription": "升級到付費方案，每月最低 $8 起。",
-    "useApiKey": "使用你自己的 API Key",
-    "useApiKeyDescription": "自備金鑰，無限使用。",
-    "switchToLocal": "切換至本機模式",
-    "switchToLocalDescription": "離線轉錄，無任何限制。",
-    "rollingWeeklyLimit": "滾動式每週額度"
-  },
   "windowControls": {
     "minimize": "最小化",
     "maximize": "最大化",
@@ -127,12 +112,9 @@
     "loading": "載入中...",
     "unknown": "未知",
     "availableModels": "可用模型",
-    "fast": "快速",
     "hold": "按住",
-    "private": "私密",
     "tap": "點按",
-    "close": "關閉",
-    "dismiss": "忽略"
+    "close": "關閉"
   },
   "onboarding": {
     "steps": {
@@ -225,16 +207,6 @@
         "yesterday": "昨天"
       }
     },
-    "cloudMigration": {
-      "title": "歡迎使用 OpenWhispr Pro",
-      "description": "你的 7 天免費試用已啟用！我們已將轉錄切換至 OpenWhispr Cloud，提供更快、更準確的結果。你之前的設定已儲存，隨時可在設定中切換回來。",
-      "viewSettings": "查看設定"
-    },
-    "aiCta": {
-      "title": "用 AI 增強你的轉錄品質",
-      "description": "說話時自動修正文法、標點和格式。",
-      "enable": "啟用 AI 增強"
-    },
     "loading": "載入中...",
     "gpu": {
       "bannerTitle": "GPU 加速可用",
@@ -298,20 +270,17 @@
     "fallback": {
       "whisperModelDescription": "模型",
       "parakeetModelDescription": "NVIDIA Parakeet 模型"
-    },
-    "whisperModels": "Whisper 模型"
+    }
   },
   "hooks": {
     "audioRecording": {
-      "errorTitles": {
-        "sessionExpired": "工作階段已過期",
-        "offline": "你目前離線",
-        "dailyLimitReached": "已達每日上限"
-      },
       "fallback": {
         "title": "備援模式",
         "description": "本機 Whisper 失敗，已改用 OpenAI API。"
       },
+      "speechModelPreparing": "語音模型仍在準備中（首次下載或一次性的 Neural Engine 編譯）。請一分鐘後再試。",
+      "speechModelFailed": "語音模型無法啟動：{{error}}",
+      "speechEngineStopped": "語音引擎在轉錄時停止。請再試一次。",
       "noAudio": {
         "title": "未偵測到音訊",
         "description": "錄音中未偵測到聲音。請再試一次。"
@@ -441,67 +410,6 @@
       }
     }
   },
-  "auth": {
-    "cloudNotConfigured": "雲端未設定",
-    "common": {
-      "back": "返回",
-      "continue": "繼續",
-      "or": "或"
-    },
-    "emailStep": {
-      "continueWithEmail": "使用電子郵件繼續",
-      "continueWithoutAccount": "不建立帳號繼續",
-      "emailPlaceholder": "you@example.com"
-    },
-    "errors": {
-      "accountExistsSignIn": "此電子郵件已有帳號。請直接登入。",
-      "accountNotFoundCreate": "找不到此電子郵件的帳號。請建立帳號。",
-      "authNotConfigured": "尚未設定驗證功能",
-      "createAccountFailed": "建立帳號失敗",
-      "failedProviderSignIn": "無法透過 {{provider}} 登入",
-      "failedUserCheck": "無法檢查使用者帳號",
-      "generic": "發生錯誤，請再試一次。",
-      "invalidCredentials": "電子郵件或密碼不正確",
-      "plusAliasUnsupported": "不支援含「+」的電子郵件別名"
-    },
-    "getStarted": "開始使用",
-    "legal": {
-      "and": "和",
-      "prefix": "繼續即表示你同意我們的",
-      "privacy": "隱私權政策",
-      "suffix": "",
-      "terms": "服務條款"
-    },
-    "passwordForm": {
-      "createAccount": "建立帳號",
-      "createAccountButton": "建立帳號",
-      "createAccountLink": "建立帳號",
-      "createPasswordPlaceholder": "建立密碼",
-      "creatingAccount": "正在建立帳號...",
-      "enterPasswordPlaceholder": "輸入你的密碼",
-      "forgotPassword": "忘記密碼？",
-      "fullNamePlaceholder": "姓名",
-      "haveAccount": "已經有帳號了？",
-      "newHere": "第一次來？",
-      "passwordMinLength": "密碼至少需要 8 個字元",
-      "signIn": "登入",
-      "signInLink": "登入",
-      "signingIn": "登入中...",
-      "welcomeBack": "歡迎回來"
-    },
-    "signedIn": {
-      "ready": "準備就緒",
-      "welcomeBack": "歡迎回來",
-      "welcomeBackName": "歡迎回來，{{name}}"
-    },
-    "social": {
-      "completeInBrowser": "請在瀏覽器中完成登入",
-      "continueWithGoogle": "使用 Google 繼續"
-    },
-    "welcomeSubtitle": "隨時隨地用語音輸入文字",
-    "welcomeTitle": "歡迎使用 ScottySpeaks",
-    "sessionExpired": "工作階段已過期，請重新登入。"
-  },
   "cleanupPrompt": "文字整理",
   "developerSection": {
     "currentLogFile": "目前的記錄檔",
@@ -569,40 +477,10 @@
     }
   },
   "dictionarySuffix": "字典後綴",
-  "emailVerification": {
-    "checkEmailDescription": "我們已寄送驗證連結至",
-    "checkEmailTitle": "請查看你的電子郵件",
-    "errors": {
-      "resendFailed": "無法重新寄送驗證信。請再試一次。",
-      "serverUnreachable": "無法連線到伺服器。請檢查你的網路連線後再試。"
-    },
-    "resendButton": "重新寄送驗證信",
-    "resendIn": "{{seconds}} 秒後可重新寄送",
-    "verifiedDescription": "你的帳號已設定完成。",
-    "verifiedTitle": "電子郵件已驗證",
-    "waiting": "等待驗證中..."
-  },
   "errorBoundary": {
     "description": "發生意外錯誤。請重新載入後再試。",
     "reload": "重新載入",
     "title": "發生錯誤"
-  },
-  "forgotPassword": {
-    "back": "返回",
-    "backToSignIn": "返回登入",
-    "emailPlaceholder": "輸入你的電子郵件",
-    "goBack": "返回",
-    "notConfigured": "尚未設定驗證功能。",
-    "sendResetLink": "寄送重設連結",
-    "sending": "寄送中...",
-    "subtitle": "輸入你的電子郵件，我們會寄送重設連結給你",
-    "success": {
-      "description": "我們已寄送密碼重設連結至",
-      "help": "沒收到信？請檢查垃圾郵件資料夾，或再試一次。",
-      "title": "請查看你的電子郵件",
-      "tryAnother": "嘗試其他電子郵件"
-    },
-    "title": "重設你的密碼"
   },
   "fullPrompt": "完整提示詞",
   "hotkeyGuidance": {
@@ -687,30 +565,6 @@
     "unknownDevice": "未知裝置",
     "using": "使用中："
   },
-  "pasteToolsInfo": {
-    "checking": "正在檢查系統功能...",
-    "installCommands": {
-      "archLinux": "# Arch Linux",
-      "debianUbuntu": "# Debian / Ubuntu",
-      "debianUbuntuMint": "# Debian / Ubuntu / Mint",
-      "fedoraRhel": "# Fedora / RHEL"
-    },
-    "installPrefix": "如需自動貼上文字，請安裝",
-    "methodReady": "用於自動貼上文字",
-    "noteXwaylandAlso": "注意：XWayland 應用程式也可使用 xdotool。",
-    "noteXwaylandOnly": "注意：自動貼上僅適用於 XWayland 應用程式。",
-    "optionalEnableTitle": "選用：啟用自動貼上",
-    "readyTitle": "自動貼上已就緒",
-    "recheck": "重新檢查",
-    "recheckChecking": "檢查中...",
-    "title": "自動貼上",
-    "usingMethodPrefix": "使用",
-    "waylandClipboardDescription": "此 Wayland 工作階段不支援自動貼上。ScottySpeaks 會將文字複製到剪貼簿，你可以使用 Ctrl+V 手動貼上。",
-    "waylandClipboardTitle": "Wayland 剪貼簿模式",
-    "windowsReady": "Windows 內建支援自動貼上。不需要額外設定！",
-    "withoutToolPrefix": "若未安裝此工具，ScottySpeaks 會將文字複製到剪貼簿。你可以使用 Ctrl+V 手動貼上。",
-    "xwaylandAppsOnly": "自動貼上僅適用於 XWayland 應用程式"
-  },
   "promptStudio": {
     "common": {
       "copied": "已複製",
@@ -758,7 +612,6 @@
       "none": "無",
       "outputLabel": "輸出",
       "processing": "處理中...",
-      "openwhisprCloud": "OpenWhispr Cloud",
       "providerLabel": "供應商",
       "run": "執行測試",
       "customEndpoint": "自訂端點"
@@ -779,43 +632,13 @@
       "modified": "已修改"
     }
   },
-  "resetPassword": {
-    "backToSignIn": "返回登入",
-    "confirmPasswordPlaceholder": "確認新密碼",
-    "continue": "繼續",
-    "errors": {
-      "passwordMinLength": "密碼至少需要 8 個字元",
-      "passwordsDoNotMatch": "密碼不一致"
-    },
-    "goBack": "返回",
-    "newPasswordPlaceholder": "新密碼",
-    "notConfigured": "尚未設定驗證功能。",
-    "passwordMinLength": "密碼至少需要 8 個字元",
-    "resetButton": "重設密碼",
-    "resetting": "重設中...",
-    "subtitle": "請在下方輸入你的新密碼",
-    "success": {
-      "description": "你的密碼已更新。你現在已登入。",
-      "title": "密碼重設成功"
-    },
-    "title": "建立新密碼"
-  },
   "settingsModal": {
     "groups": {
-      "account": "帳戶",
       "app": "應用程式",
       "speechAi": "語音與 AI",
       "system": "系統"
     },
     "sections": {
-      "account": {
-        "description": "個人資料與登入",
-        "label": "帳號"
-      },
-      "plansBilling": {
-        "description": "方案、用量與帳單",
-        "label": "方案與帳單"
-      },
       "general": {
         "description": "外觀、音效與啟動",
         "label": "偏好設定"
@@ -844,121 +667,6 @@
     "title": "設定"
   },
   "settingsPage": {
-    "account": {
-      "badges": {
-        "free": "免費",
-        "limitReached": "已達上限",
-        "pastDue": "款項逾期",
-        "pro": "Pro",
-        "trial": "試用"
-      },
-      "billing": {
-        "couldNotOpenDescription": "開啟帳單頁面時發生問題。請再試一次。",
-        "couldNotOpenTitle": "無法開啟帳單頁面",
-        "manageBilling": "管理帳單",
-        "opening": "開啟中...",
-        "updatePaymentMethod": "更新付款方式"
-      },
-      "checkout": {
-        "couldNotOpenDescription": "開啟結帳頁面時發生問題。請再試一次。",
-        "couldNotOpenTitle": "無法開啟結帳頁面",
-        "opening": "開啟中...",
-        "upgradeToPro": "升級至 Pro"
-      },
-      "disabled": "已停用",
-      "featuresDisabled": "帳號功能已停用",
-      "featuresDisabledDescription": "請在 .env 檔案中設定 VITE_NEON_AUTH_URL 以啟用帳號功能。",
-      "notConfigured": "尚未設定驗證功能",
-      "notSignedIn": "尚未登入",
-      "notSignedInDescription": "建立帳號以解鎖進階功能。",
-      "offline": "離線",
-      "pastDue": {
-        "description": "你目前使用的是免費方案。更新付款方式即可恢復 Pro。",
-        "title": "我們無法處理你的付款"
-      },
-      "planDescriptions": {
-        "freeUsage": "本週已使用 {{used}} / {{limit}} 字",
-        "nextBilling": "下次扣款日：{{date}}",
-        "pastDue": "本週 {{used}} / {{limit}} 免費字數——更新付款方式以恢復 Pro",
-        "trial": "剩餘 {{days}} 天——無限轉錄",
-        "unlimited": "無限"
-      },
-      "planLabels": {
-        "free": "免費",
-        "pro": "Pro",
-        "trial": "試用"
-      },
-      "planTitle": "方案",
-      "rollingWeeklyLimit": "滾動式每週額度",
-      "signOut": {
-        "failedDescription": "登出時發生錯誤。請再試一次。",
-        "failedTitle": "無法登出",
-        "signOut": "登出",
-        "signingOut": "登出中..."
-      },
-      "signedIn": "已登入",
-      "title": "帳號",
-      "toasts": {
-        "approachingLimit": {
-          "description": "你本週已使用 {{used}} / {{limit}} 免費字數。升級至 Pro 即可無限使用。",
-          "title": "即將達到每週上限"
-        }
-      },
-      "trialCta": {
-        "button": "建立免費帳號",
-        "description": "無限轉錄、優先處理等更多功能。",
-        "title": "免費試用 Pro 7 天"
-      },
-      "pricing": {
-        "title": "方案",
-        "monthly": "月付",
-        "annual": "年付",
-        "annualBadge": "省 17%",
-        "free": {
-          "name": "免費",
-          "price": "$0",
-          "period": "永久",
-          "features": [
-            "每週 2,000 字",
-            "本機 AI 模型",
-            "自備 API Key",
-            "字典與片段",
-            "支援 100+ 種語言",
-            "零資料留存"
-          ]
-        },
-        "pro": {
-          "name": "Pro",
-          "monthlyPrice": "$8",
-          "monthlyPeriod": "/月",
-          "annualPrice": "$80",
-          "annualPeriod": "/年",
-          "features": [
-            "包含免費版所有功能",
-            "無限使用",
-            "即時轉錄",
-            "最新音訊與 AI 模型",
-            "iOS/Android（即將推出）",
-            "零資料留存",
-            "優先支援"
-          ],
-          "cta": "開始使用",
-          "switchToAnnual": "切換為年付"
-        },
-        "enterprise": {
-          "name": "企業版",
-          "price": "自訂",
-          "features": ["雲端同步", "團隊功能（即將推出）", "SSO 與合規"],
-          "cta": "聯絡我們"
-        },
-        "currentPlan": "目前方案"
-      },
-      "signedOutPlans": {
-        "button": "建立免費帳號"
-      },
-      "user": "使用者",
-      "wordsRemaining": "剩餘 {{remaining}} 字"
-    },
     "agentConfig": {
       "agentName": "助理名稱",
       "cleanupExample": "文字整理",
@@ -983,8 +691,6 @@
       }
     },
     "aiModels": {
-      "customSetup": "自訂設定",
-      "customSetupDescription": "使用你自己的供應商和 API Key。",
       "description": "整理轉錄文字、處理指令、修正錯誤，同時保留你的語調。",
       "enableTextCleanup": "啟用文字整理",
       "polishStyle": {
@@ -995,19 +701,7 @@
         "verbatimDescription": "完整保留你的原話和口頭禪，僅加上標點與大小寫。"
       },
       "enableTextCleanupDescription": "AI 自動提升轉錄品質",
-      "openwhisprCloud": "OpenWhispr Cloud",
-      "openwhisprCloudDescription": "即開即用，無需設定。",
-      "title": "AI 文字增強",
-      "toasts": {
-        "switchedCloud": {
-          "description": "文字增強將使用 OpenWhispr 雲端服務。",
-          "title": "已切換至 OpenWhispr Cloud"
-        },
-        "switchedCustom": {
-          "description": "設定你自己的供應商和 API Key。",
-          "title": "已切換至自訂設定"
-        }
-      }
+      "title": "AI 文字增強"
     },
     "developer": {
       "clearCache": "清除快取",
@@ -1171,35 +865,13 @@
       "troubleshoot": "疑難排解",
       "troubleshootingTitle": "疑難排解"
     },
-    "privacy": {
-      "cloudBackup": "雲端備份",
-      "cloudBackupDescription": "將轉錄記錄儲存至雲端，確保不會遺失。",
-      "description": "控制哪些資料會離開你的裝置。預設全部關閉。",
-      "title": "隱私權",
-      "usageAnalytics": "使用分析",
-      "usageAnalyticsDescription": "分享匿名的效能指標，協助我們改善 ScottySpeaks。我們絕不會傳送轉錄內容——只有計時和錯誤資料。"
-    },
     "prompts": {
       "description": "檢視、自訂和測試用於文字整理和指令偵測的統一系統提示詞",
       "title": "提示詞工作室"
     },
     "transcription": {
-      "customSetup": "自訂設定",
-      "customSetupDescription": "使用你自己的供應商和 API Key。",
       "description": "選擇 ScottySpeaks 轉錄語音的方式",
-      "openwhisprCloud": "OpenWhispr Cloud",
-      "openwhisprCloudDescription": "即開即用，無需設定。",
-      "title": "語音轉文字",
-      "toasts": {
-        "switchedCloud": {
-          "description": "轉錄將使用 OpenWhispr 雲端服務。",
-          "title": "已切換至 OpenWhispr Cloud"
-        },
-        "switchedCustom": {
-          "description": "設定你自己的供應商和 API Key。",
-          "title": "已切換至自訂設定"
-        }
-      }
+      "title": "語音轉文字"
     }
   },
   "models": {
@@ -1269,78 +941,6 @@
       }
     }
   },
-  "referral": {
-    "modalTitle": "推薦計畫",
-    "title": "推薦好友賺取獎勵",
-    "subtitle": "送一個月，得一個月。",
-    "tabs": {
-      "refer": "推薦",
-      "pastInvites": "過去的邀請"
-    },
-    "howItWorks": {
-      "shareLink": "分享您的邀請連結",
-      "theySignUp": "對方註冊即可獲得",
-      "freeMonthOfPro": "一個月免費 Pro",
-      "youGet": "您可獲得",
-      "freeMonth": "一個月免費",
-      "whenTheyDictate": "當對方聽寫滿 2,000 字時"
-    },
-    "inviteLink": {
-      "title": "您的邀請連結",
-      "copy": "複製",
-      "copied": "已複製"
-    },
-    "sendInvites": {
-      "title": "發送邀請",
-      "placeholder": "friend@example.com",
-      "send": "發送",
-      "sending": "發送中"
-    },
-    "stats": {
-      "referred": "已推薦",
-      "converted": "已轉換",
-      "monthsEarned": "已獲得月數"
-    },
-    "status": {
-      "converted": "已轉換",
-      "opened": "已開啟",
-      "failed": "失敗",
-      "sent": "已發送"
-    },
-    "empty": {
-      "title": "尚未發送任何邀請",
-      "description": "分享您的連結或發送邀請以開始使用"
-    },
-    "toasts": {
-      "copiedTitle": "已複製！",
-      "copiedDescription": "推薦連結已複製到剪貼簿",
-      "copyFailedTitle": "複製失敗",
-      "copyFailedDescription": "無法將連結複製到剪貼簿",
-      "invalidEmailTitle": "無效的電子郵件",
-      "invalidEmailDescription": "請輸入有效的電子郵件地址",
-      "inviteSentTitle": "邀請已發送！",
-      "inviteSentDescription": "邀請已發送至 {{email}}",
-      "sendFailedTitle": "發送失敗",
-      "sendFailedDescription": "無法發送邀請，請重試。"
-    },
-    "errors": {
-      "unableToLoad": "無法載入推薦資料",
-      "unableToLoadStats": "無法載入推薦統計資料，請稍後再試。"
-    },
-    "tryAgain": "重試",
-    "card": {
-      "brand": "ScottySpeaks",
-      "signalId": "Signal ID",
-      "audioSignature": "您的音訊簽名",
-      "stop": "停止",
-      "playSignal": "播放信號"
-    },
-    "friends": {
-      "title": "好友",
-      "completed": "已完成",
-      "sentInvites": "已發送的邀請"
-    }
-  },
   "notes": {
     "folders": {
       "title": "資料夾",
@@ -1374,52 +974,7 @@
       "saving": "儲存中",
       "wordsCount": "{{count}} 個字",
       "startWriting": "開始撰寫...",
-      "staleIndicator": "內容在增強後已變更",
-      "live": "即時"
-    },
-    "upload": {
-      "title": "上傳音訊",
-      "using": "使用 {{model}}",
-      "dropOrBrowse": "拖放音訊檔案或點擊瀏覽",
-      "supportedFormats": "MP3、WAV、M4A、WebM、OGG、FLAC、AAC",
-      "dropToUpload": "拖放以上傳",
-      "transcribe": "轉錄",
-      "cancel": "取消",
-      "transcribingCloud": "透過雲端轉錄中...",
-      "transcribingLocal": "本機轉錄中...",
-      "transcribingProvider": "透過 {{provider}} 轉錄中...",
-      "transcriptionComplete": "轉錄完成",
-      "openNote": "開啟筆記",
-      "uploadAnother": "上傳另一個",
-      "retry": "重試",
-      "startOver": "重新開始",
-      "transcriptionSettings": "轉錄設定",
-      "newFolder": "新增資料夾",
-      "folderName": "資料夾名稱",
-      "create": "建立",
-      "setupTitle": "設定轉錄",
-      "setupDescription": "選擇音訊轉錄方式。此設定同樣適用於即時聽寫。",
-      "continue": "繼續",
-      "openwhisprCloud": "OpenWhispr Cloud",
-      "custom": "自訂",
-      "selectFolder": "選擇資料夾",
-      "transcriptionFailed": "轉錄失敗",
-      "errorOccurred": "發生錯誤",
-      "noProviderTitle": "尚未設定轉錄服務供應商",
-      "noProviderDescription": "新增 API Key 或下載本機模型以開始轉錄。",
-      "noProviderAction": "開啟轉錄設定",
-      "fileTooLarge": "此檔案超過 500 MB 的大小限制。",
-      "largeFileNote": "大型檔案將被分割並平行轉錄。",
-      "chunkProgress": "正在轉錄第 {{completed}} 部分，共 {{total}} 部分...",
-      "paidPlanRequired": "超過 25 MB 的檔案需要付費方案才能使用雲端轉錄。大型檔案透過 OpenWhispr Cloud 處理，確保可靠、高品質的結果。",
-      "byokTooLarge": "第三方 API 金鑰僅支援 25 MB 以內的檔案。",
-      "byokTooLargeDetail": "超過 25 MB 的檔案由 OpenWhispr Cloud 負責分割、平行處理和重組——無需依賴第三方服務限制，即可獲得可靠的結果。",
-      "byokTooLargeNeedsAccount": "建立帳戶並升級至付費方案，即可使用 OpenWhispr Cloud 轉錄更大的檔案。",
-      "byokTooLargeNeedsUpgrade": "升級至付費方案，即可使用 OpenWhispr Cloud 轉錄更大的檔案。",
-      "switchToCloudForLargeFiles": "切換到 OpenWhispr Cloud 來轉錄此檔案。",
-      "createAccount": "建立帳戶",
-      "upgrade": "升級",
-      "switchToCloud": "OpenWhispr Cloud"
+      "staleIndicator": "內容在增強後已變更"
     },
     "meeting": {
       "title": "會議筆記",
@@ -1493,10 +1048,6 @@
       },
       "getStarted": "開始使用"
     },
-    "realtimeBanner": {
-      "message": "Pro 方案可使用即時轉錄",
-      "upgrade": "升級"
-    },
     "enhance": {
       "title": "增強錯誤"
     }
@@ -1557,30 +1108,6 @@
     "defaultUser": "使用者",
     "notSignedIn": "尚未登入"
   },
-  "usage": {
-    "approachingLimit": "即將達到每週上限",
-    "approachingLimitDescription": "你本週已使用 {{wordsUsed}} / {{limit}} 個免費字數。",
-    "yourPlan": "你的方案",
-    "trial": "試用（剩餘 {{days}} 天）",
-    "trial_other": "試用（剩餘 {{days}} 天）",
-    "pro": "Pro",
-    "unlimitedTrial": "試用期間無限轉錄",
-    "unlimited": "無限轉錄",
-    "manageSubscription": "管理訂閱",
-    "weeklyUsage": "每週用量",
-    "limitReached": "已達上限",
-    "free": "免費",
-    "wordsRemaining": "剩餘 {{remaining}} 字",
-    "rollingLimit": "滾動式每週額度",
-    "upgradeToPro": "升級至 Pro",
-    "useYourOwnKey": "使用自己的 API Key",
-    "upgradeUnlimited": "升級至 Pro — 無限轉錄"
-  },
-  "support": {
-    "joinDiscord": "加入 Discord",
-    "contactSupport": "聯絡支援",
-    "submitBug": "提交 Bug"
-  },
   "apiKeyInput": {
     "placeholder": "輸入你的 API Key",
     "label": "API Key",
@@ -1592,17 +1119,7 @@
     "addButton": "新增金鑰"
   },
   "gpu": {
-    "transcriptionBanner": "使用 GPU 加速轉錄",
-    "reasoningBanner": "使用 GPU 加速 AI 處理",
-    "enableButton": "啟用 GPU",
-    "active": "GPU 加速已啟用",
-    "ready": "GPU 加速已就緒",
-    "activating": "正在啟動 GPU...",
-    "activationFailed": "無法啟動 GPU",
-    "retry": "重試",
-    "remove": "移除",
-    "dismiss": "暫時不要",
-    "cancel": "取消"
+    "active": "GPU 加速已啟用"
   },
   "app": {
     "toasts": {
@@ -1624,7 +1141,8 @@
     },
     "buttons": {
       "cancelRecording": "取消錄音",
-      "cancelProcessing": "取消處理"
+      "cancelProcessing": "取消處理",
+      "skipRefinement": "使用未經 AI 潤飾的文字"
     },
     "commandMenu": {
       "stopListening": "停止錄音",
@@ -1637,6 +1155,7 @@
     }
   },
   "meetings": {
+    "lowDiskError": "可用磁碟空間不足 2 GB。錄製通話前請先釋放空間。",
     "title": "通話筆記",
     "subtitle": "記錄對話，並與工作資料一起保存。",
     "settings": "通話筆記設定",
@@ -1860,6 +1379,7 @@
       "transcribing": "轉錄中",
       "refining": "潤飾中",
       "failed": "失敗",
+      "cancelled": "已取消",
       "preparing": "準備音訊",
       "idle": "就緒",
       "recording": "錄音中"
@@ -2083,6 +1603,10 @@
       "title": "螢幕錄製已停止",
       "body": "磁碟剩餘空間不足 1 GB。錄製已儲存。"
     },
+    "diskCall": {
+      "title": "通話錄音已停止",
+      "body": "磁碟剩餘空間不足 1 GB。目前已錄製的音訊已儲存。"
+    },
     "startFailedCall": {
       "title": "通話錄製未能開始",
       "body": "{{message}}"
@@ -2128,5 +1652,33 @@
       "refused": "被拒絕",
       "onClipboard": "留在剪貼簿"
     }
+  },
+  "overlay": {
+    "into": "輸入到",
+    "dictating": "聽寫中",
+    "handsFree": "免持",
+    "elapsed": "已用時間",
+    "stage": {
+      "listening": "聆聽中",
+      "transcribing": "轉寫中",
+      "polishing": "潤飾中",
+      "done": "完成",
+      "notPasted": "未貼上",
+      "cancelled": "已取消",
+      "failed": "失敗"
+    },
+    "cancel": "取消",
+    "pasteRaw": "直接貼上原文",
+    "gotIt": "知道了",
+    "pastedInto": "已貼到 {{app}} ✓",
+    "pasted": "已貼上 ✓",
+    "words_other": "{{count}} 個詞。",
+    "pasteAgain": "按 {{hotkey}} 可再次貼上。",
+    "clipboardTitle": "已在剪貼簿中。",
+    "clipboardBody": "SS2 無法貼到 {{app}}（{{reason}}）。請在需要的位置按 ⌘V。",
+    "clipboardBodyNoApp": "SS2 無法貼上（{{reason}}）。請在需要的位置按 ⌘V。",
+    "manualTitle": "未貼上。",
+    "manualBody": "SS2 無法貼上（{{reason}}）。文字已儲存在歷史記錄中。",
+    "cancelledBody": "已取消，未貼上任何內容。"
   }
 }

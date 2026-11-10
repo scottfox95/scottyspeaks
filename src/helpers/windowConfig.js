@@ -10,6 +10,8 @@ const WINDOW_SIZES = {
   WITH_MENU: { width: 240, height: 280 },
   WITH_TOAST: { width: 400, height: 500 },
   EXPANDED: { width: 400, height: 500 },
+  // Overlay v2 destination card (340px card + margins; room for its note)
+  CARD: { width: 392, height: 280 },
 };
 
 // Main dictation window configuration

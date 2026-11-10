@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Overlay v2, the destination card** (Direction B from the mockups; `src/components/overlay/`):
+  - While dictating, the round button becomes a card. It names the target app ("Into Slack"), shows a live level meter from the mic level `audioManager` already computed every 100 ms, a timer, and listen → transcribe → polish progress.
+  - **States:** listening; transcribing; polishing with **Paste raw now**; "Pasted into <App> ✓" with the word count and the paste-last shortcut; "on clipboard" with the reason; failure with the reason; cancelled.
+  - **Outcomes replace toasts:** in card mode, dictation outcomes (paste refusals, errors, no audio) show on the card instead.
+  - **Escape:** the overlay never takes focus, so main registers a global Escape only while a dictation is live (`overlay:set-escape`). Escape cancels while listening or transcribing and pastes the raw text while polishing.
+  - **Reduced motion:** fades only; the meter still moves because it's data.
+  - **Window:** `CARD` size (392×280), anchored bottom-right like the button.
+  - Screenshots in `docs/overlay-v2/`.
+
 ## [SS2 0.3.15] - 2026-11-10
 
 ### Fixed
