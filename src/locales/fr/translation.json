@@ -1654,5 +1654,34 @@
       "refused": "refusé",
       "onClipboard": "laissé dans le presse-papiers"
     }
+  },
+  "overlay": {
+    "into": "Dans",
+    "dictating": "Dictée",
+    "handsFree": "Mains libres",
+    "elapsed": "Temps écoulé",
+    "stage": {
+      "listening": "Écoute",
+      "transcribing": "Transcription",
+      "polishing": "Mise au propre",
+      "done": "Terminé",
+      "notPasted": "Non collé",
+      "cancelled": "Annulé",
+      "failed": "Échec"
+    },
+    "cancel": "Annuler",
+    "pasteRaw": "Coller le brut",
+    "gotIt": "Compris",
+    "pastedInto": "Collé dans {{app}} ✓",
+    "pasted": "Collé ✓",
+    "words_one": "{{count}} mot.",
+    "words_other": "{{count}} mots.",
+    "pasteAgain": "{{hotkey}} le recolle.",
+    "clipboardTitle": "C'est dans votre presse-papiers.",
+    "clipboardBody": "SS2 n'a pas pu coller dans {{app}} ({{reason}}). Appuyez sur ⌘V à l'endroit voulu.",
+    "clipboardBodyNoApp": "SS2 n'a pas pu coller ({{reason}}). Appuyez sur ⌘V à l'endroit voulu.",
+    "manualTitle": "Non collé.",
+    "manualBody": "SS2 n'a pas pu coller ({{reason}}). Votre texte est enregistré dans l'historique.",
+    "cancelledBody": "Annulé. Rien n'a été collé."
   }
 }

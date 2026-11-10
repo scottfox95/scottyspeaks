@@ -75,8 +75,13 @@ test("D22: the dictation engine effect does not depend on t, toast or onToggle i
 test("D11: Escape cancels a live recording instead of hiding the overlay", () => {
   const app = fs.readFileSync(path.join(root, "src/App.jsx"), "utf8");
   const escape = app.slice(app.indexOf('if (e.key === "Escape")'), app.indexOf('document.addEventListener("keydown"'));
-  assert.ok(escape.indexOf("cancelRecording()") !== -1);
-  assert.ok(escape.indexOf("cancelRecording()") < escape.indexOf("handleClose()"));
+  assert.ok(escape.indexOf("escapeRef.current()") !== -1);
+  assert.ok(escape.indexOf("escapeRef.current()") < escape.indexOf("handleClose()"));
+  // Overlay v2: the shared Escape action cancels a live recording first; the
+  // global Escape (the overlay never has focus) uses the same action.
+  const action = app.slice(app.indexOf("escapeRef.current = () => {"));
+  assert.match(action, /^escapeRef\.current = \(\) => \{\s*if \(isRecording\) void cancelRecording\(\);/);
+  assert.match(app, /onOverlayEscape\?\.\(\(\) => escapeRef\.current\(\)\)/);
   // ...and an explicit hide while recording waits for idle.
   assert.match(app, /if \(isRecording \|\| isProcessing\) \{\s*setHideWhenIdle\(true\);/);
 });

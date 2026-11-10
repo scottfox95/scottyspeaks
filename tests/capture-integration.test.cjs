@@ -213,6 +213,9 @@ test("actual recording hook saves the exact snippet paste and raw STT with its h
   };
   const fn = vm.runInNewContext(`(${callback})`, {
     commandModeRef: { current: false },
+    cardRef: { current: false },
+    targetAppRef: { current: "" },
+    setOutcome: () => {},
     audioManagerRef: { current: audio },
     setTranscript: () => {},
     performance,
@@ -379,6 +382,9 @@ function deliveryCallback(audio, api, extras = {}) {
     );
   return vm.runInNewContext(`(${callback})`, {
     commandModeRef: { current: false },
+    cardRef: { current: false },
+    targetAppRef: { current: "" },
+    setOutcome: () => {},
     audioManagerRef: { current: audio },
     setTranscript: () => {},
     performance,

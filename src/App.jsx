@@ -3,7 +3,6 @@ import { useSpeech } from "./hooks/useSpeech";
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import "./index.css";
-import { X } from "lucide-react";
 import { useToast } from "./components/ui/Toast";
 import { LoadingDots } from "./components/ui/LoadingDots";
 import { useHotkey } from "./hooks/useHotkey";
@@ -11,6 +10,13 @@ import { formatHotkeyLabel } from "./utils/hotkeys";
 import { useWindowDrag } from "./hooks/useWindowDrag";
 import { useAudioRecording } from "./hooks/useAudioRecording";
 import { useSettingsStore } from "./stores/settingsStore";
+import DestinationCard from "./components/overlay/DestinationCard";
+import { overlayStateFor } from "./components/overlay/overlayState";
+
+// How long a finished card stays up. Refusals and failures wait for "Got it",
+// but never hold the screen forever.
+const OUTCOME_MS = { pasted: 2200, cancelled: 1800, clipboard: 12000, manual: 12000, failed: 12000 };
+const CARD_LEAVE_MS = 240;
 
 const isOverToast = (target) =>
   typeof Element !== "undefined" && target instanceof Element && !!target.closest(".toast-surface");
@@ -198,30 +204,95 @@ export default function App() {
     }
   }, [isCommandMenuOpen, isHovered, isToastHovered, setWindowInteractivity]);
 
-  useEffect(() => {
-    const resizeWindow = () => {
-      if (isCommandMenuOpen && toastCount > 0) {
-        window.electronAPI?.resizeMainWindow?.("EXPANDED");
-      } else if (isCommandMenuOpen) {
-        window.electronAPI?.resizeMainWindow?.("WITH_MENU");
-      } else if (toastCount > 0) {
-        window.electronAPI?.resizeMainWindow?.("WITH_TOAST");
-      } else {
-        window.electronAPI?.resizeMainWindow?.("BASE");
-      }
-    };
-    resizeWindow();
-  }, [isCommandMenuOpen, toastCount]);
-
   const handleDictationToggle = React.useCallback(() => {
     setIsCommandMenuOpen(false);
     setWindowInteractivity(false);
   }, [setWindowInteractivity]);
 
-  const { isRecording, isProcessing, pipelineStage, toggleListening, cancelRecording, cancelProcessing } =
-    useAudioRecording(toast, {
-      onToggle: handleDictationToggle,
-    });
+  const {
+    isRecording,
+    isProcessing,
+    pipelineStage,
+    toggleListening,
+    cancelRecording,
+    cancelProcessing,
+    levels,
+    targetApp,
+    startedAt,
+    outcome,
+    dismissOutcome,
+  } = useAudioRecording(toast, {
+    onToggle: handleDictationToggle,
+    card: true,
+  });
+
+  // ---- Overlay v2: the destination card ----
+  const overlayState = overlayStateFor({ isRecording, isProcessing, pipelineStage, outcome });
+  // Keep the card mounted briefly after it ends so it can fade out.
+  const [cardState, setCardState] = useState(null);
+  const [cardLeaving, setCardLeaving] = useState(false);
+  useEffect(() => {
+    if (overlayState) {
+      setCardState(overlayState);
+      setCardLeaving(false);
+      return;
+    }
+    if (!cardState) return;
+    setCardLeaving(true);
+    const timer = setTimeout(() => {
+      setCardState(null);
+      setCardLeaving(false);
+    }, CARD_LEAVE_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overlayState]);
+
+  // Finished cards dismiss themselves.
+  useEffect(() => {
+    const ms = outcome && !isRecording && !isProcessing ? OUTCOME_MS[outcome.kind] : 0;
+    if (!ms) return;
+    const timer = setTimeout(dismissOutcome, ms);
+    return () => clearTimeout(timer);
+  }, [outcome, isRecording, isProcessing, dismissOutcome]);
+
+  // Escape is global only while a dictation is live (the overlay never has focus).
+  const dictationLive = isRecording || isProcessing;
+  useEffect(() => {
+    window.electronAPI?.setOverlayEscape?.(dictationLive);
+  }, [dictationLive]);
+  useEffect(() => () => void window.electronAPI?.setOverlayEscape?.(false), []);
+
+  // Escape: listening or transcribing → cancel (nothing pasted);
+  // polishing → paste the unrefined text now.
+  const escapeRef = useRef(() => {});
+  escapeRef.current = () => {
+    if (isRecording) void cancelRecording();
+    else if (isProcessing) cancelProcessing();
+    else if (outcome) dismissOutcome();
+  };
+  useEffect(() => {
+    const unsubscribe = window.electronAPI?.onOverlayEscape?.(() => escapeRef.current());
+    return () => unsubscribe?.();
+  }, []);
+
+  useEffect(() => {
+    let size = "BASE";
+    if ((isCommandMenuOpen || cardState) && toastCount > 0) size = "EXPANDED";
+    else if (cardState) size = "CARD";
+    else if (isCommandMenuOpen) size = "WITH_MENU";
+    else if (toastCount > 0) size = "WITH_TOAST";
+    window.electronAPI?.resizeMainWindow?.(size);
+  }, [isCommandMenuOpen, toastCount, cardState]);
+
+  // "⌃⌥V pastes it again" names the configured shortcut, or is left out.
+  const [pasteAgainLabel, setPasteAgainLabel] = useState("");
+  useEffect(() => {
+    if (outcome?.kind !== "pasted") return;
+    window.electronAPI
+      ?.getPasteLastHotkey?.()
+      .then((r) => setPasteAgainLabel(r?.hotkey ? formatHotkeyLabel(r.hotkey) : ""))
+      .catch(() => setPasteAgainLabel(""));
+  }, [outcome]);
 
   // Sync auto-hide from main process — setState directly to avoid IPC echo
   useEffect(() => {
@@ -239,7 +310,7 @@ export default function App() {
   useEffect(() => {
     let hideTimeout;
 
-    if (floatingIconAutoHide && !isRecording && !isProcessing && !speechBusy && toastCount === 0) {
+    if (floatingIconAutoHide && !isRecording && !isProcessing && !speechBusy && toastCount === 0 && !cardState) {
       // Delay briefly so processing can start after recording stops without a flash
       hideTimeout = setTimeout(() => {
         window.electronAPI?.hideWindow?.();
@@ -250,7 +321,7 @@ export default function App() {
 
     prevAutoHideRef.current = floatingIconAutoHide;
     return () => clearTimeout(hideTimeout);
-  }, [isRecording, isProcessing, floatingIconAutoHide, toastCount, speechBusy]);
+  }, [isRecording, isProcessing, floatingIconAutoHide, toastCount, speechBusy, cardState]);
 
   // Hiding the overlay while the mic is live would leave a recording with no
   // indicator on screen, so a hide requested mid-dictation waits until idle.
@@ -271,14 +342,6 @@ export default function App() {
     }, 500);
     return () => clearTimeout(timer);
   }, [hideWhenIdle, isRecording, isProcessing]);
-
-  // Brief "Cancelled" under the button so an Escape is visibly acknowledged.
-  const [showCancelled, setShowCancelled] = useState(false);
-  useEffect(() => {
-    if (!showCancelled) return;
-    const timer = setTimeout(() => setShowCancelled(false), 2000);
-    return () => clearTimeout(timer);
-  }, [showCancelled]);
 
   useEffect(() => {
     if (!isCommandMenuOpen) {
@@ -305,14 +368,9 @@ export default function App() {
       if (e.key === "Escape") {
         if (isCommandMenuOpen) {
           setIsCommandMenuOpen(false);
-        } else if (isRecording) {
+        } else if (isRecording || isProcessing || outcome) {
           // Escape means "stop listening", never "hide while the mic stays on".
-          void Promise.resolve(cancelRecording()).then((cancelled) => {
-            if (cancelled) setShowCancelled(true);
-          });
-        } else if (isProcessing) {
-          // While refining this delivers the unrefined text instead.
-          cancelProcessing();
+          escapeRef.current();
         } else {
           handleClose();
         }
@@ -367,8 +425,29 @@ export default function App() {
 
   return (
     <div className="dictation-window">
+      {/* Overlay v2: while dictating (and briefly after) the destination card
+          replaces the round button. */}
+      {cardState && (
+        <DestinationCard
+          state={cardState}
+          leaving={cardLeaving}
+          targetApp={targetApp}
+          levels={levels}
+          startedAt={startedAt}
+          outcome={outcome}
+          isHandsFree={isHandsFree}
+          pasteAgainLabel={pasteAgainLabel}
+          onCancel={() => escapeRef.current()}
+          onPasteRaw={() => cancelProcessing()}
+          onDismiss={dismissOutcome}
+          onPointerInside={(inside) => {
+            setIsHovered(inside);
+            setWindowInteractivity(inside || isCommandMenuOpen);
+          }}
+        />
+      )}
       {/* Bottom-right voice button - window expands upward/leftward */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-6 right-6 z-50" hidden={!!cardState}>
         <div
           className="relative flex items-center gap-2"
           onMouseEnter={() => {
@@ -383,42 +462,6 @@ export default function App() {
           }}
         >
           {speechBusy && <div className="absolute inset-0 z-50"><SpeechControls compact /></div>}
-          {/* Hands-free indicator */}
-          {isHandsFree && isRecording && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/90 backdrop-blur-sm shadow-sm animate-pulse">
-              <div className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-              <span className="text-[10px] font-medium text-white whitespace-nowrap">Hands-free</span>
-            </div>
-          )}
-          {(isRecording || isProcessing) && isHovered && (
-            <button
-              aria-label={
-                isRecording
-                  ? t("app.buttons.cancelRecording")
-                  : pipelineStage === "refining"
-                    ? t("app.buttons.skipRefinement")
-                    : t("app.buttons.cancelProcessing")
-              }
-              title={pipelineStage === "refining" ? t("app.buttons.skipRefinement") : undefined}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (isRecording) {
-                  void Promise.resolve(cancelRecording()).then((cancelled) => {
-                    if (cancelled) setShowCancelled(true);
-                  });
-                } else {
-                  cancelProcessing();
-                }
-              }}
-              className="group/cancel w-5 h-5 rounded-full bg-surface-2/90 hover:bg-destructive border border-border hover:border-destructive/70 flex items-center justify-center transition-colors duration-150 shadow-sm backdrop-blur-sm"
-            >
-              <X
-                size={10}
-                strokeWidth={2.5}
-                className="text-foreground group-hover/cancel:text-destructive-foreground transition-colors duration-150"
-              />
-            </button>
-          )}
           <Tooltip content={micProps.tooltip}>
             <button
               ref={buttonRef}
@@ -505,7 +548,6 @@ export default function App() {
               )}
             </button>
           </Tooltip>
-          {(isProcessing || pipelineStage === "failed" || showCancelled) && <span role="status" className="absolute bottom-0 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] text-foreground">{t(`dictationCleanup.stages.${isProcessing || pipelineStage === "failed" ? pipelineStage : "cancelled"}`)}</span>}
           {isCommandMenuOpen && (
             <div
               ref={commandMenuRef}

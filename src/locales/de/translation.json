@@ -1654,5 +1654,34 @@
       "refused": "abgelehnt",
       "onClipboard": "in der Zwischenablage"
     }
+  },
+  "overlay": {
+    "into": "In",
+    "dictating": "Diktat",
+    "handsFree": "Freihändig",
+    "elapsed": "Verstrichene Zeit",
+    "stage": {
+      "listening": "Hört zu",
+      "transcribing": "Transkribiert",
+      "polishing": "Überarbeitet",
+      "done": "Fertig",
+      "notPasted": "Nicht eingefügt",
+      "cancelled": "Abgebrochen",
+      "failed": "Fehlgeschlagen"
+    },
+    "cancel": "Abbrechen",
+    "pasteRaw": "Rohtext einfügen",
+    "gotIt": "Verstanden",
+    "pastedInto": "In {{app}} eingefügt ✓",
+    "pasted": "Eingefügt ✓",
+    "words_one": "{{count}} Wort.",
+    "words_other": "{{count}} Wörter.",
+    "pasteAgain": "{{hotkey}} fügt es erneut ein.",
+    "clipboardTitle": "Es liegt in der Zwischenablage.",
+    "clipboardBody": "SS2 konnte nicht in {{app}} einfügen ({{reason}}). Drücke ⌘V an der gewünschten Stelle.",
+    "clipboardBodyNoApp": "SS2 konnte nicht einfügen ({{reason}}). Drücke ⌘V an der gewünschten Stelle.",
+    "manualTitle": "Nicht eingefügt.",
+    "manualBody": "SS2 konnte nicht einfügen ({{reason}}). Dein Text ist im Verlauf gespeichert.",
+    "cancelledBody": "Abgebrochen. Nichts wurde eingefügt."
   }
 }

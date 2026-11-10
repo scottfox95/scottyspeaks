@@ -96,6 +96,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     "hands-free-changed",
     (callback) => (_event, active) => callback(active)
   ),
+  onOverlayEscape: registerListener("overlay-escape", (callback) => () => callback()),
 
   // Stream Deck Pedal
   onStartCommandDictation: registerListener(
@@ -312,6 +313,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   setMainWindowInteractivity: (interactive) =>
     ipcRenderer.invoke("set-main-window-interactivity", interactive),
   resizeMainWindow: (sizeKey) => ipcRenderer.invoke("resize-main-window", sizeKey),
+  setOverlayEscape: (enabled) => ipcRenderer.invoke("overlay:set-escape", enabled),
 
   // Update functions
   checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),

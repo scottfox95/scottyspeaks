@@ -1654,5 +1654,34 @@
       "refused": "recusado",
       "onClipboard": "na área de transferência"
     }
+  },
+  "overlay": {
+    "into": "Em",
+    "dictating": "Ditando",
+    "handsFree": "Mãos livres",
+    "elapsed": "Tempo decorrido",
+    "stage": {
+      "listening": "Ouvindo",
+      "transcribing": "Transcrevendo",
+      "polishing": "Ajustando",
+      "done": "Pronto",
+      "notPasted": "Não colado",
+      "cancelled": "Cancelado",
+      "failed": "Não funcionou"
+    },
+    "cancel": "Cancelar",
+    "pasteRaw": "Colar sem ajuste",
+    "gotIt": "Entendi",
+    "pastedInto": "Colado em {{app}} ✓",
+    "pasted": "Colado ✓",
+    "words_one": "{{count}} palavra.",
+    "words_other": "{{count}} palavras.",
+    "pasteAgain": "{{hotkey}} cola de novo.",
+    "clipboardTitle": "Está na sua área de transferência.",
+    "clipboardBody": "O SS2 não conseguiu colar em {{app}} ({{reason}}). Pressione ⌘V onde quiser.",
+    "clipboardBodyNoApp": "O SS2 não conseguiu colar ({{reason}}). Pressione ⌘V onde quiser.",
+    "manualTitle": "Não colado.",
+    "manualBody": "O SS2 não conseguiu colar ({{reason}}). Seu texto está salvo no histórico.",
+    "cancelledBody": "Cancelado. Nada foi colado."
   }
 }

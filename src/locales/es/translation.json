@@ -1654,5 +1654,34 @@
       "refused": "rechazado",
       "onClipboard": "en el portapapeles"
     }
+  },
+  "overlay": {
+    "into": "En",
+    "dictating": "Dictando",
+    "handsFree": "Manos libres",
+    "elapsed": "Tiempo transcurrido",
+    "stage": {
+      "listening": "Escuchando",
+      "transcribing": "Transcribiendo",
+      "polishing": "Puliendo",
+      "done": "Listo",
+      "notPasted": "Sin pegar",
+      "cancelled": "Cancelado",
+      "failed": "No funcionó"
+    },
+    "cancel": "Cancelar",
+    "pasteRaw": "Pegar sin pulir",
+    "gotIt": "Entendido",
+    "pastedInto": "Pegado en {{app}} ✓",
+    "pasted": "Pegado ✓",
+    "words_one": "{{count}} palabra.",
+    "words_other": "{{count}} palabras.",
+    "pasteAgain": "{{hotkey}} lo vuelve a pegar.",
+    "clipboardTitle": "Está en tu portapapeles.",
+    "clipboardBody": "SS2 no pudo pegar en {{app}} ({{reason}}). Pulsa ⌘V donde lo quieras.",
+    "clipboardBodyNoApp": "SS2 no pudo pegar ({{reason}}). Pulsa ⌘V donde lo quieras.",
+    "manualTitle": "Sin pegar.",
+    "manualBody": "SS2 no pudo pegar ({{reason}}). Tu texto está guardado en el historial.",
+    "cancelledBody": "Cancelado. No se pegó nada."
   }
 }

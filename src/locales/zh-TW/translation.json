@@ -1652,5 +1652,33 @@
       "refused": "被拒絕",
       "onClipboard": "留在剪貼簿"
     }
+  },
+  "overlay": {
+    "into": "輸入到",
+    "dictating": "聽寫中",
+    "handsFree": "免持",
+    "elapsed": "已用時間",
+    "stage": {
+      "listening": "聆聽中",
+      "transcribing": "轉寫中",
+      "polishing": "潤飾中",
+      "done": "完成",
+      "notPasted": "未貼上",
+      "cancelled": "已取消",
+      "failed": "失敗"
+    },
+    "cancel": "取消",
+    "pasteRaw": "直接貼上原文",
+    "gotIt": "知道了",
+    "pastedInto": "已貼到 {{app}} ✓",
+    "pasted": "已貼上 ✓",
+    "words_other": "{{count}} 個詞。",
+    "pasteAgain": "按 {{hotkey}} 可再次貼上。",
+    "clipboardTitle": "已在剪貼簿中。",
+    "clipboardBody": "SS2 無法貼到 {{app}}（{{reason}}）。請在需要的位置按 ⌘V。",
+    "clipboardBodyNoApp": "SS2 無法貼上（{{reason}}）。請在需要的位置按 ⌘V。",
+    "manualTitle": "未貼上。",
+    "manualBody": "SS2 無法貼上（{{reason}}）。文字已儲存在歷史記錄中。",
+    "cancelledBody": "已取消，未貼上任何內容。"
   }
 }

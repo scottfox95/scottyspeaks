@@ -95,6 +95,25 @@ class WindowManager {
     this.isMainWindowInteractive = shouldCapture;
   }
 
+  /**
+   * The overlay never takes focus, so Escape can't reach it as a key event.
+   * While a dictation is live the card asks for a global Escape; it is
+   * released as soon as the dictation ends so other apps get Escape back.
+   */
+  setOverlayEscape(enabled) {
+    const { globalShortcut } = require("electron");
+    if (enabled && !this.overlayEscapeRegistered) {
+      this.overlayEscapeRegistered = globalShortcut.register("Escape", () => {
+        if (this.mainWindow && !this.mainWindow.isDestroyed())
+          this.mainWindow.webContents.send("overlay-escape");
+      });
+    } else if (!enabled && this.overlayEscapeRegistered) {
+      globalShortcut.unregister("Escape");
+      this.overlayEscapeRegistered = false;
+    }
+    return { success: true, registered: !!this.overlayEscapeRegistered };
+  }
+
   resizeMainWindow(sizeKey) {
     if (!this.mainWindow || this.mainWindow.isDestroyed()) {
       return { success: false, message: "Window not available" };

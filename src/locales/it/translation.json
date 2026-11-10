@@ -1654,5 +1654,34 @@
       "refused": "rifiutato",
       "onClipboard": "negli appunti"
     }
+  },
+  "overlay": {
+    "into": "In",
+    "dictating": "Dettatura",
+    "handsFree": "Mani libere",
+    "elapsed": "Tempo trascorso",
+    "stage": {
+      "listening": "In ascolto",
+      "transcribing": "Trascrizione",
+      "polishing": "Rifinitura",
+      "done": "Fatto",
+      "notPasted": "Non incollato",
+      "cancelled": "Annullato",
+      "failed": "Non riuscito"
+    },
+    "cancel": "Annulla",
+    "pasteRaw": "Incolla grezzo",
+    "gotIt": "Ok",
+    "pastedInto": "Incollato in {{app}} ✓",
+    "pasted": "Incollato ✓",
+    "words_one": "{{count}} parola.",
+    "words_other": "{{count}} parole.",
+    "pasteAgain": "{{hotkey}} lo incolla di nuovo.",
+    "clipboardTitle": "È negli appunti.",
+    "clipboardBody": "SS2 non è riuscito a incollare in {{app}} ({{reason}}). Premi ⌘V dove vuoi.",
+    "clipboardBodyNoApp": "SS2 non è riuscito a incollare ({{reason}}). Premi ⌘V dove vuoi.",
+    "manualTitle": "Non incollato.",
+    "manualBody": "SS2 non è riuscito a incollare ({{reason}}). Il testo è salvato nella cronologia.",
+    "cancelledBody": "Annullato. Non è stato incollato nulla."
   }
 }

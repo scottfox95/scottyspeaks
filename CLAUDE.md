@@ -660,6 +660,13 @@ Screen recordings page (sidebar / ⌘4) → `src/components/screen/ScreenRecordi
 - Guards: refuses to start with <2 GB free, stops itself below 1 GB (checked every 30s), `powerSaveBlocker("prevent-app-suspension")` while recording, `before-quit` finalizes first. If SS2 crashes, the helper sees stdin EOF and finalizes on its own.
 - Permission: TCC refusal surfaces as `SCStreamError.userDeclined` → `code: "permission"` → the page shows guidance and opens `Privacy_ScreenCapture`. Running the helper from a terminal fails with that error; TCC belongs to the signed SS2 app, so real tests go through a packed build.
 
+### Overlay v2: destination card (Direction B)
+- `App.jsx` shows `components/overlay/DestinationCard.jsx` whenever `overlayStateFor()` (in `overlayState.js`) returns a state. That is listening / transcribing / polishing, or the outcome kinds pasted / clipboard / manual / failed / cancelled. Otherwise it shows the round button.
+- `useAudioRecording(toast, { card: true })` supplies `levels` (28 × 100 ms), `targetApp`, `startedAt`, `outcome` and `dismissOutcome`. In card mode, dictation outcomes go to the card, not toasts. `POLISH_UNAVAILABLE` and voice-command results stay toasts.
+- **Escape** must be global, because the overlay is a non-focusing panel. `windowManager.setOverlayEscape()` registers it only while a dictation is live, so other apps keep Escape the rest of the time.
+- **Outcome lifetimes:** pasted 2.2 s, cancelled 1.8 s, refusals and failures 12 s or until "Got it".
+- Tests (`tests/destination-card.test.cjs`) bundle the real component with esbuild and render every state with react-dom/server.
+
 ### Recording trust (0.3.13, after the Nov 9 2026 demo failures)
 - **Speech detection** (`speechActivity.js`): anything above -40 dBFS is activity; the rolling floor is the 5th percentile capped at -45 dBFS. The old 20th-percentile floor learned speech on talk-heavy calls and auto-stopped one 11 minutes in. `tests/recording-trust.test.cjs` holds synthetic fixtures that the pre-fix detector fails on. Never commit real call audio.
 - **Auto-stop** (`meetingRecorder.js`): default 10 min (configs on the old default of 2 migrate once, flag `autoStopDefaultMigrated`). 30 s warning (`status().autoStopWarning`, `meetings:keepRecording`). Held off while a meeting app holds a call power assertion (`meetingActivity.js` parses `pmset -g assertions`: Teams, Zoom, Webex, FaceTime, Slack huddle, browser WebRTC).

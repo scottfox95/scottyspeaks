@@ -1652,5 +1652,33 @@
       "refused": "拒否",
       "onClipboard": "クリップボードに保存"
     }
+  },
+  "overlay": {
+    "into": "入力先",
+    "dictating": "音声入力中",
+    "handsFree": "ハンズフリー",
+    "elapsed": "経過時間",
+    "stage": {
+      "listening": "聞き取り中",
+      "transcribing": "文字起こし中",
+      "polishing": "整形中",
+      "done": "完了",
+      "notPasted": "未貼り付け",
+      "cancelled": "キャンセル",
+      "failed": "失敗"
+    },
+    "cancel": "キャンセル",
+    "pasteRaw": "整形せずに貼り付け",
+    "gotIt": "OK",
+    "pastedInto": "{{app}} に貼り付けました ✓",
+    "pasted": "貼り付けました ✓",
+    "words_other": "{{count}} 語。",
+    "pasteAgain": "{{hotkey}} でもう一度貼り付けます。",
+    "clipboardTitle": "クリップボードにあります。",
+    "clipboardBody": "{{app}} に貼り付けできませんでした（{{reason}}）。貼り付けたい場所で ⌘V を押してください。",
+    "clipboardBodyNoApp": "貼り付けできませんでした（{{reason}}）。貼り付けたい場所で ⌘V を押してください。",
+    "manualTitle": "貼り付けていません。",
+    "manualBody": "貼り付けできませんでした（{{reason}}）。テキストは履歴に保存されています。",
+    "cancelledBody": "キャンセルしました。何も貼り付けていません。"
   }
 }

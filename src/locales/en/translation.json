@@ -1654,5 +1654,34 @@
       "refused": "refused",
       "onClipboard": "left on clipboard"
     }
+  },
+  "overlay": {
+    "into": "Into",
+    "dictating": "Dictating",
+    "handsFree": "Hands-free",
+    "elapsed": "Elapsed time",
+    "stage": {
+      "listening": "Listening",
+      "transcribing": "Transcribing",
+      "polishing": "Polishing",
+      "done": "Done",
+      "notPasted": "Not pasted",
+      "cancelled": "Cancelled",
+      "failed": "Didn't work"
+    },
+    "cancel": "Cancel",
+    "pasteRaw": "Paste raw now",
+    "gotIt": "Got it",
+    "pastedInto": "Pasted into {{app}} ✓",
+    "pasted": "Pasted ✓",
+    "words_one": "{{count}} word.",
+    "words_other": "{{count}} words.",
+    "pasteAgain": "{{hotkey}} pastes it again.",
+    "clipboardTitle": "It's on your clipboard.",
+    "clipboardBody": "SS2 couldn't paste into {{app}} ({{reason}}). Press ⌘V where you want it.",
+    "clipboardBodyNoApp": "SS2 couldn't paste ({{reason}}). Press ⌘V where you want it.",
+    "manualTitle": "Not pasted.",
+    "manualBody": "SS2 couldn't paste ({{reason}}). Your text is saved in History.",
+    "cancelledBody": "Cancelled. Nothing was pasted."
   }
 }

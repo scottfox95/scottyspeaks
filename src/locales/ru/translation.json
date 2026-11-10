@@ -1660,5 +1660,36 @@
       "refused": "отказ",
       "onClipboard": "в буфере обмена"
     }
+  },
+  "overlay": {
+    "into": "В",
+    "dictating": "Диктовка",
+    "handsFree": "Без рук",
+    "elapsed": "Прошло времени",
+    "stage": {
+      "listening": "Слушаю",
+      "transcribing": "Распознаю",
+      "polishing": "Редактирую",
+      "done": "Готово",
+      "notPasted": "Не вставлено",
+      "cancelled": "Отменено",
+      "failed": "Не удалось"
+    },
+    "cancel": "Отмена",
+    "pasteRaw": "Вставить как есть",
+    "gotIt": "Понятно",
+    "pastedInto": "Вставлено в {{app}} ✓",
+    "pasted": "Вставлено ✓",
+    "words_one": "{{count}} слово.",
+    "words_few": "{{count}} слова.",
+    "words_many": "{{count}} слов.",
+    "words_other": "{{count}} слова.",
+    "pasteAgain": "{{hotkey}} вставит ещё раз.",
+    "clipboardTitle": "Текст в буфере обмена.",
+    "clipboardBody": "SS2 не смог вставить в {{app}} ({{reason}}). Нажмите ⌘V в нужном месте.",
+    "clipboardBodyNoApp": "SS2 не смог вставить ({{reason}}). Нажмите ⌘V в нужном месте.",
+    "manualTitle": "Не вставлено.",
+    "manualBody": "SS2 не смог вставить ({{reason}}). Текст сохранён в истории.",
+    "cancelledBody": "Отменено. Ничего не вставлено."
   }
 }

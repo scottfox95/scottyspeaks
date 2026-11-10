@@ -193,6 +193,13 @@ const CONTRACTIONS = {
   "they're": "they are", "that's": "that is", "there's": "there is", "what's": "what is",
   "i've": "i have", "i'll": "i will", "we'll": "we will", "let's": "let us", "gonna": "going to", "wanna": "want to",
 };
+/** Mic RMS (0..1 amplitude) → meter level 0..1 on a -60..-10 dBFS scale. */
+function levelFromRms(rms) {
+  if (!(rms > 0)) return 0;
+  const db = 20 * Math.log10(rms);
+  return Math.min(1, Math.max(0, (db + 60) / 50));
+}
+
 // Spoken formatting commands are meant to disappear ("new paragraph" → a blank line).
 const SPOKEN_COMMANDS =
   /\b(?:new (?:line|paragraph)|period|full stop|comma|colon|semicolon|question mark|exclamation (?:point|mark)|scratch that|(?:open |close )?quote|unquote|bullet(?: point)?|numbered list|dash|hyphen)\b/g;
@@ -289,10 +296,13 @@ class AudioManager {
     return words.length > 0 ? words.join(", ") : null;
   }
 
-  setCallbacks({ onStateChange, onError, onTranscriptionComplete }) {
+  setCallbacks({ onStateChange, onError, onTranscriptionComplete, onLevel = null, onTarget = null }) {
     this.onStateChange = onStateChange;
     this.onError = onError;
     this.onTranscriptionComplete = onTranscriptionComplete;
+    // Overlay v2: live mic level (0..1, every 100 ms) and the paste target's app name.
+    this.onLevel = onLevel;
+    this.onTarget = onTarget;
   }
 
   setSkipReasoning(skip) {
@@ -369,6 +379,7 @@ class AudioManager {
       target.token = result?.token || null;
       target.appName = typeof result?.appName === "string" ? result.appName : "";
       if (target.released && target.token) await window.electronAPI?.releaseRecordingTarget?.(target.token);
+      else this.onTarget?.({ appName: target.appName });
     } catch { target.token = null; }
   }
 
@@ -489,6 +500,9 @@ class AudioManager {
           }
           const rms = Math.sqrt(sum / dataArray.length);
           if (rms > this._peakRms) this._peakRms = rms;
+          // The overlay's level meter, -60 dBFS → 0 and -10 dBFS → 1. Computed
+          // anyway for silence detection; until 0.3.16 it was thrown away.
+          this.onLevel?.(levelFromRms(rms));
         }, 100);
       } catch (e) {
         this.cleanupSilenceDetection();
@@ -2118,7 +2132,11 @@ class AudioManager {
         return { ...pasted, text: pasted.text ?? text };
       }
       this.lastPastedText = pasted?.text ?? text;
-      return { success: true, text: this.lastPastedText };
+      return {
+        success: true,
+        text: this.lastPastedText,
+        appName: typeof pasted?.appName === "string" ? pasted.appName : "",
+      };
     } catch {
       this.onError?.({ code: "PASTE_FAILED" });
       return { success: false, manualCopy: true, text };

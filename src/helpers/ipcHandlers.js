@@ -411,6 +411,10 @@ class IPCHandlers {
       return { success: true };
     });
 
+    ipcMain.handle("overlay:set-escape", (event, enabled) =>
+      this.windowManager.setOverlayEscape(Boolean(enabled))
+    );
+
     ipcMain.handle("resize-main-window", (event, sizeKey) => {
       return this.windowManager.resizeMainWindow(sizeKey);
     });
