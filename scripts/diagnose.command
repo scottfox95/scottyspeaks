@@ -75,13 +75,24 @@ done
 if [ -z "$PORT" ]; then
   echo "AI server not reachable — open SS2, wait ~20s, run this again."
 else
-  START=$(python3 -c "import time;print(int(time.time()*1000))")
-  OUT=$(curl -s -m 120 "http://127.0.0.1:$PORT/v1/chat/completions" \
+  # No python3 here: on a stock Mac it is a shim that prompts to install
+  # developer tools. curl times the request; osascript (JXA) reads the JSON.
+  OUT_FILE=$(mktemp -t ss2-diag)
+  SECS=$(curl -s -m 120 -o "$OUT_FILE" -w '%{time_total}' "http://127.0.0.1:$PORT/v1/chat/completions" \
     -H "Content-Type: application/json" \
     -d '{"messages":[{"role":"system","content":"Rewrite the dictation as clean text. Output only the text."},{"role":"user","content":"so um i think we should probably ship it today and follow up tomorrow"}],"max_tokens":128,"temperature":0.2,"stream":false}')
-  END=$(python3 -c "import time;print(int(time.time()*1000))")
-  echo "Round-trip: $((END-START)) ms   (healthy = under ~3500 ms)"
-  echo "$OUT" | python3 -c "import sys,json; print('Output:', json.load(sys.stdin)['choices'][0]['message']['content'].strip())" 2>/dev/null
+  echo "Round-trip: $(awk -v s="${SECS:-0}" 'BEGIN { printf "%d", s * 1000 }') ms   (healthy = under ~3500 ms)"
+  /usr/bin/osascript -l JavaScript -e '
+function run(argv) {
+  ObjC.import("Foundation");
+  try {
+    var s = $.NSString.stringWithContentsOfFileEncodingError(argv[0], $.NSUTF8StringEncoding, null);
+    return "Output: " + JSON.parse(ObjC.unwrap(s)).choices[0].message.content.trim();
+  } catch (e) {
+    return "Output: (could not read the AI response)";
+  }
+}' "$OUT_FILE" 2>/dev/null
+  rm -f "$OUT_FILE"
 fi
 
 echo
