@@ -21,7 +21,6 @@ import TitleBar from "./TitleBar";
 import WindowControls from "./WindowControls";
 import PermissionCard from "./ui/PermissionCard";
 import MicPermissionWarning from "./ui/MicPermissionWarning";
-import PasteToolsInfo from "./ui/PasteToolsInfo";
 import StepProgress from "./ui/StepProgress";
 import { AlertDialog, ConfirmDialog } from "./ui/dialog";
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -601,15 +600,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               />
             )}
 
-            {platform === "linux" &&
-              permissionsHook.pasteToolsInfo &&
-              !permissionsHook.pasteToolsInfo.available && (
-                <PasteToolsInfo
-                  pasteToolsInfo={permissionsHook.pasteToolsInfo}
-                  isChecking={permissionsHook.isCheckingPasteTools}
-                  onCheck={permissionsHook.checkPasteToolsAvailability}
-                />
-              )}
           </div>
         );
 
