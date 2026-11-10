@@ -1641,6 +1641,7 @@
     }
   },
   "meetings": {
+    "lowDiskError": "Sono liberi meno di 2 GB di spazio su disco. Libera spazio prima di registrare una chiamata.",
     "title": "Note delle chiamate",
     "subtitle": "Registra la conversazione. Conservala insieme al tuo lavoro.",
     "settings": "Impostazioni delle note delle chiamate",
@@ -2088,6 +2089,10 @@
     "disk": {
       "title": "Registrazione dello schermo interrotta",
       "body": "Rimane meno di 1 GB di spazio. La registrazione è stata salvata."
+    },
+    "diskCall": {
+      "title": "Registrazione della chiamata interrotta",
+      "body": "Resta meno di 1 GB di spazio su disco. L'audio registrato finora è salvato."
     },
     "startFailedCall": {
       "title": "La registrazione della chiamata non è partita",

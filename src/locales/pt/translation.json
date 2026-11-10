@@ -1641,6 +1641,7 @@
     }
   },
   "meetings": {
+    "lowDiskError": "Há menos de 2 GB de espaço livre em disco. Libere espaço antes de gravar uma chamada.",
     "title": "Notas de chamadas",
     "subtitle": "Capture a conversa. Guarde-a junto com o seu trabalho.",
     "settings": "Definições das notas de chamadas",
@@ -2088,6 +2089,10 @@
     "disk": {
       "title": "Gravação de tela parada",
       "body": "Resta menos de 1 GB de espaço. A gravação foi salva."
+    },
+    "diskCall": {
+      "title": "A gravação da chamada parou",
+      "body": "Resta menos de 1 GB de espaço em disco. O áudio gravado até agora foi salvo."
     },
     "startFailedCall": {
       "title": "A gravação da chamada não começou",
