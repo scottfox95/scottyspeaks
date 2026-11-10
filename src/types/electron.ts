@@ -105,12 +105,6 @@ export interface GpuInfo {
   vramMb?: number;
 }
 
-export interface CudaWhisperStatus {
-  downloaded: boolean;
-  path: string | null;
-  gpuInfo: GpuInfo;
-}
-
 export interface WhisperCheckResult {
   installed: boolean;
   working: boolean;
@@ -138,24 +132,6 @@ export interface WhisperModelsListResult {
   success: boolean;
   models: Array<{ model: string; downloaded: boolean; size_mb?: number }>;
   cache_dir: string;
-}
-
-export interface FFmpegAvailabilityResult {
-  available: boolean;
-  path?: string;
-  error?: string;
-}
-
-export interface AudioDiagnosticsResult {
-  platform: string;
-  arch: string;
-  resourcesPath: string | null;
-  isPackaged: boolean;
-  ffmpeg: { available: boolean; path: string | null; error: string | null };
-  whisperBinary: { available: boolean; path: string | null; error: string | null };
-  whisperServer: { available: boolean; path: string | null };
-  modelsDir: string;
-  models: string[];
 }
 
 export interface UpdateCheckResult {
@@ -198,12 +174,6 @@ export interface WhisperDownloadProgressData {
   error?: string;
   code?: string;
   result?: any;
-}
-
-export interface ParakeetCheckResult {
-  installed: boolean;
-  working: boolean;
-  path?: string;
 }
 
 export interface ParakeetModelResult {
@@ -249,16 +219,6 @@ export interface ParakeetTranscriptionResult {
   error?: string;
 }
 
-export interface ParakeetDiagnosticsResult {
-  platform: string;
-  arch: string;
-  resourcesPath: string | null;
-  isPackaged: boolean;
-  sherpaOnnx: { available: boolean; path: string | null };
-  modelsDir: string;
-  models: string[];
-}
-
 export interface PasteToolsResult {
   platform: "darwin" | "win32" | "linux";
   available: boolean;
@@ -285,46 +245,11 @@ export interface LlamaServerStatus {
   gpuAccelerated: boolean;
 }
 
-export interface VulkanGpuResult {
-  available: boolean;
-  deviceName?: string;
-  reason?: string;
-  error?: string;
-}
-
-export interface LlamaVulkanStatus {
-  supported: boolean;
-  downloaded: boolean;
-  downloading?: boolean;
-  error?: string;
-}
-
-export interface LlamaVulkanDownloadProgress {
-  downloaded: number;
-  total: number;
-  percentage: number;
-}
-
-export interface ReferralItem {
-  id: string;
-  email: string;
-  name: string | null;
-  status: "pending" | "completed" | "rewarded";
-  created_at: string;
-  first_payment_at: string | null;
-}
-
 declare global {
   interface Window {
     electronAPI: {
       reserveLocalInference: () => Promise<string>;
       releaseLocalInference: (token: string) => Promise<void>;
-      getLocalInferenceStatus: () => Promise<{
-        active: number;
-        activePriority: "foreground" | "background" | null;
-        queued: { foreground: number; background: number };
-        foregroundReservations: number;
-      }>;
       speech: import("./speech").SpeechAPI;
       callAgent: import("./callAgent").CallAgentAPI;
       meetings: import("./meeting").MeetingAPI;
@@ -341,13 +266,6 @@ declare global {
       onStartDictation?: (callback: () => void) => () => void;
       onStopDictation?: (callback: () => void) => () => void;
 
-      // STT config
-      getSttConfig?: () => Promise<{
-        success: boolean;
-        dictation: { mode: string };
-        notes: { mode: string };
-        streamingProvider: string;
-      } | null>;
 
       // Database operations
       saveTranscription: (text: string) => Promise<{ id: number; success: boolean }>;
@@ -417,7 +335,6 @@ declare global {
         audioDuration?: number | null,
         folderId?: number | null
       ) => Promise<{ success: boolean; note?: NoteItem }>;
-      getNote: (id: number) => Promise<NoteItem | null>;
       getNotes: (
         noteType?: string | null,
         limit?: number,
@@ -454,7 +371,6 @@ declare global {
 
       // Action operations
       getActions: () => Promise<ActionItem[]>;
-      getAction: (id: number) => Promise<ActionItem | null>;
       createAction: (
         name: string,
         description: string,
@@ -476,19 +392,6 @@ declare global {
       onActionUpdated?: (callback: (action: ActionItem) => void) => () => void;
       onActionDeleted?: (callback: (payload: { id: number }) => void) => () => void;
 
-      // Audio file operations
-      selectAudioFile: () => Promise<{ canceled: boolean; filePath?: string }>;
-      getFileSize?: (filePath: string) => Promise<number>;
-      transcribeAudioFile: (
-        filePath: string,
-        options?: {
-          provider?: "whisper" | "nvidia";
-          model?: string;
-          language?: string;
-          [key: string]: unknown;
-        }
-      ) => Promise<{ success: boolean; text?: string; error?: string }>;
-      getPathForFile: (file: File) => string;
 
       // Note event listeners
       onNoteAdded?: (callback: (note: NoteItem) => void) => () => void;
@@ -503,11 +406,9 @@ declare global {
       // API key management
       getOpenAIKey: () => Promise<string>;
       saveOpenAIKey: (key: string) => Promise<{ success: boolean }>;
-      createProductionEnvFile: (key: string) => Promise<void>;
       getAnthropicKey: () => Promise<string | null>;
       saveAnthropicKey: (key: string) => Promise<void>;
       getUiLanguage: () => Promise<string>;
-      saveUiLanguage: (language: string) => Promise<{ success: boolean; language: string }>;
       setUiLanguage: (language: string) => Promise<{ success: boolean; language: string }>;
       saveAllKeysToEnv: () => Promise<{ success: boolean; path: string }>;
       syncStartupPreferences: (prefs: {
@@ -551,27 +452,12 @@ declare global {
         error?: string;
       }>;
 
-      // CUDA GPU acceleration
-      detectGpu: () => Promise<GpuInfo>;
-      getCudaWhisperStatus: () => Promise<CudaWhisperStatus>;
-      downloadCudaWhisperBinary: () => Promise<{ success: boolean; error?: string }>;
-      cancelCudaWhisperDownload: () => Promise<{ success: boolean }>;
-      deleteCudaWhisperBinary: () => Promise<{ success: boolean }>;
-      onCudaDownloadProgress: (
-        callback: (data: {
-          downloadedBytes: number;
-          totalBytes: number;
-          percentage: number;
-        }) => void
-      ) => () => void;
-      onCudaFallbackNotification: (callback: () => void) => () => void;
 
       // Parakeet operations (NVIDIA via sherpa-onnx)
       transcribeLocalParakeet: (
         audioBlob: ArrayBuffer,
         options?: { model?: string; language?: string }
       ) => Promise<ParakeetTranscriptionResult>;
-      checkParakeetInstallation: () => Promise<ParakeetCheckResult>;
       downloadParakeetModel: (modelName: string) => Promise<ParakeetModelResult>;
       onParakeetDownloadProgress: (
         callback: (event: any, data: ParakeetDownloadProgressData) => void
@@ -591,7 +477,6 @@ declare global {
         message?: string;
         error?: string;
       }>;
-      getParakeetDiagnostics: () => Promise<ParakeetDiagnosticsResult>;
       getParakeetEngineInfo: () => Promise<{
         engine: string;
         coremlAvailable: boolean;
@@ -625,12 +510,6 @@ declare global {
         code?: string;
         details?: string;
       }>;
-      modelCheckRuntime: () => Promise<{
-        available: boolean;
-        error?: string;
-        code?: string;
-        details?: string;
-      }>;
       modelCancelDownload: (modelId: string) => Promise<{ success: boolean; error?: string }>;
       onModelDownloadProgress: (callback: (event: any, data: any) => void) => () => void;
 
@@ -651,34 +530,10 @@ declare global {
         config: any
       ) => Promise<{ success: boolean; text?: string; error?: string }>;
 
-      // llama.cpp management
-      llamaCppCheck: () => Promise<{ isInstalled: boolean; version?: string }>;
-      llamaCppInstall: () => Promise<{ success: boolean; error?: string }>;
-      llamaCppUninstall: () => Promise<{ success: boolean; error?: string }>;
 
       // llama-server
-      llamaServerStart: (
-        modelId: string
-      ) => Promise<{ success: boolean; port?: number; error?: string }>;
       llamaServerStop: () => Promise<{ success: boolean; error?: string }>;
       llamaServerStatus: () => Promise<LlamaServerStatus>;
-      llamaGpuReset: () => Promise<{ success: boolean; error?: string }>;
-      detectVulkanGpu?: () => Promise<VulkanGpuResult>;
-      getLlamaVulkanStatus?: () => Promise<LlamaVulkanStatus>;
-      downloadLlamaVulkanBinary?: () => Promise<{
-        success: boolean;
-        cancelled?: boolean;
-        error?: string;
-      }>;
-      cancelLlamaVulkanDownload?: () => Promise<{ success: boolean }>;
-      deleteLlamaVulkanBinary?: () => Promise<{
-        success: boolean;
-        deletedCount?: number;
-        error?: string;
-      }>;
-      onLlamaVulkanDownloadProgress?: (
-        callback: (data: LlamaVulkanDownloadProgress) => void
-      ) => () => void;
 
       // Window control operations
       windowMinimize: () => Promise<void>;
@@ -717,7 +572,6 @@ declare global {
         enabled: boolean,
         newHotkey?: string | null
       ) => Promise<{ success: boolean }>;
-      getHotkeyModeInfo?: () => Promise<{ isUsingGnome: boolean }>;
 
       // Globe key listener for hotkey capture (macOS only)
       onGlobeKeyPressed?: (callback: () => void) => () => void;
@@ -766,7 +620,6 @@ declare global {
 
       // Activation mode persistence (file-based for reliable startup)
       getActivationMode?: () => Promise<"tap" | "push">;
-      saveActivationMode?: (mode: "tap" | "push") => Promise<void>;
 
       // Debug logging
       getLogLevel?: () => Promise<string>;
@@ -790,9 +643,6 @@ declare global {
       }>;
       openLogsFolder: () => Promise<{ success: boolean; error?: string }>;
 
-      // FFmpeg availability
-      checkFFmpegAvailability: () => Promise<FFmpegAvailabilityResult>;
-      getAudioDiagnostics: () => Promise<AudioDiagnosticsResult>;
 
       // System settings helpers
       requestMicrophoneAccess?: () => Promise<{ granted: boolean }>;
@@ -811,224 +661,20 @@ declare global {
       getAutoStartEnabled?: () => Promise<boolean>;
       setAutoStartEnabled?: (enabled: boolean) => Promise<{ success: boolean; error?: string }>;
 
-      // Auth
-      authClearSession?: () => Promise<void>;
 
-      // OpenWhispr Cloud API
-      cloudTranscribe?: (
-        audioBuffer: ArrayBuffer,
-        opts: { language?: string; prompt?: string }
-      ) => Promise<{
-        success: boolean;
-        text?: string;
-        wordsUsed?: number;
-        wordsRemaining?: number;
-        limitReached?: boolean;
-        error?: string;
-        code?: string;
-      }>;
-      cloudReason?: (
-        text: string,
-        opts: {
-          model?: string;
-          agentName?: string;
-          customDictionary?: string[];
-          customPrompt?: string;
-          language?: string;
-          locale?: string;
-        }
-      ) => Promise<{
-        success: boolean;
-        text?: string;
-        model?: string;
-        provider?: string;
-        error?: string;
-        code?: string;
-      }>;
-      cloudStreamingUsage?: (
-        text: string,
-        audioDurationSeconds: number,
-        opts?: {
-          sendLogs?: boolean;
-          sttProvider?: string;
-          sttModel?: string;
-          sttProcessingMs?: number;
-          sttLanguage?: string;
-          audioSizeBytes?: number;
-          audioFormat?: string;
-          clientTotalMs?: number;
-        }
-      ) => Promise<{
-        success: boolean;
-        wordsUsed?: number;
-        wordsRemaining?: number;
-        limitReached?: boolean;
-        error?: string;
-        code?: string;
-      }>;
-      cloudUsage?: () => Promise<{
-        success: boolean;
-        wordsUsed?: number;
-        wordsRemaining?: number;
-        limit?: number;
-        plan?: string;
-        status?: string;
-        isSubscribed?: boolean;
-        isTrial?: boolean;
-        trialDaysLeft?: number | null;
-        currentPeriodEnd?: string | null;
-        billingInterval?: "monthly" | "annual" | null;
-        resetAt?: string;
-        error?: string;
-        code?: string;
-      }>;
-      cloudCheckout?: (plan?: "monthly" | "annual") => Promise<{
-        success: boolean;
-        url?: string;
-        error?: string;
-        code?: string;
-      }>;
-      cloudBillingPortal?: () => Promise<{
-        success: boolean;
-        url?: string;
-        error?: string;
-        code?: string;
-      }>;
 
-      // Cloud audio file transcription
-      transcribeAudioFileCloud?: (filePath: string) => Promise<{
-        success: boolean;
-        text?: string;
-        error?: string;
-        code?: string;
-      }>;
 
       onUploadTranscriptionProgress?: (
         callback: (data: { stage: string; chunksTotal: number; chunksCompleted: number }) => void
       ) => () => void;
 
-      // BYOK audio file transcription
-      transcribeAudioFileByok?: (options: {
-        filePath: string;
-        apiKey: string;
-        baseUrl: string;
-        model: string;
-      }) => Promise<{
-        success: boolean;
-        text?: string;
-        error?: string;
-      }>;
 
-      // Usage limit events
-      notifyLimitReached?: (data: { wordsUsed: number; limit: number }) => void;
-      onLimitReached?: (
-        callback: (data: { wordsUsed: number; limit: number }) => void
-      ) => () => void;
 
-      // AssemblyAI Streaming
-      assemblyAiStreamingWarmup?: (options?: {
-        sampleRate?: number;
-        language?: string;
-      }) => Promise<{
-        success: boolean;
-        alreadyWarm?: boolean;
-        error?: string;
-        code?: string;
-      }>;
-      assemblyAiStreamingStart?: (options?: { sampleRate?: number; language?: string }) => Promise<{
-        success: boolean;
-        usedWarmConnection?: boolean;
-        error?: string;
-        code?: string;
-      }>;
-      assemblyAiStreamingSend?: (audioBuffer: ArrayBuffer) => void;
-      assemblyAiStreamingForceEndpoint?: () => void;
-      assemblyAiStreamingStop?: () => Promise<{
-        success: boolean;
-        text?: string;
-        error?: string;
-      }>;
-      assemblyAiStreamingStatus?: () => Promise<{
-        isConnected: boolean;
-        sessionId: string | null;
-      }>;
-      onAssemblyAiPartialTranscript?: (callback: (text: string) => void) => () => void;
-      onAssemblyAiFinalTranscript?: (callback: (text: string) => void) => () => void;
-      onAssemblyAiError?: (callback: (error: string) => void) => () => void;
-      onAssemblyAiSessionEnd?: (
-        callback: (data: { audioDuration?: number; text?: string }) => void
-      ) => () => void;
 
-      // Referral stats
-      getReferralStats?: () => Promise<{
-        referralCode: string;
-        referralLink: string;
-        totalReferrals: number;
-        completedReferrals: number;
-        pendingReferrals: number;
-        totalMonthsEarned: number;
-        referrals: Array<{
-          id: string;
-          email: string;
-          name: string;
-          status: "pending" | "completed" | "rewarded";
-          created_at: string;
-          first_payment_at: string | null;
-          words_used: number;
-        }>;
-      }>;
 
-      sendReferralInvite?: (email: string) => Promise<{
-        success: boolean;
-        invite: {
-          id: string;
-          recipientEmail: string;
-          status: "sent" | "failed" | "opened" | "converted";
-          sentAt: string;
-        };
-      }>;
 
-      getReferralInvites?: () => Promise<{
-        invites: Array<{
-          id: string;
-          recipientEmail: string;
-          status: "sent" | "failed" | "opened" | "converted";
-          sentAt: string;
-          openedAt?: string;
-          convertedAt?: string;
-        }>;
-      }>;
 
       // Deepgram Streaming
-      deepgramStreamingWarmup?: (options?: { sampleRate?: number; language?: string }) => Promise<{
-        success: boolean;
-        alreadyWarm?: boolean;
-        error?: string;
-        code?: string;
-      }>;
-      deepgramStreamingStart?: (options?: { sampleRate?: number; language?: string }) => Promise<{
-        success: boolean;
-        usedWarmConnection?: boolean;
-        error?: string;
-        code?: string;
-      }>;
-      deepgramStreamingSend?: (audioBuffer: ArrayBuffer) => void;
-      deepgramStreamingFinalize?: () => void;
-      deepgramStreamingStop?: () => Promise<{
-        success: boolean;
-        text?: string;
-        error?: string;
-      }>;
-      deepgramStreamingStatus?: () => Promise<{
-        isConnected: boolean;
-        sessionId: string | null;
-      }>;
-      onDeepgramPartialTranscript?: (callback: (text: string) => void) => () => void;
-      onDeepgramFinalTranscript?: (callback: (text: string) => void) => () => void;
-      onDeepgramError?: (callback: (error: string) => void) => () => void;
-      onDeepgramSessionEnd?: (
-        callback: (data: { audioDuration?: number; text?: string }) => void
-      ) => () => void;
     };
 
     api?: {

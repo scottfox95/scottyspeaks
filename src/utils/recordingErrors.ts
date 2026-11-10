@@ -1,14 +1,10 @@
 import { TFunction } from "i18next";
 
+// The cloud-only codes (AUTH_EXPIRED, OFFLINE, LIMIT_REACHED) came from the
+// removed OpenWhispr service; every remaining error carries its own title.
 export function getRecordingErrorTitle(
   error: { code?: string; title: string },
-  t: TFunction
+  _t?: TFunction
 ): string {
-  return error.code === "AUTH_EXPIRED"
-    ? t("hooks.audioRecording.errorTitles.sessionExpired")
-    : error.code === "OFFLINE"
-      ? t("hooks.audioRecording.errorTitles.offline")
-      : error.code === "LIMIT_REACHED"
-        ? t("hooks.audioRecording.errorTitles.dailyLimitReached")
-        : error.title;
+  return error.title;
 }

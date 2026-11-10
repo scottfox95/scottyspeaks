@@ -40,11 +40,8 @@ interface NoteEditorProps {
   onContentChange: (content: string) => void;
   isSaving: boolean;
   isRecording: boolean;
-  partialTranscript: string;
   finalTranscript: string | null;
   onFinalTranscriptConsumed: () => void;
-  streamingCommit: string | null;
-  onStreamingCommitConsumed: () => void;
   isProcessing: boolean;
   onStartRecording: () => void;
   onStopRecording: () => void;
@@ -133,11 +130,8 @@ export default function NoteEditor({
   isSaving,
   isRecording,
   isProcessing,
-  partialTranscript,
   finalTranscript,
   onFinalTranscriptConsumed,
-  streamingCommit,
-  onStreamingCommitConsumed,
   onStartRecording,
   onStopRecording,
   onExportNote,
@@ -441,36 +435,6 @@ export default function NoteEditor({
     }
     prevRecordingRef.current = isRecording;
   }, [isRecording]);
-
-  // Partial effect: only replace the active partial zone [partialStart, end].
-  // Committed text before partialStart is untouched — users can edit it freely.
-  useEffect(() => {
-    if (!partialTranscript || !dictationRef.current) return;
-
-    const { partialStart, end } = dictationRef.current;
-    const hasCommitted = partialStart > dictationRef.current.start;
-    const textToInsert = (hasCommitted ? " " : "") + partialTranscript;
-    const newEnd = partialStart + textToInsert.length;
-
-    replaceContentRange(partialStart, end, textToInsert);
-    dictationRef.current.end = newEnd;
-  }, [partialTranscript, replaceContentRange]); // note.content intentionally excluded
-
-  // Streaming commit: a Deepgram segment was finalized. Replace the partial zone
-  // with the committed text and advance partialStart for the next utterance.
-  useEffect(() => {
-    if (streamingCommit == null || !dictationRef.current) return;
-
-    const { partialStart, end } = dictationRef.current;
-    const newPartialStart = partialStart + streamingCommit.length;
-
-    replaceContentRange(partialStart, end, streamingCommit);
-    dictationRef.current.partialStart = newPartialStart;
-    dictationRef.current.end = newPartialStart;
-    dictationRef.current.committedChars += streamingCommit.length;
-
-    onStreamingCommitConsumed();
-  }, [streamingCommit, onStreamingCommitConsumed, replaceContentRange]); // note.content intentionally excluded
 
   // Final transcript (on recording stop).
   useEffect(() => {

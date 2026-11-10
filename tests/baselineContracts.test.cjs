@@ -94,3 +94,23 @@ test("stale sign-in state is removed and the migration runs only once", () => {
   defaults.migrateToLocalFirstDefaults(store);
   assert.equal(store.getItem("isSignedIn"), "true"); // marker set: no second pass
 });
+
+test("nothing in the renderer reads sign-in state or routes to OpenWhispr cloud", () => {
+  const root = path.resolve(__dirname, "..", "src");
+  const offenders = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === "node_modules" || entry.name === "dist" || entry.name === "locales")
+        continue;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (/\.(jsx?|tsx?)$/.test(entry.name) && entry.name !== "localFirstDefaults.ts") {
+        const text = fs.readFileSync(full, "utf8");
+        if (/\bisSignedIn\b|\bcloudTranscriptionMode\b|\bcloudReasoningMode\b|\bcloudTranscribe\(|\bcloudReason\(/.test(text))
+          offenders.push(path.relative(root, full));
+      }
+    }
+  };
+  walk(root);
+  assert.deepEqual(offenders, []);
+});

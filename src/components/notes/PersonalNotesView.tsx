@@ -94,9 +94,6 @@ export default function PersonalNotesView() {
   const {
     isRecording,
     isProcessing,
-    partialTranscript,
-    streamingCommit,
-    consumeStreamingCommit,
     startRecording,
     stopRecording,
   } = useNoteRecording({
@@ -734,11 +731,8 @@ export default function PersonalNotesView() {
               isSaving={isSaving}
               isRecording={isRecording}
               isProcessing={isProcessing}
-              partialTranscript={partialTranscript}
               finalTranscript={finalTranscript}
               onFinalTranscriptConsumed={handleFinalTranscriptConsumed}
-              streamingCommit={streamingCommit}
-              onStreamingCommitConsumed={consumeStreamingCommit}
               onStartRecording={startRecording}
               onStopRecording={stopRecording}
               onExportNote={handleExportNote}

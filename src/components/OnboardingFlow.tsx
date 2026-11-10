@@ -361,7 +361,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   const [hotkey, setHotkey] = useState(dictationKey || getDefaultHotkey());
   const [isModelDownloaded, setIsModelDownloaded] = useState(false);
-  const [isUsingGnomeHotkeys, setIsUsingGnomeHotkeys] = useState(false);
   const [testTyped, setTestTyped] = useState(false);
   const readableHotkey = formatHotkeyLabel(hotkey);
   const { alertDialog, confirmDialog, showAlertDialog, hideAlertDialog, hideConfirmDialog } =
@@ -399,21 +398,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const showProgress = currentStep > 0;
   const CONTROLS_STEP = 4;
   const TEST_STEP = 5;
-
-  useEffect(() => {
-    const checkHotkeyMode = async () => {
-      try {
-        const info = await window.electronAPI?.getHotkeyModeInfo();
-        if (info?.isUsingGnome) {
-          setIsUsingGnomeHotkeys(true);
-          setActivationMode("tap");
-        }
-      } catch (error) {
-        logger.error("Failed to check hotkey mode", { error }, "onboarding");
-      }
-    };
-    checkHotkeyMode();
-  }, [setActivationMode]);
 
   useEffect(() => {
     const modelToCheck = localTranscriptionProvider === "nvidia" ? parakeetModel : whisperModel;
@@ -735,25 +719,23 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 />
               </div>
 
-              {!isUsingGnomeHotkeys && (
-                <div className="p-4 flex items-center justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      {t("onboarding.activation.mode")}
-                    </span>
-                    <p className="text-xs text-muted-foreground/70 mt-0.5">
-                      {activationMode === "tap"
-                        ? t("onboarding.activation.tapDescription")
-                        : t("onboarding.activation.holdDescription")}
-                    </p>
-                  </div>
-                  <ActivationModeSelector
-                    value={activationMode}
-                    onChange={setActivationMode}
-                    variant="compact"
-                  />
+              <div className="p-4 flex items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    {t("onboarding.activation.mode")}
+                  </span>
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">
+                    {activationMode === "tap"
+                      ? t("onboarding.activation.tapDescription")
+                      : t("onboarding.activation.holdDescription")}
+                  </p>
                 </div>
-              )}
+                <ActivationModeSelector
+                  value={activationMode}
+                  onChange={setActivationMode}
+                  variant="compact"
+                />
+              </div>
             </div>
 
             <PedalCard />
@@ -768,7 +750,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 {t("onboarding.test.title", { defaultValue: "Take it for a spin" })}
               </h2>
               <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                {activationMode === "tap" || isUsingGnomeHotkeys
+                {activationMode === "tap"
                   ? t("onboarding.activation.hotkeyToStartStop", { hotkey: readableHotkey })
                   : t("onboarding.activation.holdHotkey", { hotkey: readableHotkey })}
               </p>

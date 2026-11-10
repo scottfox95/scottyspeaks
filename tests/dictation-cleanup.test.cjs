@@ -120,7 +120,6 @@ function pipeline(settings = {}) {
       dispatchEvent: () => {},
       localStorage: { getItem: () => null },
       electronAPI: {
-        cloudStreamingUsage: async () => ({ success: true }),
       },
     },
     localStorage: { getItem: () => null },
@@ -263,42 +262,5 @@ test("both local wrappers retain successful empty cleanup while evidence keeps p
     assert.equal(result.success, true);
     assert.equal(result.text, "");
     assert.equal(evidence.rawText, "um");
-  }
-});
-test("actual streaming stop retains intentionally empty cleanup without batch retranscription", async () => {
-  for (const providerText of ["um", ""]) {
-    const { manager } = pipeline({ useReasoningModel: false });
-    let batchRequests = 0;
-    const completed = [],
-      captures = [];
-    manager.isStreaming = true;
-    manager.streamingFinalText = providerText;
-    manager.recordingStartTime = Date.now() - 3000;
-    manager.streamingFallbackChunks = ["synthetic"];
-    manager.streamingFallbackRecorder = {
-      state: "recording",
-      mimeType: "audio/webm",
-      stop() {
-        this.onstop();
-      },
-    };
-    manager.getStreamingProvider = () => ({
-      stop: async () => ({ success: true, text: providerText }),
-    });
-    manager.cleanupStreamingListeners = () => {};
-    manager.shouldUseStreaming = () => false;
-    manager.processWithOpenWhisprCloud = async () => {
-      batchRequests++;
-      return { success: true, text: "", rawText: "um" };
-    };
-    manager.createEvidence = async () => "synthetic-capture";
-    manager.finishEvidence = async (_id, value) => captures.push(value);
-    manager.onTranscriptionComplete = async (result) => completed.push(result);
-    assert.equal(await manager.stopStreamingRecording(), true);
-    assert.equal(batchRequests, providerText ? 0 : 1);
-    assert.equal(completed.length, 1);
-    assert.equal(completed[0].text, "");
-    assert.equal(captures[0].rawText, "um");
-    assert.equal(captures[0].finalText, "");
   }
 });
