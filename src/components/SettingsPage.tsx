@@ -66,6 +66,7 @@ import logger from "../utils/logger";
 import { SettingsRow } from "./ui/SettingsSection";
 import { useUsage } from "../hooks/useUsage";
 import { cn } from "./lib/utils";
+import PasteLastHotkeySetting from "./PasteLastHotkeySetting";
 
 export type SettingsSectionType =
   | "account"
@@ -1955,6 +1956,21 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
                 )}
               </SettingsPanel>
             </div>
+
+            {/* Paste last dictation (macOS only) */}
+            {getCachedPlatform() === "darwin" && (
+              <div>
+                <SectionHeader
+                  title={t("pasteLast.settings.title")}
+                  description={t("pasteLast.settings.description")}
+                />
+                <SettingsPanel>
+                  <SettingsPanelRow>
+                    <PasteLastHotkeySetting />
+                  </SettingsPanelRow>
+                </SettingsPanel>
+              </div>
+            )}
 
             {/* Mouse Button Trigger (macOS only) */}
             {getCachedPlatform() === "darwin" && (

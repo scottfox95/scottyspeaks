@@ -178,7 +178,9 @@ test("actual model request uses captured model and independent cleanup contract 
   );
   assert.equal(requests.length, 1);
   assert.equal(requests[0].model, "captured-model");
-  assert.match(requests[0].config.systemPrompt, /Hesitation removal: disabled/);
+  assert.match(requests[0].config.systemPrompt, /Filler removal: disabled/);
+  // Dictation gets the full polish prompt with the choices layered on top.
+  assert.match(requests[0].config.systemPrompt, /CLEANUP CHOICES/);
   assert.ok(states.some((s) => s.pipelineStage === "refining"));
 });
 test("formatted and signed numbers never receive partial numeric corrections", () => {

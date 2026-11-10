@@ -1879,7 +1879,20 @@
     "clipboardTitle": "Einfügen hat nicht geklappt, der Text ist in deiner Zwischenablage",
     "clipboardDescription": "Drücke ⌘V an der gewünschten Stelle. Er ist auch im Verlauf gespeichert.",
     "selectionReplaced": "Deine Auswahl wurde ersetzt.",
-    "dictationReplaced": "Dein letztes Diktat wurde ersetzt."
+    "dictationReplaced": "Dein letztes Diktat wurde ersetzt.",
+    "clipboardDescriptionApp": "Einfügen in {{app}} fehlgeschlagen ({{reason}}). Drücke ⌘V an der gewünschten Stelle oder ⌃⌥V, um dein letztes Diktat einzufügen.",
+    "clipboardDescriptionReason": "Einfügen fehlgeschlagen ({{reason}}). Drücke ⌘V an der gewünschten Stelle oder ⌃⌥V, um dein letztes Diktat einzufügen.",
+    "reasons": {
+      "secure-input": "ein Passwortfeld ist aktiv",
+      "accessibility-required": "die Bedienungshilfen-Berechtigung ist aus",
+      "target-changed": "die App wurde geschlossen oder hat den Fokus verloren",
+      "activation-failed": "die App konnte nicht nach vorne geholt werden",
+      "clipboard-changed": "die Zwischenablage hat sich beim Einfügen geändert",
+      "no-target": "keine App war im Vordergrund",
+      "helper-unavailable": "das Einfüge-Hilfsprogramm fehlt",
+      "target-timeout": "die App hat zu lange gebraucht",
+      "unknown": "unbekannter Grund"
+    }
   },
   "callAgent": {
     "tab": "Agenten",
@@ -2097,6 +2110,25 @@
     "ready": {
       "title": "SS2 {{version}} ist bereit",
       "body": "Es wird beim nächsten Beenden von SS2 installiert oder sofort in den Einstellungen."
+    }
+  },
+  "pasteLast": {
+    "nothing": "Noch nichts zum Einfügen. Diktiere zuerst etwas.",
+    "onClipboard": "Dein letztes Diktat konnte hier nicht eingefügt werden. Es liegt in der Zwischenablage: drücke ⌘V.",
+    "failed": "Dein letztes Diktat konnte nicht eingefügt werden.",
+    "settings": {
+      "title": "Letztes Diktat einfügen",
+      "description": "Fügt dein neuestes Diktat an der Cursorposition ein. Praktisch, wenn ein Einfügen nicht geklappt hat oder du erst sprichst und dann ins Feld klickst.",
+      "reset": "Auf {{hotkey}} zurücksetzen",
+      "off": "Ausschalten",
+      "unavailable": "Dieses Kürzel wird schon von einer anderen App verwendet. Wähle ein anderes."
+    },
+    "log": {
+      "title": "Letzte Einfügungen",
+      "empty": "Noch keine Einfügungen protokolliert.",
+      "ok": "eingefügt",
+      "refused": "abgelehnt",
+      "onClipboard": "in der Zwischenablage"
     }
   }
 }

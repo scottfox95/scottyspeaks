@@ -1877,7 +1877,20 @@
     "clipboardTitle": "貼り付けられませんでした。クリップボードにあります",
     "clipboardDescription": "貼り付けたい場所で ⌘V を押してください。履歴にも保存されています。",
     "selectionReplaced": "選択したテキストを置き換えました。",
-    "dictationReplaced": "前回の音声入力を置き換えました。"
+    "dictationReplaced": "前回の音声入力を置き換えました。",
+    "clipboardDescriptionApp": "{{app}} に貼り付けできませんでした（{{reason}}）。貼り付けたい場所で ⌘V を押すか、⌃⌥V で最後の音声入力を貼り付けてください。",
+    "clipboardDescriptionReason": "貼り付けできませんでした（{{reason}}）。貼り付けたい場所で ⌘V を押すか、⌃⌥V で最後の音声入力を貼り付けてください。",
+    "reasons": {
+      "secure-input": "パスワード欄が有効です",
+      "accessibility-required": "アクセシビリティの許可がオフです",
+      "target-changed": "アプリが閉じたかフォーカスを失いました",
+      "activation-failed": "アプリを前面に戻せませんでした",
+      "clipboard-changed": "貼り付け中にクリップボードが変わりました",
+      "no-target": "前面にアプリがありませんでした",
+      "helper-unavailable": "貼り付け用ヘルパーがありません",
+      "target-timeout": "アプリの応答が遅すぎました",
+      "unknown": "不明な理由"
+    }
   },
   "callAgent": {
     "tab": "エージェント",
@@ -2095,6 +2108,25 @@
     "ready": {
       "title": "SS2 {{version}} の準備ができました",
       "body": "次回 SS2 を終了したときにインストールされます。設定から今すぐインストールすることもできます。"
+    }
+  },
+  "pasteLast": {
+    "nothing": "まだ貼り付けるものがありません。先に音声入力してください。",
+    "onClipboard": "最後の音声入力をここに貼り付けできませんでした。クリップボードにあります。⌘V を押してください。",
+    "failed": "最後の音声入力を貼り付けできませんでした。",
+    "settings": {
+      "title": "最後の音声入力を貼り付け",
+      "description": "最新の音声入力をカーソル位置に貼り付けます。貼り付けが失敗したときや、先に話してから入力欄をクリックしたときに使います。",
+      "reset": "{{hotkey}} に戻す",
+      "off": "オフにする",
+      "unavailable": "このショートカットは別のアプリが使用中です。別のものを選んでください。"
+    },
+    "log": {
+      "title": "最近の貼り付け",
+      "empty": "まだ貼り付けの記録はありません。",
+      "ok": "貼り付け済み",
+      "refused": "拒否",
+      "onClipboard": "クリップボードに保存"
     }
   }
 }

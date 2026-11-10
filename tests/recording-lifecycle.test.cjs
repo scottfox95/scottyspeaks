@@ -178,15 +178,35 @@ for (const stop of ["release", "toggle", "button"])
     assert.equal(h.intervals.size, 0);
   });
 
-test("stop while capture settings are pending never opens the microphone", async () => {
+test("the microphone opens while capture settings are still pending (first words aren't clipped)", async () => {
   const pendingSettings = deferred();
   const h = harness({ pendingSettings });
   const starting = h.audio.startRecording();
   await waitFor(() => h.events.includes("settings-requested"));
+  await waitFor(() => h.events.includes("recording"));
+  assert.ok(!h.events.includes("transcribe"));
+  // Releasing the key before settings resolve still processes the take once
+  // preparation finishes.
   assert.equal(h.audio.stopRecording(), true);
+  await new Promise(setImmediate);
+  assert.ok(!h.events.includes("transcribe"), "processing waits for preparation");
+  pendingSettings.resolve();
+  assert.equal(await starting, true);
+  await waitFor(() => h.events.includes("transcribe"));
+  assert.deepEqual(h.errors, []);
+});
+
+test("cancel while capture settings are pending discards the take", async () => {
+  const pendingSettings = deferred();
+  const h = harness({ pendingSettings });
+  const starting = h.audio.startRecording();
+  await waitFor(() => h.events.includes("recording"));
+  assert.equal(h.audio.cancelRecording(), true);
   pendingSettings.resolve();
   assert.equal(await starting, false);
-  assert.ok(!h.events.includes("microphone-requested"));
+  await new Promise(setImmediate);
+  assert.ok(!h.events.includes("transcribe"));
+  assert.ok(h.events.includes("target-released"));
   assert.deepEqual(h.errors, []);
 });
 

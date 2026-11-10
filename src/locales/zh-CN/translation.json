@@ -1877,7 +1877,20 @@
     "clipboardTitle": "未能粘贴，文本已在剪贴板中",
     "clipboardDescription": "在需要的位置按 ⌘V。它也已保存在历史记录中。",
     "selectionReplaced": "已替换所选文本。",
-    "dictationReplaced": "已替换上次听写。"
+    "dictationReplaced": "已替换上次听写。",
+    "clipboardDescriptionApp": "无法粘贴到 {{app}}（{{reason}}）。在需要的位置按 ⌘V，或按 ⌃⌥V 粘贴上一次听写。",
+    "clipboardDescriptionReason": "无法粘贴（{{reason}}）。在需要的位置按 ⌘V，或按 ⌃⌥V 粘贴上一次听写。",
+    "reasons": {
+      "secure-input": "密码输入框处于活动状态",
+      "accessibility-required": "辅助功能权限已关闭",
+      "target-changed": "应用已关闭或失去焦点",
+      "activation-failed": "无法将应用切回前台",
+      "clipboard-changed": "粘贴过程中剪贴板发生了变化",
+      "no-target": "前台没有应用",
+      "helper-unavailable": "缺少粘贴辅助程序",
+      "target-timeout": "应用响应超时",
+      "unknown": "未知原因"
+    }
   },
   "callAgent": {
     "tab": "代理",
@@ -2095,6 +2108,25 @@
     "ready": {
       "title": "SS2 {{version}} 已就绪",
       "body": "将在下次退出 SS2 时安装，也可在设置中立即安装。"
+    }
+  },
+  "pasteLast": {
+    "nothing": "还没有可粘贴的内容。请先听写。",
+    "onClipboard": "无法在此粘贴上一次听写。它已在剪贴板中：按 ⌘V。",
+    "failed": "无法粘贴上一次听写。",
+    "settings": {
+      "title": "粘贴上一次听写",
+      "description": "将最近一次听写粘贴到光标所在位置。适用于粘贴未成功，或先说话再点击输入框的情况。",
+      "reset": "重置为 {{hotkey}}",
+      "off": "关闭",
+      "unavailable": "该快捷键已被其他应用占用。请另选一个。"
+    },
+    "log": {
+      "title": "最近的粘贴",
+      "empty": "暂无粘贴记录。",
+      "ok": "已粘贴",
+      "refused": "被拒绝",
+      "onClipboard": "已留在剪贴板"
     }
   }
 }

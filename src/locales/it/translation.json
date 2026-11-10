@@ -1883,7 +1883,20 @@
     "clipboardTitle": "Incolla non riuscito, il testo è negli appunti",
     "clipboardDescription": "Premi ⌘V dove vuoi inserirlo. È salvato anche nella cronologia.",
     "selectionReplaced": "La selezione è stata sostituita.",
-    "dictationReplaced": "L’ultima dettatura è stata sostituita."
+    "dictationReplaced": "L’ultima dettatura è stata sostituita.",
+    "clipboardDescriptionApp": "Impossibile incollare in {{app}} ({{reason}}). Premi ⌘V dove vuoi, oppure ⌃⌥V per incollare l'ultima dettatura.",
+    "clipboardDescriptionReason": "Impossibile incollare ({{reason}}). Premi ⌘V dove vuoi, oppure ⌃⌥V per incollare l'ultima dettatura.",
+    "reasons": {
+      "secure-input": "è attivo un campo password",
+      "accessibility-required": "il permesso Accessibilità è disattivato",
+      "target-changed": "l'app si è chiusa o ha perso il focus",
+      "activation-failed": "non è stato possibile riportare l'app in primo piano",
+      "clipboard-changed": "gli appunti sono cambiati durante l'incolla",
+      "no-target": "nessuna app era in primo piano",
+      "helper-unavailable": "manca lo strumento di incolla",
+      "target-timeout": "l'app ha impiegato troppo a rispondere",
+      "unknown": "motivo sconosciuto"
+    }
   },
   "callAgent": {
     "tab": "Agenti",
@@ -2101,6 +2114,25 @@
     "ready": {
       "title": "SS2 {{version}} è pronto",
       "body": "Verrà installato alla prossima chiusura di SS2, oppure ora dalle Impostazioni."
+    }
+  },
+  "pasteLast": {
+    "nothing": "Ancora niente da incollare. Detta prima qualcosa.",
+    "onClipboard": "Impossibile incollare qui l'ultima dettatura. È negli appunti: premi ⌘V.",
+    "failed": "Impossibile incollare l'ultima dettatura.",
+    "settings": {
+      "title": "Incolla ultima dettatura",
+      "description": "Incolla la dettatura più recente dove si trova il cursore. Utile quando un incolla non è riuscito, o quando parli prima e clicchi nel campo dopo.",
+      "reset": "Ripristina {{hotkey}}",
+      "off": "Disattiva",
+      "unavailable": "Questa scorciatoia è già usata da un'altra app. Scegline un'altra."
+    },
+    "log": {
+      "title": "Incolla recenti",
+      "empty": "Nessun incolla registrato.",
+      "ok": "incollato",
+      "refused": "rifiutato",
+      "onClipboard": "negli appunti"
     }
   }
 }

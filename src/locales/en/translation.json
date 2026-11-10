@@ -1879,7 +1879,20 @@
     "clipboardTitle": "Paste didn't land, it's on your clipboard",
     "clipboardDescription": "Press ⌘V where you want it. It's also saved in History.",
     "selectionReplaced": "Replaced your selection.",
-    "dictationReplaced": "Replaced your last dictation."
+    "dictationReplaced": "Replaced your last dictation.",
+    "clipboardDescriptionApp": "Couldn't paste into {{app}} ({{reason}}). Press ⌘V where you want it, or ⌃⌥V to paste your last dictation.",
+    "clipboardDescriptionReason": "Couldn't paste ({{reason}}). Press ⌘V where you want it, or ⌃⌥V to paste your last dictation.",
+    "reasons": {
+      "secure-input": "a password field is active",
+      "accessibility-required": "Accessibility permission is off",
+      "target-changed": "the app closed or lost focus",
+      "activation-failed": "the app couldn't be brought back to the front",
+      "clipboard-changed": "the clipboard changed during the paste",
+      "no-target": "no app was in front",
+      "helper-unavailable": "the paste helper is missing",
+      "target-timeout": "the app took too long to answer",
+      "unknown": "unknown reason"
+    }
   },
   "callAgent": {
     "tab": "Agents",
@@ -2097,6 +2110,25 @@
     "ready": {
       "title": "SS2 {{version}} is ready",
       "body": "It installs the next time SS2 quits, or now from Settings."
+    }
+  },
+  "pasteLast": {
+    "nothing": "Nothing to paste yet. Dictate something first.",
+    "onClipboard": "Couldn't paste your last dictation here. It's on your clipboard: press ⌘V.",
+    "failed": "Couldn't paste your last dictation.",
+    "settings": {
+      "title": "Paste last dictation",
+      "description": "Pastes your most recent dictation wherever the cursor is. Use it when a paste didn't land, or when you speak first and click into the field after.",
+      "reset": "Reset to {{hotkey}}",
+      "off": "Turn off",
+      "unavailable": "That shortcut is taken by another app. Pick a different one."
+    },
+    "log": {
+      "title": "Recent pastes",
+      "empty": "No pastes recorded yet.",
+      "ok": "pasted",
+      "refused": "refused",
+      "onClipboard": "left on clipboard"
     }
   }
 }

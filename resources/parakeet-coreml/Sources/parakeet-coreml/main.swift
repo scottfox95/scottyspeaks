@@ -19,11 +19,22 @@ import FluidAudio
 // With `"timings":true` in the meta JSON, results also carry
 //   "words":[["word",startSeconds,endSeconds],...]
 // which call transcription uses to attribute words to diarized speakers.
+// A numeric `"id"` in the meta JSON is echoed on that request's result or
+// error, so a reply that arrives after the caller timed out can never be
+// matched to a later request.
 // Human-readable logs go to stderr so they never corrupt the protocol stream.
 
 struct RequestMeta: Decodable {
   let language: String?
   let timings: Bool?
+  let id: Int?
+}
+
+func withId(_ object: [String: Any], _ id: Int?) -> [String: Any] {
+  guard let id else { return object }
+  var tagged = object
+  tagged["id"] = id
+  return tagged
 }
 
 let stderrHandle = FileHandle.standardError
@@ -186,12 +197,12 @@ while true {
 
   let meta =
     (try? JSONDecoder().decode(RequestMeta.self, from: metaData))
-    ?? RequestMeta(language: nil, timings: nil)
+    ?? RequestMeta(language: nil, timings: nil, id: nil)
   let language = meta.language.flatMap { $0 == "auto" ? nil : Language(rawValue: $0) } ?? defaultLanguage
 
   let samples = float32Samples(from: audioData)
   if samples.isEmpty {
-    emit(["type": "result", "text": "", "ms": 0, "words": [] as [Any]])
+    emit(withId(["type": "result", "text": "", "ms": 0, "words": [] as [Any]], meta.id))
     continue
   }
 
@@ -211,9 +222,9 @@ while true {
     if meta.timings == true {
       reply["words"] = mergeTokensIntoWords(result.tokenTimings ?? [])
     }
-    emit(reply)
+    emit(withId(reply, meta.id))
   } catch {
     logLine("transcription failed: \(error)")
-    emit(["type": "error", "message": "\(error)"])
+    emit(withId(["type": "error", "message": "\(error)"], meta.id))
   }
 }

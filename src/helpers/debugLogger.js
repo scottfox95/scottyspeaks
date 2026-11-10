@@ -194,6 +194,66 @@ class DebugLogger {
     if (this.logStream) {
       this.logStream.write(logLine);
     }
+
+    if (LOG_LEVELS[normalized] >= LOG_LEVELS.warn) {
+      const head = baseLine.length > 500 ? `${baseLine.slice(0, 500)}…` : baseLine;
+      this.writeProblem(`${head}${meta !== undefined ? ` ${this.formatProblemMeta(meta)}` : ""}\n`);
+    }
+  }
+
+  /**
+   * Warnings and errors always go to logs/ss2.log, whatever the log level, so a
+   * failure leaves a trace. Rotates at 1 MB, keeping two older files. Keys that
+   * could hold dictation text are dropped and long strings are cut, so
+   * transcript text never lands here.
+   */
+  formatProblemMeta(meta) {
+    const SENSITIVE =
+      /^(text|transcript|transcription|raw|rawText|raw_text|finalText|final|content|prompt|original|originalText|processed|processedText|selection|clipboard|expected|expectedText|newText)$/i;
+    const scrub = (value, depth) => {
+      if (typeof value === "string") return value.length > 300 ? `${value.slice(0, 300)}…` : value;
+      if (!value || typeof value !== "object" || depth > 3) return value;
+      if (Array.isArray(value)) return value.slice(0, 20).map((v) => scrub(v, depth + 1));
+      const out = {};
+      for (const [key, v] of Object.entries(value))
+        out[key] = SENSITIVE.test(key) ? "[omitted]" : scrub(v, depth + 1);
+      return out;
+    };
+    if (typeof meta === "string") return scrub(meta, 0);
+    try {
+      return JSON.stringify(scrub(meta, 0));
+    } catch {
+      return "";
+    }
+  }
+
+  writeProblem(line) {
+    try {
+      if (!app?.isReady?.()) return;
+      if (!this.problemLogFile) {
+        const dir = path.join(app.getPath("userData"), "logs");
+        fs.mkdirSync(dir, { recursive: true });
+        this.problemLogFile = path.join(dir, "ss2.log");
+      }
+      const file = this.problemLogFile;
+      let size = 0;
+      try {
+        size = fs.statSync(file).size;
+      } catch {}
+      if (size > 1024 * 1024) {
+        try {
+          fs.renameSync(`${file}.1`, `${file}.2`);
+        } catch {}
+        try {
+          fs.renameSync(file, `${file}.1`);
+        } catch {}
+      }
+      fs.appendFileSync(file, line);
+    } catch {}
+  }
+
+  getProblemLogPath() {
+    return this.problemLogFile || null;
   }
 
   log(...args) {
@@ -220,14 +280,29 @@ class DebugLogger {
     this.debug(stage, details, "reasoning");
   }
 
+  // (message, meta, scope) keeps meta structured so the problem log can scrub it.
+  _writeStructured(level, prefix, args) {
+    const [message, meta, scope] = args;
+    if (
+      typeof message === "string" &&
+      args.length <= 3 &&
+      (meta === undefined || typeof meta === "object")
+    )
+      this.write(
+        level,
+        `${prefix}: ${message}`,
+        meta,
+        typeof scope === "string" ? scope : undefined
+      );
+    else this.write(level, `${prefix}: ${this.formatArgs(args)}`);
+  }
+
   error(...args) {
-    const message = `ERROR: ${this.formatArgs(args)}`;
-    this.write("error", message);
+    this._writeStructured("error", "ERROR", args);
   }
 
   fatal(...args) {
-    const message = `FATAL: ${this.formatArgs(args)}`;
-    this.write("fatal", message);
+    this._writeStructured("fatal", "FATAL", args);
   }
 
   logEntry(entry) {
