@@ -9,11 +9,7 @@ import { isBuiltInMicrophone } from "../utils/audioDeviceUtils";
 import { isSecureEndpoint } from "../utils/urlUtils";
 import { withSessionRefresh } from "../lib/neonAuth";
 import { getBaseLanguageCode, validateLanguageForModel } from "../utils/languageSupport";
-import {
-  getSettings,
-  getEffectiveReasoningModel,
-  isCloudReasoningMode,
-} from "../stores/settingsStore";
+import { getSettings, getEffectiveReasoningModel } from "../stores/settingsStore";
 
 const SHORT_CLIP_DURATION_SECONDS = 2.5;
 const REASONING_CACHE_TTL = 30000; // 30 seconds
@@ -725,9 +721,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       const response = await window.electronAPI.captures.create({
         audio: await audioBlob.arrayBuffer(), mimeType: audioBlob.type || "audio/webm",
         durationSeconds: metadata.durationSeconds || 0,
-        settings: { provider: !s.useLocalWhisper && s.cloudTranscriptionMode === "openwhispr" ? "openwhispr" : s.useLocalWhisper ? (s.localTranscriptionProvider === "nvidia" ? "parakeet" : "whisper") : (s.cloudTranscriptionProvider || "openwhispr"),
-          model: s.useLocalWhisper ? (s.localTranscriptionProvider === "nvidia" ? s.parakeetModel : s.whisperModel) : s.cloudTranscriptionMode === "openwhispr" ? "server-selected" : this.getTranscriptionModel(snapshot),
-          language: s.preferredLanguage || "auto", polishModel: snapshot?.provider === "openwhispr" ? "openwhispr-cloud" : snapshot?.model || s.reasoningModel,
+        settings: { provider: s.useLocalWhisper ? (s.localTranscriptionProvider === "nvidia" ? "parakeet" : "whisper") : (s.cloudTranscriptionProvider || "openai"),
+          model: s.useLocalWhisper ? (s.localTranscriptionProvider === "nvidia" ? s.parakeetModel : s.whisperModel) : this.getTranscriptionModel(snapshot),
+          language: s.preferredLanguage || "auto", polishModel: snapshot?.model || s.reasoningModel,
           styleId: snapshot?.context.styleId, styleName: snapshot?.context.styleName,
           styleRules: snapshot?.context.styleRules, dictionary: s.customDictionary,
           polishProvider: snapshot?.provider, cleanup: snapshot?.cleanup || cleanupChoices(s) },
@@ -779,17 +775,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       const localProvider = s.localTranscriptionProvider;
       const whisperModel = s.whisperModel;
       const parakeetModel = s.parakeetModel || "parakeet-tdt-0.6b-v3";
-
-      const cloudTranscriptionMode = s.cloudTranscriptionMode;
-      const isSignedIn = s.isSignedIn;
-
-      const isOpenWhisprCloudMode = !useLocalWhisper && cloudTranscriptionMode === "openwhispr";
-      const useCloud = isOpenWhisprCloudMode && isSignedIn;
-      logger.debug(
-        "Transcription routing",
-        { useLocalWhisper, useCloud, isSignedIn, cloudTranscriptionMode },
-        "transcription"
-      );
+      logger.debug("Transcription routing", { useLocalWhisper, localProvider }, "transcription");
 
       let result;
       let activeModel;
@@ -801,16 +787,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           activeModel = whisperModel;
           result = await this.processWithLocalWhisper(audioBlob, whisperModel, metadata);
         }
-      } else if (isOpenWhisprCloudMode) {
-        if (!isSignedIn) {
-          const err = new Error(
-            "OpenWhispr Cloud requires sign-in. Please sign in again or switch to BYOK mode."
-          );
-          err.code = "AUTH_REQUIRED";
-          throw err;
-        }
-        activeModel = "openwhispr-cloud";
-        result = await this.processWithOpenWhisprCloud(audioBlob, metadata);
       } else {
         activeModel = this.getTranscriptionModel();
         result = await this.processWithOpenAIAPI(audioBlob, metadata);
@@ -832,10 +808,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       }
       await this.finishEvidence(captureId, { rawText: result.rawText, finalText: result.evidenceFinalText ?? result.text ?? "", historyId: result.historyId, error: result.evidenceError });
       evidenceFinished = true;
-
-      if (result?.source === "openwhispr") {
-        window.dispatchEvent(new Event("usage-changed"));
-      }
 
       const roundTripDurationMs = Math.round(performance.now() - pipelineStart);
 
@@ -1297,15 +1269,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       return false;
     }
 
-    if (isCloudReasoningMode()) {
-      this.reasoningAvailabilityCache = {
-        value: true,
-        expiresAt: now + REASONING_CACHE_TTL,
-      };
-      this.cachedReasoningPreference = useReasoning;
-      return true;
-    }
-
     try {
       const isAvailable = await ReasoningService.isAvailable();
 
@@ -1662,59 +1625,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     );
 
     return result;
-  }
-
-  async processWithOpenWhisprCloud(audioBlob, metadata = {}) {
-    if (!navigator.onLine) {
-      const err = new Error("You're offline. Cloud transcription requires an internet connection.");
-      err.code = "OFFLINE";
-      throw err;
-    }
-
-    const timings = {};
-    const settings = this.processingSettings(metadata.evidence?.snapshot);
-    const language = getBaseLanguageCode(settings.preferredLanguage);
-
-    const arrayBuffer = await audioBlob.arrayBuffer();
-    const audioSizeBytes = audioBlob.size;
-    const audioFormat = audioBlob.type;
-    const opts = {};
-    if (language) opts.language = language;
-    const reasoningMode = settings.cloudReasoningMode || "openwhispr";
-    if (settings.useReasoningModel && !this.skipReasoning && !metadata.evidence?.snapshot?.cleanup.exact && reasoningMode === "openwhispr") {
-      opts.sendLogs = "false";
-    }
-
-    const dictionaryPrompt = this.getCustomDictionaryPrompt(metadata.evidence?.snapshot);
-    if (dictionaryPrompt) opts.prompt = dictionaryPrompt;
-
-    // Use withSessionRefresh to handle AUTH_EXPIRED automatically
-    const transcriptionStart = performance.now();
-    const result = await withSessionRefresh(async () => {
-      const res = await window.electronAPI.cloudTranscribe(arrayBuffer, opts);
-      if (!res.success) {
-        const err = new Error(res.error || "Cloud transcription failed");
-        err.code = res.code;
-        throw err;
-      }
-      return res;
-    });
-    timings.transcriptionProcessingDurationMs = Math.round(performance.now() - transcriptionStart);
-
-    const reasoningStart = performance.now();
-    const processedText = await this.processTranscription(result.text, "openwhispr", metadata.evidence);
-    timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
-
-    return {
-      success: true,
-      text: processedText,
-      rawText: result.text,
-      source: "openwhispr",
-      timings,
-      limitReached: result.limitReached,
-      wordsUsed: result.wordsUsed,
-      wordsRemaining: result.wordsRemaining,
-    };
   }
 
   getCustomDictionaryArray() {

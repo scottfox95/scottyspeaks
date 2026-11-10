@@ -5,8 +5,7 @@ import { withRetry, createApiRetryStrategy } from "../utils/retry";
 import { API_ENDPOINTS, TOKEN_LIMITS, buildApiUrl, normalizeBaseUrl } from "../config/constants";
 import logger from "../utils/logger";
 import { isSecureEndpoint } from "../utils/urlUtils";
-import { withSessionRefresh } from "../lib/neonAuth";
-import { getSettings, isCloudReasoningMode } from "../stores/settingsStore";
+import { getSettings } from "../stores/settingsStore";
 
 class ReasoningService extends BaseReasoningService {
   private apiKeyCache: SecureCache<string>;
@@ -400,7 +399,7 @@ class ReasoningService extends BaseReasoningService {
     let trimmedModel = model?.trim?.() || "";
     const provider = config.provider || getModelProvider(trimmedModel);
 
-    if (!trimmedModel && provider !== "openwhispr") {
+    if (!trimmedModel) {
       throw new Error("No reasoning model selected");
     }
 
@@ -437,9 +436,6 @@ class ReasoningService extends BaseReasoningService {
           break;
         case "groq":
           result = await this.processWithGroq(text, model, agentName, config);
-          break;
-        case "openwhispr":
-          result = await this.processWithOpenWhispr(text, model, agentName, config);
           break;
         case "custom":
           result = await this.processWithOpenAI(text, trimmedModel, agentName, config);
@@ -1018,80 +1014,8 @@ class ReasoningService extends BaseReasoningService {
     }
   }
 
-  private async processWithOpenWhispr(
-    text: string,
-    model: string,
-    agentName: string | null = null,
-    config: ReasoningConfig = {}
-  ): Promise<string> {
-    logger.logReasoning("OPENWHISPR_START", { model, agentName });
-
-    if (this.isProcessing) {
-      throw new Error("Already processing a request");
-    }
-
-    this.isProcessing = true;
-
-    try {
-      const customDictionary = config.dictionary || this.getCustomDictionary();
-      const language = config.language || this.getPreferredLanguage();
-      const locale = config.locale || this.getUiLanguage();
-
-      const result = await withSessionRefresh(async () => {
-        const res = await (window as any).electronAPI.cloudReason(text, {
-          agentName,
-          customDictionary,
-          customPrompt: config.systemPrompt ? undefined : this.getCustomPrompt(),
-          systemPrompt: config.systemPrompt,
-          language,
-          locale,
-        });
-
-        if (!res.success) {
-          const err: any = new Error(res.error || "OpenWhispr cloud reasoning failed");
-          err.code = res.code;
-          throw err;
-        }
-
-        return res;
-      });
-
-      logger.logReasoning("OPENWHISPR_SUCCESS", {
-        model: result.model,
-        provider: result.provider,
-        resultLength: result.text.length,
-      });
-
-      return result.text;
-    } catch (error) {
-      logger.logReasoning("OPENWHISPR_ERROR", {
-        model,
-        error: (error as Error).message,
-      });
-      throw error;
-    } finally {
-      this.isProcessing = false;
-    }
-  }
-
-  private getCustomPrompt(): string | undefined {
-    try {
-      const raw = localStorage.getItem("customUnifiedPrompt");
-      if (!raw) return undefined;
-      const parsed = JSON.parse(raw);
-      return typeof parsed === "string" ? parsed : undefined;
-    } catch {
-      return undefined;
-    }
-  }
-
   async isAvailable(): Promise<boolean> {
     try {
-      if (isCloudReasoningMode()) {
-        logger.logReasoning("API_KEY_CHECK", { cloudReasoningMode: true });
-        return true;
-      }
-
       const openaiKey = await window.electronAPI?.getOpenAIKey?.();
       const anthropicKey = await window.electronAPI?.getAnthropicKey?.();
       const geminiKey = await window.electronAPI?.getGeminiKey?.();

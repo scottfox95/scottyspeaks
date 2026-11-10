@@ -101,7 +101,6 @@ function pipeline(settings = {}) {
     ...cleanupModule,
     getSettings: () => current,
     getEffectiveReasoningModel: () => current.reasoningModel,
-    isCloudReasoningMode: () => false,
     getModelProvider: () => current.reasoningProvider,
     getSystemPrompt: (_a, _d, _l, _t, _u, snap) => cleanupModule.cleanupInstructions(snap.cleanup),
     ReasoningService: {
@@ -114,7 +113,6 @@ function pipeline(settings = {}) {
     Event,
     performance,
     navigator: { onLine: true },
-    withSessionRefresh: (fn) => fn(),
     getBaseLanguageCode: (lang) => lang,
     validateLanguageForModel: (lang) => lang,
     logger: new Proxy({}, { get: () => noop }),
@@ -123,10 +121,6 @@ function pipeline(settings = {}) {
       localStorage: { getItem: () => null },
       electronAPI: {
         cloudStreamingUsage: async () => ({ success: true }),
-        cloudTranscribe: async () => ({
-          success: true,
-          text: "Um, set the limit to 15, sorry, 50. Keep 20 backups.",
-        }),
       },
     },
     localStorage: { getItem: () => null },
@@ -202,19 +196,17 @@ test("technical preservation keeps literal hesitation tokens in code and quoted 
   ])
     assert.equal(applyDictationCleanup(raw, options), raw);
 });
-test("actual cloud transcription uses the same correction baseline and exact bypass", async () => {
-  const { manager, requests, current } = pipeline({
-    reasoningProvider: "openwhispr",
-    dictationResolveCorrections: true,
-  });
+test("cloud transcripts use the same correction baseline and exact bypass", async () => {
+  const { manager, requests, current } = pipeline({ dictationResolveCorrections: true });
+  const raw = "Um, set the limit to 15, sorry, 50. Keep 20 backups.";
   const evidence = {};
-  let result = await manager.processWithOpenWhisprCloud(new Blob(["synthetic"]), { evidence });
-  assert.equal(result.text, "set the limit to 50. Keep 20 backups.");
-  assert.equal(evidence.rawText, "Um, set the limit to 15, sorry, 50. Keep 20 backups.");
+  let text = await manager.processTranscription(raw, "openai", evidence);
+  assert.equal(text, "set the limit to 50. Keep 20 backups.");
+  assert.equal(evidence.rawText, raw);
   assert.equal(requests.length, 1);
   current.dictationExact = true;
-  result = await manager.processWithOpenWhisprCloud(new Blob(["synthetic"]), { evidence: {} });
-  assert.equal(result.text, "Um, set the limit to 15, sorry, 50. Keep 20 backups.");
+  text = await manager.processTranscription(raw, "openai", {});
+  assert.equal(text, raw);
   assert.equal(requests.length, 1);
 });
 test("AI guard rejects deletion of meaningful filler-like language", () => {
