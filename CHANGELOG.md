@@ -7,7 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+## [SS2 0.3.15] - 2026-11-10
+
+0.3.15 ships three pieces of work:
+- **#8:** punctuation, paste and mic-first start (sections further down).
+- **Fable review cleanup:** every no-decision item from the 2026-11-09 plan and the review. Item-by-item status is at the top of `docs/model-reviews/2026-11-09-fable-5.2.md`.
+- **Overlay v2:** the destination card.
+
+### Fixed (review cleanup)
+
+- **Calls:**
+  - a quiet chunk no longer fails a local call transcript (R1);
+  - a failed call start no longer registers take files that were never written (R2);
+  - a corrupt or empty JSON index is moved aside and rebuilt instead of stopping launch (R3);
+  - quit waits for every busy recorder (`quitGuard.js`, R4);
+  - disk guard for call recording (R6);
+  - stale temp files are cleaned at launch (R7);
+  - trim is all-or-nothing (R8);
+  - a corrupt Parakeet archive is re-downloaded (R9);
+  - the diarizer no longer holds the dictation lane (D10);
+  - one compact session write per chunk instead of three.
+- **Dictation:**
+  - a CoreML warm-up no longer stalls a dictation (D9);
+  - Escape cancels instead of hiding a live recording (D11);
+  - toasts no longer block clicks (D12);
+  - server `ready` recovers after a failed health check (D14);
+  - orphaned servers are killed at launch (`ownedProcesses.js`, D15);
+  - a sherpa crash is reported as an error, not silence (D16);
+  - the Globe listener restarts with backoff (D17);
+  - no python3 per push-to-talk press (D18);
+  - the "Failed" label clears (D19);
+  - a failed voice command shows one toast (D21);
+  - the engine is no longer torn down when `t` changes (D22);
+  - cancel while polishing pastes the raw text, and a timeout aborts the request (D23);
+  - process timeouts kill the process (R11).
+- **Smaller fixes:**
+  - the shared port probe also checks 127.0.0.1;
+  - activation-mode defaults agree;
+  - sherpa-onnx unloads when idle;
+  - polls pause while windows are hidden.
+- **Privacy:** debug logs no longer contain transcript previews or API key prefixes.
+
+### Changed (review cleanup)
+
+- **Local-first defaults (D13):** a fresh install uses local Parakeet and Qwen polish, and Settings opens on General. A one-time migration keeps existing choices that worked.
+- **Release hardening:**
+  - `ensure-signing` never creates a new identity during a release;
+  - `publish` requires a clean tree and passing tests, commits the bump, refuses a different signing identity, and pushes only the tag; it gains `--dry-run` and `--replace`;
+  - `SS2-Update.command` drops python3, compares versions numerically, and copies, verifies, then swaps with rollback;
+  - `diagnose.command` drops python3.
+
+### Removed (review cleanup)
+
+- About 34k lines of unreachable upstream code:
+  - auth, billing and referral;
+  - the OpenWhispr cloud and the Deepgram/AssemblyAI streaming stack;
+  - GNOME, Vulkan and CUDA;
+  - Windows and Linux paste, key listeners and build surface;
+  - 43 unused preload methods;
+  - 10 unused dependencies, including electron-updater;
+  - 6 workflows that never ran;
+  - 347 locale keys.
+- Google Fonts are no longer fetched at launch.
+
+### Added (overlay v2)
 
 - **Overlay v2, the destination card** (Direction B from the mockups; `src/components/overlay/`):
   - While dictating, the round button becomes a card. It names the target app ("Into Slack"), shows a live level meter from the mic level `audioManager` already computed every 100 ms, a timer, and listen → transcribe → polish progress.
@@ -18,9 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Window:** `CARD` size (392×280), anchored bottom-right like the button.
   - Screenshots in `docs/overlay-v2/`.
 
-## [SS2 0.3.15] - 2026-11-10
-
-### Fixed
+### Fixed (#8)
 
 - **Dictation polish used a six-line prompt.** `getSystemPrompt` sent only `cleanupInstructions()` for dictation captures, never `cleanupPrompt`/`verbatimPrompt` (review §3, first bullet). Dictation now gets the full prompt with the cleanup choices appended as overriding rules ("CLEANUP CHOICES").
 - **Polish guards discarded most edits.** Measured on 518 real dictations: 207 of 361 changed outputs were thrown away.
@@ -38,7 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **D2:** paste-failure toasts name the app and the reason.
 - **D24:** uncaught exceptions and unhandled rejections are logged to file.
 
-### Changed
+### Changed (#8)
 
 - **Paste gate (§6 L2):** `macos-recording-target` gates on the target app (alive, frontmost after re-activation, no secure input), no longer on the exact field, window and selection. Replace-in-place still requires the exact field.
   - Sets `AXManualAccessibility` so Electron apps expose their fields.
@@ -46,7 +107,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - The temporary write is tagged transient/concealed for clipboard managers.
 - `RecordingTargetManager` reports bundle id and AX role.
 
-### Added
+### Added (#8)
 
 - **Paste last dictation** global hotkey, default ⌃⌥V (`src/helpers/pasteLast.js`, `PASTE_LAST_HOTKEY` in `.env`, Settings → Hotkeys).
 - **Paste outcome log** (`paste-outcomes.jsonl`, last 200; Diagnostics shows 50): app, bundle id, AX role, outcome, reason. Never text.
