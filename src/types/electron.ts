@@ -334,7 +334,7 @@ declare global {
       // Basic window operations
       captureRecordingTarget: () => Promise<{ available: boolean; token: string | null; reason?: string }>;
       releaseRecordingTarget: (token: string) => Promise<void>;
-      pasteText: (text: string, options?: { fromStreaming?: boolean; targetToken?: string | null; exact?: boolean }) => Promise<{ success?: boolean; text: string; manualCopy?: boolean; reason?: string }>;
+      pasteText: (text: string, options?: { fromStreaming?: boolean; targetToken?: string | null; exact?: boolean }) => Promise<{ success?: boolean; text: string; manualCopy?: boolean; onClipboard?: boolean; reason?: string }>;
       hideWindow: () => Promise<void>;
       showDictationPanel: () => Promise<void>;
       onToggleDictation: (callback: () => void) => () => void;

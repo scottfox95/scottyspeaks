@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [SS2 0.3.14] - 2026-11-10
+
+### Changed
+
+- **A failed or refused paste leaves the transcript on the clipboard** (`ClipboardManager.leaveOnClipboard`). The macOS helper never posts ⌘V after a refusal, so nothing lands in another field. The overlay notice now reads "Paste didn't land, it's on your clipboard" (`recordingTarget.clipboardTitle`/`clipboardDescription`, all 10 locales). Before, the old clipboard was restored and the notice pointed to History. Replace-in-place voice commands and successful pastes are unchanged.
+- **Pinned call folders show enough path to tell them apart** (`src/helpers/folderLabels.js`): parent plus folder ("TenenbaumAI / docs"), more parents only where labels would collide, full path on hover. Used by the folder picker, the pinned-folders list and the saved-to line.
+
 ## [SS2 0.3.13] - 2026-11-09
 
 ### Fixed

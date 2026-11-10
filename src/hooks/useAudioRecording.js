@@ -93,12 +93,13 @@ export const useAudioRecording = (toast, options = {}) => {
       },
       onError: (error) => {
         if (error.code !== "POLISH_UNAVAILABLE" && error.code !== "PASTE_FAILED") setPipelineStage("failed");
-        const title = error.code === "PASTE_FAILED" ? t("recordingTarget.manualTitle") : error.code === "POLISH_UNAVAILABLE" ? t("dictationCleanup.polishUnavailableTitle") : getRecordingErrorTitle(error, t);
+        const pasteKey = error.onClipboard ? "clipboard" : "manual";
+        const title = error.code === "PASTE_FAILED" ? t(`recordingTarget.${pasteKey}Title`) : error.code === "POLISH_UNAVAILABLE" ? t("dictationCleanup.polishUnavailableTitle") : getRecordingErrorTitle(error, t);
         const isSoftPasteFailure =
           error.code === "PASTE_FAILED" || error.code === "POLISH_UNAVAILABLE";
         toast({
           title,
-          description: error.code === "PASTE_FAILED" ? t("recordingTarget.manualDescription") : error.code === "POLISH_UNAVAILABLE" ? t("dictationCleanup.polishUnavailable") : error.description,
+          description: error.code === "PASTE_FAILED" ? t(`recordingTarget.${pasteKey}Description`) : error.code === "POLISH_UNAVAILABLE" ? t("dictationCleanup.polishUnavailable") : error.description,
           variant: isSoftPasteFailure ? "default" : "destructive",
           duration: error.code === "AUTH_EXPIRED" ? 8000 : isSoftPasteFailure ? 6000 : undefined,
         });

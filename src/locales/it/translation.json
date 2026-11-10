@@ -1880,6 +1880,8 @@
   "recordingTarget": {
     "manualTitle": "Testo pronto da copiare",
     "manualDescription": "Impossibile verificare il campo di testo originale. Il risultato è salvato nella cronologia. Usa Copia per incollarlo manualmente.",
+    "clipboardTitle": "Incolla non riuscito, il testo è negli appunti",
+    "clipboardDescription": "Premi ⌘V dove vuoi inserirlo. È salvato anche nella cronologia.",
     "selectionReplaced": "La selezione è stata sostituita.",
     "dictationReplaced": "L’ultima dettatura è stata sostituita."
   },

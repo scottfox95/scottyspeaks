@@ -449,7 +449,10 @@ class ClipboardManager {
       const result = this.recordingTargets
         ? await this.recordingTargets.paste(options.targetToken, options.webContents?.id, text)
         : { success: false, reason: "helper-unavailable" };
-      return { ...result, manualCopy: !result.success };
+      if (result.success) return { ...result, manualCopy: false };
+      // The helper never posts ⌘V after a refusal, so the transcript can't
+      // also land in another field. Leave it on the clipboard for a manual ⌘V.
+      return { ...result, manualCopy: true, onClipboard: this.leaveOnClipboard(text) };
     }
     const startTime = Date.now();
     const platform = process.platform;
@@ -518,6 +521,18 @@ class ClipboardManager {
         error: error.message,
       });
       throw error;
+    }
+  }
+
+  /** Puts a transcript on the clipboard after a failed paste; true when written. */
+  leaveOnClipboard(text) {
+    if (typeof text !== "string" || !text) return false;
+    try {
+      clipboard.writeText(text);
+      return true;
+    } catch (error) {
+      debugLogger.warn?.("Could not leave transcript on clipboard", { error: error?.message }, "clipboard");
+      return false;
     }
   }
 

@@ -1880,6 +1880,8 @@
   "recordingTarget": {
     "manualTitle": "Texte prêt à copier",
     "manualDescription": "Le champ de texte initial n’a pas pu être vérifié. Le résultat est enregistré dans l’historique. Utilisez Copier pour le coller vous-même.",
+    "clipboardTitle": "Le collage n’a pas abouti, le texte est dans votre presse-papiers",
+    "clipboardDescription": "Appuyez sur ⌘V à l’endroit voulu. Il est aussi enregistré dans l’historique.",
     "selectionReplaced": "Votre sélection a été remplacée.",
     "dictationReplaced": "Votre dernière dictée a été remplacée."
   },

@@ -38,6 +38,8 @@ export interface MeetingFolder {
   id: string;
   name: string;
   path: string;
+  /** Parent and folder ("TenenbaumAI / docs"), longer only when pins would collide. */
+  label?: string;
 }
 export interface MeetingSummary {
   id: string;

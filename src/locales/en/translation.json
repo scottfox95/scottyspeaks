@@ -1876,6 +1876,8 @@
   "recordingTarget": {
     "manualTitle": "Text ready to copy",
     "manualDescription": "The original text field could not be verified. Your result is saved in History. Use Copy there to paste it yourself.",
+    "clipboardTitle": "Paste didn't land, it's on your clipboard",
+    "clipboardDescription": "Press ⌘V where you want it. It's also saved in History.",
     "selectionReplaced": "Replaced your selection.",
     "dictationReplaced": "Replaced your last dictation."
   },
