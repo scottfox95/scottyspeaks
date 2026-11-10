@@ -18,6 +18,7 @@ import {
 const SHORT_CLIP_DURATION_SECONDS = 2.5;
 const REASONING_CACHE_TTL = 30000; // 30 seconds
 const POLISH_TIMEOUT_MS = 20000; // hard cap on the polish pass; raw text is the fallback
+const POLISH_SKIPPED = Symbol("polish-skipped");
 
 const TRUNCATED_ENDING_WORDS = new Set([
   "a",
@@ -775,6 +776,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   cancelProcessing() {
+    // The words are already transcribed: cancelling the AI pass delivers them
+    // as they are instead of throwing the dictation away.
+    if (this.skipPolish()) return true;
     this.releaseRecordingTarget();
     this.releaseRecordingTarget(this._evidenceOperation?.target);
     if (this._evidenceOperation) this._evidenceOperation.cancelled = true;
@@ -1172,7 +1176,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           provider,
           hasKey: !!apiKey,
           keyLength: apiKey?.length || 0,
-          keyPreview: apiKey ? `${apiKey.substring(0, 8)}...` : "(none)",
+          hasKey: Boolean(apiKey),
         },
         "transcription"
       );
@@ -1520,20 +1524,39 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     return { text: out, reason: "" };
   }
 
+  /**
+   * Races a polish request against its timeout and against "use the raw text
+   * now" (cancel while refining). Either way the HTTP request to llama-server
+   * is aborted so it stops generating instead of holding the next dictation.
+   * Resolves POLISH_SKIPPED when the person skipped the pass.
+   */
   _withTimeout(promise, ms, label) {
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+      let settled = false;
+      let timer = null;
+      const settle = (fn, value, abort) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        if (this._skipPolish === skip) this._skipPolish = null;
+        if (abort) void window.electronAPI?.cancelLocalReasoning?.()?.catch?.(() => {});
+        fn(value);
+      };
+      const skip = () => settle(resolve, POLISH_SKIPPED, true);
+      this._skipPolish = skip;
+      timer = setTimeout(() => settle(reject, new Error(`${label} timed out after ${ms}ms`), true), ms);
       promise.then(
-        (v) => {
-          clearTimeout(timer);
-          resolve(v);
-        },
-        (e) => {
-          clearTimeout(timer);
-          reject(e);
-        }
+        (v) => settle(resolve, v),
+        (e) => settle(reject, e)
       );
     });
+  }
+
+  /** Cancel while refining: keep the dictation and deliver it without the AI pass. */
+  skipPolish() {
+    if (!this._skipPolish) return false;
+    this._skipPolish();
+    return true;
   }
 
   async processTranscription(text, source, evidence) {
@@ -1554,7 +1577,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       try {
         const result = await this._withTimeout(this.processWithReasoningModel(raw, snapshot.model,
           snapshot.agentName || snapshot.settings.agentName, { ...snapshot, command: true }), POLISH_TIMEOUT_MS, "Voice command");
-        if (typeof result !== "string" || !result.trim()) return raw;
+        if (result === POLISH_SKIPPED || typeof result !== "string" || !result.trim()) return raw;
         if (evidence) { evidence.polished = true; evidence.explicitCommand = true; }
         this.lastPolishInfo = { polished: true, raw };
         return result;
@@ -1573,6 +1596,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         this.processWithReasoningModel(baseline, snapshot.model, null, snapshot),
         POLISH_TIMEOUT_MS, "Polish"
       );
+      if (result === POLISH_SKIPPED) return baseline;
       const { text: validated, reason } = this.explainPolishOutput(baseline, result);
       const violation = validated === null ? reason : cleanupViolation(baseline, validated, snapshot.cleanup);
       if (violation) {
@@ -1682,7 +1706,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           "First stream chunk received",
           {
             chunkLength: chunk.length,
-            chunkPreview: chunk.substring(0, 500),
+            chunkLength: chunk.length,
           },
           "transcription"
         );
@@ -1962,7 +1986,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           provider,
           isCustomEndpoint,
           hasApiKey: !!apiKey,
-          apiKeyPreview: apiKey ? `${apiKey.substring(0, 8)}...` : "(none)",
+          hasApiKey: Boolean(apiKey),
         },
         "transcription"
       );
@@ -2054,7 +2078,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             "Failed to parse JSON response",
             {
               parseError: parseError.message,
-              rawText: rawText.substring(0, 500),
+              responseLength: rawText.length,
             },
             "transcription"
           );

@@ -11,6 +11,7 @@ const DISK_CHECK_MS = 30000;
 // is shown only once it grows, and a stall is raised as a failure.
 const HEALTH_CHECK_MS = 2000;
 const STALL_MS = 20000;
+const SOURCES_TIMEOUT_MS = 15000;
 const VIDEO_EXTENSIONS = new Set([".mp4", ".mov"]);
 
 function ffmpegPath() {
@@ -114,14 +115,29 @@ class ScreenRecorder {
       return 0;
     }
   }
-  sources() {
+  sources({ timeoutMs = SOURCES_TIMEOUT_MS } = {}) {
     return new Promise((resolve, reject) => {
       const child = this.spawn(this.binary, ["--list"], { stdio: ["ignore", "pipe", "pipe"] });
       let out = "";
+      let timedOut = false;
+      // ScreenCaptureKit can hang (e.g. a stuck permission prompt); never let
+      // the source picker wait forever or leave the helper behind.
+      const timer = setTimeout(() => {
+        timedOut = true;
+        try {
+          child.kill("SIGKILL");
+        } catch {}
+        reject(new Error("Listing screens timed out"));
+      }, timeoutMs);
       child.stdout.on("data", (chunk) => (out += chunk));
       child.stderr.on("data", () => {});
-      child.on("error", reject);
+      child.on("error", (error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
       child.on("close", () => {
+        clearTimeout(timer);
+        if (timedOut) return;
         const line = out.trim().split("\n").pop();
         try {
           const data = JSON.parse(line);

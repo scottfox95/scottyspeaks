@@ -5,7 +5,7 @@ const { killProcess } = require("./process");
 
 const GRACEFUL_STOP_TIMEOUT_MS = 5000;
 
-function isPortAvailable(port) {
+function probePort(port, host) {
   return new Promise((resolve) => {
     const server = net.createServer();
     server.once("error", () => resolve(false));
@@ -14,12 +14,17 @@ function isPortAvailable(port) {
       // can't hand the port to a child that binds before we let go.
       server.close(() => resolve(true));
     });
-    // Probe the wildcard address, not 127.0.0.1: the servers we launch bind
-    // to 0.0.0.0, and Node's default SO_REUSEADDR lets a loopback-only probe
-    // succeed while a stale process still holds *:port — reporting the port
-    // free and then killing the child with EADDRINUSE.
-    server.listen(port, "0.0.0.0");
+    server.listen(port, host);
   });
+}
+
+/// Probes both the wildcard and the loopback address. Node's default
+/// SO_REUSEADDR lets each probe succeed while a process holds the *other*
+/// one: a loopback probe passes while a stale sherpa-onnx holds *:port, and a
+/// wildcard probe passes while a stale llama-server holds 127.0.0.1:port.
+/// Either miss hands the child an occupied port and it dies with EADDRINUSE.
+async function isPortAvailable(port) {
+  return (await probePort(port, "0.0.0.0")) && (await probePort(port, "127.0.0.1"));
 }
 
 async function findAvailablePort(rangeStart, rangeEnd) {

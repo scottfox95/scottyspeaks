@@ -312,6 +312,9 @@
         "title": "Mode de secours",
         "description": "Whisper local a échoué. L'API OpenAI a pris le relais."
       },
+      "speechModelPreparing": "Le modèle vocal est encore en cours de préparation (premier téléchargement ou compilation unique pour le Neural Engine). Réessayez dans une minute.",
+      "speechModelFailed": "Le modèle vocal n'a pas pu démarrer : {{error}}",
+      "speechEngineStopped": "Le moteur vocal s'est arrêté pendant la transcription. Veuillez réessayer.",
       "noAudio": {
         "title": "Aucun audio détecté",
         "description": "L'enregistrement ne contient pas d'audio détectable. Réessayez."
@@ -1628,7 +1631,8 @@
     },
     "buttons": {
       "cancelRecording": "Annuler l’enregistrement",
-      "cancelProcessing": "Annuler le traitement"
+      "cancelProcessing": "Annuler le traitement",
+      "skipRefinement": "Utiliser le texte sans affinage IA"
     },
     "commandMenu": {
       "stopListening": "Arrêter l’écoute",
@@ -1867,6 +1871,7 @@
       "transcribing": "Transcription",
       "refining": "Amélioration",
       "failed": "Échec",
+      "cancelled": "Annulé",
       "preparing": "Préparation audio",
       "idle": "Prêt",
       "recording": "Enregistrement"

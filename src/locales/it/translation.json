@@ -312,6 +312,9 @@
         "title": "Modalità fallback",
         "description": "Whisper locale non riuscito. Utilizzata l'API OpenAI."
       },
+      "speechModelPreparing": "Il modello vocale è ancora in preparazione (primo download o compilazione una tantum per il Neural Engine). Riprova tra un minuto.",
+      "speechModelFailed": "Impossibile avviare il modello vocale: {{error}}",
+      "speechEngineStopped": "Il motore vocale si è interrotto durante la trascrizione. Riprova.",
       "noAudio": {
         "title": "Nessun audio rilevato",
         "description": "La registrazione non contiene audio rilevabile. Riprova."
@@ -1628,7 +1631,8 @@
     },
     "buttons": {
       "cancelRecording": "Annulla registrazione",
-      "cancelProcessing": "Annulla elaborazione"
+      "cancelProcessing": "Annulla elaborazione",
+      "skipRefinement": "Usa il testo senza perfezionamento IA"
     },
     "commandMenu": {
       "stopListening": "Smetti di ascoltare",
@@ -1867,6 +1871,7 @@
       "transcribing": "Trascrizione",
       "refining": "Revisione",
       "failed": "Errore",
+      "cancelled": "Annullato",
       "preparing": "Preparazione audio",
       "idle": "Pronto",
       "recording": "Registrazione"

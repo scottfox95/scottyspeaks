@@ -10,6 +10,7 @@ const {
   gracefulStopProcess,
 } = require("../utils/serverUtils");
 const { getSafeTempDir } = require("./safeTempDir");
+const ownedProcesses = require("./ownedProcesses");
 
 const PORT_RANGE_START = 6006;
 const PORT_RANGE_END = 6029;
@@ -86,6 +87,7 @@ class ParakeetWsServer {
       windowsHide: true,
       cwd: getSafeTempDir(),
     });
+    ownedProcesses.track(this.process, { name: "sherpa-onnx-ws", binary: wsBinary });
 
     let stderrBuffer = "";
     let exitCode = null;
@@ -149,14 +151,21 @@ class ParakeetWsServer {
   async _waitForReady(readySignal, getProcessInfo) {
     const startTime = Date.now();
 
+    let timer = null;
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(
-        () => reject(new Error(`parakeet-ws failed to start within ${STARTUP_TIMEOUT_MS}ms`)),
-        STARTUP_TIMEOUT_MS
-      );
+      timer = setTimeout(() => {
+        // Giving up must also stop the model load, or it lingers in RAM.
+        this.stop().catch(() => {});
+        reject(new Error(`parakeet-ws failed to start within ${STARTUP_TIMEOUT_MS}ms`));
+      }, STARTUP_TIMEOUT_MS);
     });
 
-    const ready = await Promise.race([readySignal, timeoutPromise]);
+    let ready;
+    try {
+      ready = await Promise.race([readySignal, timeoutPromise]);
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (!ready) {
       const info = getProcessInfo ? getProcessInfo() : {};
@@ -213,10 +222,14 @@ class ParakeetWsServer {
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
       let result = "";
+      let gotReply = false;
+      let settled = false;
 
       const done =
         (fn) =>
         (...args) => {
+          if (settled) return;
+          settled = true;
           this.transcribing = false;
           fn(...args);
         };
@@ -251,6 +264,7 @@ class ParakeetWsServer {
       });
 
       ws.on("message", (data) => {
+        gotReply = true;
         result += data.toString();
         ws.send("Done");
       });
@@ -263,8 +277,17 @@ class ParakeetWsServer {
           elapsed,
           code,
           resultLength: result.length,
-          resultPreview: result.slice(0, 200),
         });
+
+        // sherpa-onnx always answers (even "" for silence) before closing. A
+        // close with no reply means the server died mid-request; resolving
+        // with empty text would read as "No audio detected".
+        if (!gotReply) {
+          const error = new Error(`parakeet-ws closed without a result (code ${code})`);
+          error.code = "PARAKEET_ENGINE_STOPPED";
+          done(reject)(error);
+          return;
+        }
 
         try {
           const parsed = JSON.parse(result);
@@ -276,7 +299,9 @@ class ParakeetWsServer {
 
       ws.on("error", (error) => {
         clearTimeout(timeout);
-        done(reject)(new Error(`parakeet-ws transcription failed: ${error.message}`));
+        const failure = new Error(`parakeet-ws transcription failed: ${error.message}`);
+        failure.code = "PARAKEET_ENGINE_STOPPED";
+        done(reject)(failure);
       });
     });
   }
