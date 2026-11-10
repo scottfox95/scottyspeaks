@@ -86,21 +86,6 @@
     "quit": "終了",
     "cancel": "キャンセル"
   },
-  "upgradePrompt": {
-    "paymentFailed": "お支払いを処理できませんでした",
-    "weeklyLimit": "週間の利用上限に達しました",
-    "pastDueDescription": "現在は無料プランをご利用中です。ご安心ください、週 {{limit}} ワードまで引き続きご利用いただけます。\nお支払い方法を更新して、無制限の Pro に戻しましょう。",
-    "limitDescription": "{{used}} / {{limit}} ワード使用済み。\n文字起こしは保存・貼り付けされました。",
-    "updatePayment": "お支払い方法を更新",
-    "updatePaymentDescription": "無制限の Pro 文字起こしに戻りましょう。",
-    "upgradeToPro": "Pro にアップグレード",
-    "upgradeDescription": "月額 $8 からの有料プランにアップグレード。",
-    "useApiKey": "自分の API キーを使用",
-    "useApiKeyDescription": "自分のキーで無制限に利用できます。",
-    "switchToLocal": "ローカルに切り替え",
-    "switchToLocalDescription": "オフライン文字起こし。制限なし。",
-    "rollingWeeklyLimit": "週間利用上限（ローリング）"
-  },
   "windowControls": {
     "minimize": "最小化",
     "maximize": "最大化",
@@ -127,12 +112,9 @@
     "loading": "読み込み中...",
     "unknown": "不明",
     "availableModels": "利用可能なモデル",
-    "fast": "高速",
     "hold": "ホールド",
-    "private": "プライベート",
     "tap": "タップ",
-    "close": "閉じる",
-    "dismiss": "閉じる"
+    "close": "閉じる"
   },
   "onboarding": {
     "steps": {
@@ -225,16 +207,6 @@
         "yesterday": "昨日"
       }
     },
-    "cloudMigration": {
-      "title": "OpenWhispr Pro へようこそ",
-      "description": "7 日間の無料トライアルが有効です！より高速で正確な文字起こしのために OpenWhispr Cloud に切り替えました。以前の設定は保存されています。設定からいつでも戻せます。",
-      "viewSettings": "設定を表示"
-    },
-    "aiCta": {
-      "title": "AI で文字起こしを向上させましょう",
-      "description": "話しながら文法、句読点、書式を自動的に修正します。",
-      "enable": "AI 補正を有効にする"
-    },
     "loading": "読み込み中...",
     "gpu": {
       "bannerTitle": "GPU アクセラレーションが利用可能",
@@ -298,16 +270,10 @@
     "fallback": {
       "whisperModelDescription": "モデル",
       "parakeetModelDescription": "NVIDIA Parakeet モデル"
-    },
-    "whisperModels": "Whisper モデル"
+    }
   },
   "hooks": {
     "audioRecording": {
-      "errorTitles": {
-        "sessionExpired": "セッション期限切れ",
-        "offline": "オフラインです",
-        "dailyLimitReached": "1 日の上限に達しました"
-      },
       "fallback": {
         "title": "フォールバックモード",
         "description": "ローカル Whisper が失敗しました。代わりに OpenAI API を使用しました。"
@@ -441,67 +407,6 @@
       }
     }
   },
-  "auth": {
-    "cloudNotConfigured": "クラウド未設定",
-    "sessionExpired": "セッションの有効期限が切れました",
-    "common": {
-      "back": "戻る",
-      "continue": "続ける",
-      "or": "または"
-    },
-    "emailStep": {
-      "continueWithEmail": "メールで続ける",
-      "continueWithoutAccount": "アカウントなしで続ける",
-      "emailPlaceholder": "you@example.com"
-    },
-    "errors": {
-      "accountExistsSignIn": "このメールアドレスのアカウントは既に存在します。サインインしてください。",
-      "accountNotFoundCreate": "このメールアドレスのアカウントが見つかりません。アカウントを作成してください。",
-      "authNotConfigured": "認証が設定されていません",
-      "createAccountFailed": "アカウントの作成に失敗しました",
-      "failedProviderSignIn": "{{provider}} でのサインインに失敗しました",
-      "failedUserCheck": "ユーザーアカウントの確認に失敗しました",
-      "generic": "問題が発生しました。もう一度お試しください。",
-      "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
-      "plusAliasUnsupported": "「+」を含むメールエイリアスはサポートされていません"
-    },
-    "getStarted": "はじめる",
-    "legal": {
-      "and": "および",
-      "prefix": "続行すると、",
-      "privacy": "プライバシーポリシー",
-      "suffix": "に同意したことになります",
-      "terms": "利用規約"
-    },
-    "passwordForm": {
-      "createAccount": "アカウントを作成",
-      "createAccountButton": "アカウントを作成",
-      "createAccountLink": "アカウントを作成",
-      "createPasswordPlaceholder": "パスワードを作成",
-      "creatingAccount": "アカウント作成中...",
-      "enterPasswordPlaceholder": "パスワードを入力",
-      "forgotPassword": "パスワードをお忘れですか？",
-      "fullNamePlaceholder": "氏名",
-      "haveAccount": "既にアカウントをお持ちですか？",
-      "newHere": "初めてですか？",
-      "passwordMinLength": "パスワードは 8 文字以上にしてください",
-      "signIn": "サインイン",
-      "signInLink": "サインイン",
-      "signingIn": "サインイン中...",
-      "welcomeBack": "おかえりなさい"
-    },
-    "signedIn": {
-      "ready": "準備完了",
-      "welcomeBack": "おかえりなさい",
-      "welcomeBackName": "おかえりなさい、{{name}} さん"
-    },
-    "social": {
-      "completeInBrowser": "ブラウザでサインインを完了してください",
-      "continueWithGoogle": "Google で続ける"
-    },
-    "welcomeSubtitle": "音声でどこでもディクテーション",
-    "welcomeTitle": "ScottySpeaks へようこそ"
-  },
   "cleanupPrompt": "クリーンアップ",
   "developerSection": {
     "currentLogFile": "現在のログファイル",
@@ -569,40 +474,10 @@
     }
   },
   "dictionarySuffix": "辞書サフィックス",
-  "emailVerification": {
-    "checkEmailDescription": "確認リンクを送信しました",
-    "checkEmailTitle": "メールを確認してください",
-    "errors": {
-      "resendFailed": "メールを再送信できませんでした。もう一度お試しください。",
-      "serverUnreachable": "サーバーに接続できませんでした。接続を確認してもう一度お試しください。"
-    },
-    "resendButton": "確認メールを再送信",
-    "resendIn": "{{seconds}} 秒後に再送信可能",
-    "verifiedDescription": "アカウントの設定が完了しました。",
-    "verifiedTitle": "メール確認完了",
-    "waiting": "確認を待っています..."
-  },
   "errorBoundary": {
     "description": "予期しないエラーが発生しました。再読み込みしてもう一度お試しください。",
     "reload": "再読み込み",
     "title": "問題が発生しました"
-  },
-  "forgotPassword": {
-    "back": "戻る",
-    "backToSignIn": "サインインに戻る",
-    "emailPlaceholder": "メールアドレスを入力",
-    "goBack": "戻る",
-    "notConfigured": "認証がまだ設定されていません。",
-    "sendResetLink": "リセットリンクを送信",
-    "sending": "送信中...",
-    "subtitle": "メールアドレスを入力するとリセットリンクを送信します",
-    "success": {
-      "description": "パスワードリセットリンクを送信しました",
-      "help": "メールが届きませんか？迷惑メールフォルダを確認するか、もう一度お試しください。",
-      "title": "メールを確認してください",
-      "tryAnother": "別のメールアドレスで試す"
-    },
-    "title": "パスワードをリセット"
   },
   "fullPrompt": "フルプロンプト",
   "hotkeyGuidance": {
@@ -687,30 +562,6 @@
     "unknownDevice": "不明なデバイス",
     "using": "使用中:"
   },
-  "pasteToolsInfo": {
-    "checking": "システム機能を確認中...",
-    "installCommands": {
-      "archLinux": "# Arch Linux",
-      "debianUbuntu": "# Debian / Ubuntu",
-      "debianUbuntuMint": "# Debian / Ubuntu / Mint",
-      "fedoraRhel": "# Fedora / RHEL"
-    },
-    "installPrefix": "テキストの自動貼り付けには",
-    "methodReady": "で自動貼り付け可能",
-    "noteXwaylandAlso": "注: XWayland アプリでは xdotool も使用できます。",
-    "noteXwaylandOnly": "注: 自動貼り付けは XWayland アプリのみで動作します。",
-    "optionalEnableTitle": "オプション: 自動貼り付けを有効にする",
-    "readyTitle": "自動貼り付け準備完了",
-    "recheck": "再確認",
-    "recheckChecking": "確認中...",
-    "title": "自動貼り付け",
-    "usingMethodPrefix": "使用中:",
-    "waylandClipboardDescription": "この Wayland セッションでは自動貼り付けが利用できません。ScottySpeaks はテキストをクリップボードにコピーしますので、Ctrl+V で手動で貼り付けてください。",
-    "waylandClipboardTitle": "Wayland でのクリップボードモード",
-    "windowsReady": "Windows は自動貼り付けに標準対応しています。設定は不要です！",
-    "withoutToolPrefix": "このツールがない場合、ScottySpeaks はテキストをクリップボードにコピーします。Ctrl+V で手動で貼り付けてください。",
-    "xwaylandAppsOnly": "自動貼り付けは XWayland アプリのみで動作します"
-  },
   "promptStudio": {
     "common": {
       "copied": "コピーしました",
@@ -758,7 +609,6 @@
       "none": "なし",
       "outputLabel": "出力",
       "processing": "処理中...",
-      "openwhisprCloud": "OpenWhispr Cloud",
       "providerLabel": "プロバイダー",
       "run": "テスト実行",
       "customEndpoint": "カスタムエンドポイント"
@@ -779,43 +629,13 @@
       "modified": "変更済み"
     }
   },
-  "resetPassword": {
-    "backToSignIn": "サインインに戻る",
-    "confirmPasswordPlaceholder": "新しいパスワードを確認",
-    "continue": "続ける",
-    "errors": {
-      "passwordMinLength": "パスワードは 8 文字以上にしてください",
-      "passwordsDoNotMatch": "パスワードが一致しません"
-    },
-    "goBack": "戻る",
-    "newPasswordPlaceholder": "新しいパスワード",
-    "notConfigured": "認証が設定されていません。",
-    "passwordMinLength": "パスワードは 8 文字以上にしてください",
-    "resetButton": "パスワードをリセット",
-    "resetting": "リセット中...",
-    "subtitle": "新しいパスワードを入力してください",
-    "success": {
-      "description": "パスワードが更新されました。サインイン済みです。",
-      "title": "パスワードのリセットが完了しました"
-    },
-    "title": "新しいパスワードを作成"
-  },
   "settingsModal": {
     "groups": {
-      "account": "アカウント",
       "app": "アプリ",
       "speechAi": "音声 & AI",
       "system": "システム"
     },
     "sections": {
-      "account": {
-        "description": "プロフィールとサインイン",
-        "label": "アカウント"
-      },
-      "plansBilling": {
-        "description": "プラン、使用状況、請求",
-        "label": "プランと請求"
-      },
       "general": {
         "description": "外観、サウンド、起動設定",
         "label": "環境設定"
@@ -844,121 +664,6 @@
     "title": "設定"
   },
   "settingsPage": {
-    "account": {
-      "badges": {
-        "free": "無料",
-        "limitReached": "上限到達",
-        "pastDue": "支払い遅延",
-        "pro": "Pro",
-        "trial": "トライアル"
-      },
-      "billing": {
-        "couldNotOpenDescription": "請求ページを開く際に問題が発生しました。もう一度お試しください。",
-        "couldNotOpenTitle": "請求を開けませんでした",
-        "manageBilling": "請求を管理",
-        "opening": "開いています...",
-        "updatePaymentMethod": "お支払い方法を更新"
-      },
-      "checkout": {
-        "couldNotOpenDescription": "購入ページを開く際に問題が発生しました。もう一度お試しください。",
-        "couldNotOpenTitle": "購入ページを開けませんでした",
-        "opening": "開いています...",
-        "upgradeToPro": "Pro にアップグレード"
-      },
-      "disabled": "無効",
-      "featuresDisabled": "アカウント機能が無効です",
-      "featuresDisabledDescription": ".env ファイルで VITE_NEON_AUTH_URL を設定してアカウント機能を有効にしてください。",
-      "notConfigured": "認証が設定されていません",
-      "notSignedIn": "サインインしていません",
-      "notSignedInDescription": "アカウントを作成してプレミアム機能をアンロックしましょう。",
-      "offline": "オフライン",
-      "pastDue": {
-        "description": "現在は無料プランをご利用中です。お支払い方法を更新して Pro に戻しましょう。",
-        "title": "お支払いを処理できませんでした"
-      },
-      "planDescriptions": {
-        "freeUsage": "今週 {{used}} / {{limit}} ワード使用済み",
-        "nextBilling": "次の請求日: {{date}}",
-        "pastDue": "今週 {{used}} / {{limit}} 無料ワード使用済み - お支払い方法を更新して Pro を復元",
-        "trial": "残り {{days}} 日 - 無制限の文字起こし",
-        "unlimited": "無制限"
-      },
-      "planLabels": {
-        "free": "無料",
-        "pro": "Pro",
-        "trial": "トライアル"
-      },
-      "planTitle": "プラン",
-      "pricing": {
-        "title": "プラン",
-        "monthly": "月払い",
-        "annual": "年払い",
-        "annualBadge": "17% お得",
-        "free": {
-          "name": "無料",
-          "price": "$0",
-          "period": "永久",
-          "features": [
-            "週 2,000 ワード",
-            "ローカル AI モデル",
-            "自分の API キーを使用",
-            "辞書とスニペット",
-            "100 以上の言語に対応",
-            "データ保持なし"
-          ]
-        },
-        "pro": {
-          "name": "Pro",
-          "monthlyPrice": "$8",
-          "monthlyPeriod": "/月",
-          "annualPrice": "$80",
-          "annualPeriod": "/年",
-          "features": [
-            "無料プランのすべて",
-            "無制限の使用",
-            "リアルタイム文字起こし",
-            "最新の音声 & AI モデル",
-            "iOS/Android（近日公開）",
-            "データ保持なし",
-            "優先サポート"
-          ],
-          "cta": "始める",
-          "switchToAnnual": "年払いに切り替え"
-        },
-        "enterprise": {
-          "name": "Enterprise",
-          "price": "カスタム",
-          "features": ["クラウド同期", "チーム機能（近日公開）", "SSO & コンプライアンス"],
-          "cta": "お問い合わせ"
-        },
-        "currentPlan": "現在のプラン"
-      },
-      "rollingWeeklyLimit": "週間利用上限（ローリング）",
-      "signOut": {
-        "failedDescription": "サインアウト中に問題が発生しました。もう一度お試しください。",
-        "failedTitle": "サインアウトできませんでした",
-        "signOut": "サインアウト",
-        "signingOut": "サインアウト中..."
-      },
-      "signedIn": "サインイン済み",
-      "signedOutPlans": {
-        "button": "無料アカウントを作成"
-      },
-      "title": "アカウント",
-      "toasts": {
-        "approachingLimit": {
-          "description": "今週 {{used}} / {{limit}} 無料ワードを使用しました。Pro にアップグレードして無制限にご利用ください。",
-          "title": "週間利用上限に近づいています"
-        }
-      },
-      "trialCta": {
-        "button": "無料アカウントを作成",
-        "description": "無制限の文字起こし、優先処理など。",
-        "title": "Pro を 7 日間無料でお試し"
-      },
-      "user": "ユーザー",
-      "wordsRemaining": "残り {{remaining}}"
-    },
     "agentConfig": {
       "agentName": "エージェント名",
       "cleanupExample": "クリーンアップ",
@@ -983,8 +688,6 @@
       }
     },
     "aiModels": {
-      "customSetup": "カスタム設定",
-      "customSetupDescription": "独自のプロバイダーと API キーを使用。",
       "description": "文字起こしのクリーンアップ、コマンド処理、エラー修正を行いながら、あなたの話し方を維持します。",
       "enableTextCleanup": "テキスト補正を有効にする",
       "polishStyle": {
@@ -995,19 +698,7 @@
         "verbatimDescription": "話した言葉とフィラーをそのまま保持し、句読点と大文字小文字のみ追加します。"
       },
       "enableTextCleanupDescription": "AI が文字起こしの品質を向上",
-      "openwhisprCloud": "OpenWhispr Cloud",
-      "openwhisprCloudDescription": "設定不要ですぐに使えます。",
-      "title": "AI テキスト補正",
-      "toasts": {
-        "switchedCloud": {
-          "description": "テキスト補正に OpenWhispr のクラウドサービスを使用します。",
-          "title": "OpenWhispr Cloud に切り替えました"
-        },
-        "switchedCustom": {
-          "description": "独自のプロバイダーと API キーを設定してください。",
-          "title": "カスタム設定に切り替えました"
-        }
-      }
+      "title": "AI テキスト補正"
     },
     "developer": {
       "clearCache": "キャッシュをクリア",
@@ -1171,35 +862,13 @@
       "troubleshoot": "トラブルシュート",
       "troubleshootingTitle": "トラブルシューティング"
     },
-    "privacy": {
-      "cloudBackup": "クラウドバックアップ",
-      "cloudBackupDescription": "文字起こしをクラウドに保存してデータを失わないようにします。",
-      "description": "デバイスからのデータ送信を管理します。初期設定ではすべてオフです。",
-      "title": "プライバシー",
-      "usageAnalytics": "使用状況の分析",
-      "usageAnalyticsDescription": "匿名のパフォーマンスデータを共有して ScottySpeaks の改善にご協力ください。文字起こしの内容は送信されません。タイミングとエラーデータのみです。"
-    },
     "prompts": {
       "description": "テキスト補正と指示検出を行う統合システムプロンプトの表示、カスタマイズ、テスト",
       "title": "プロンプトスタジオ"
     },
     "transcription": {
-      "customSetup": "カスタム設定",
-      "customSetupDescription": "独自のプロバイダーと API キーを使用。",
       "description": "ScottySpeaks の音声文字起こし方法を選択",
-      "openwhisprCloud": "OpenWhispr Cloud",
-      "openwhisprCloudDescription": "設定不要ですぐに使えます。",
-      "title": "音声テキスト変換",
-      "toasts": {
-        "switchedCloud": {
-          "description": "文字起こしに OpenWhispr のクラウドサービスを使用します。",
-          "title": "OpenWhispr Cloud に切り替えました"
-        },
-        "switchedCustom": {
-          "description": "独自のプロバイダーと API キーを設定してください。",
-          "title": "カスタム設定に切り替えました"
-        }
-      }
+      "title": "音声テキスト変換"
     }
   },
   "models": {
@@ -1273,7 +942,6 @@
     "editor": {
       "transcribe": "文字起こし",
       "staleIndicator": "強化後にコンテンツが変更されました",
-      "live": "ライブ",
       "untitled": "無題",
       "noteTitle": "ノートのタイトル",
       "stop": "停止",
@@ -1356,50 +1024,6 @@
       "hoursAgo": "{{count}}時間前",
       "daysAgo": "{{count}}日前"
     },
-    "upload": {
-      "title": "音声をアップロード",
-      "using": "{{model}} を使用中",
-      "dropOrBrowse": "音声ファイルをドロップまたはクリックして選択",
-      "supportedFormats": "MP3, WAV, M4A, WebM, OGG, FLAC, AAC",
-      "dropToUpload": "ドロップしてアップロード",
-      "transcribe": "文字起こし",
-      "cancel": "キャンセル",
-      "transcribingCloud": "クラウドで文字起こし中...",
-      "transcribingLocal": "ローカルで文字起こし中...",
-      "transcribingProvider": "{{provider}} で文字起こし中...",
-      "transcriptionComplete": "文字起こし完了",
-      "openNote": "ノートを開く",
-      "uploadAnother": "別のファイルをアップロード",
-      "retry": "再試行",
-      "startOver": "やり直す",
-      "transcriptionSettings": "文字起こし設定",
-      "newFolder": "新しいフォルダ",
-      "folderName": "フォルダ名",
-      "create": "作成",
-      "setupTitle": "文字起こしを設定",
-      "setupDescription": "音声の文字起こし方法を選択してください。ライブディクテーションにも適用されます。",
-      "continue": "続ける",
-      "openwhisprCloud": "OpenWhispr Cloud",
-      "custom": "カスタム",
-      "selectFolder": "フォルダを選択",
-      "transcriptionFailed": "文字起こしに失敗しました",
-      "errorOccurred": "エラーが発生しました",
-      "noProviderTitle": "文字起こしプロバイダーが設定されていません",
-      "noProviderDescription": "API キーを追加するか、ローカルモデルをダウンロードして文字起こしを開始してください。",
-      "noProviderAction": "文字起こし設定を開く",
-      "fileTooLarge": "このファイルは 500 MB の制限を超えています。",
-      "largeFileNote": "大容量ファイルは分割され、並列で文字起こしされます。",
-      "chunkProgress": "パート {{completed}} / {{total}} を文字起こし中...",
-      "paidPlanRequired": "25 MB を超えるファイルのクラウド文字起こしには有料プランが必要です。大容量ファイルは OpenWhispr Cloud で信頼性の高い高品質な結果を得られます。",
-      "byokTooLarge": "サードパーティの API キーは 25 MB までのファイルのみ対応しています。",
-      "byokTooLargeDetail": "25 MB を超えるファイルは、OpenWhispr Cloud が分割・並列処理・結合を行います。サードパーティの制限に依存せず、信頼性の高い結果が得られます。",
-      "byokTooLargeNeedsAccount": "アカウントを作成し、有料プランにアップグレードすると、OpenWhispr Cloud でより大きなファイルを文字起こしできます。",
-      "byokTooLargeNeedsUpgrade": "有料プランにアップグレードすると、OpenWhispr Cloud でより大きなファイルを文字起こしできます。",
-      "switchToCloudForLargeFiles": "このファイルを文字起こしするには OpenWhispr Cloud に切り替えてください。",
-      "createAccount": "アカウント作成",
-      "upgrade": "アップグレード",
-      "switchToCloud": "OpenWhispr Cloud"
-    },
     "meeting": {
       "title": "議事録",
       "description": "話者識別と構造化されたサマリー",
@@ -1420,10 +1044,6 @@
         "created": "作成しました！"
       },
       "getStarted": "始める"
-    },
-    "realtimeBanner": {
-      "message": "Pro でリアルタイム文字起こしが利用可能",
-      "upgrade": "アップグレード"
     },
     "enhance": {
       "title": "強化エラー"
@@ -1468,78 +1088,6 @@
       "save": "保存"
     }
   },
-  "referral": {
-    "title": "紹介して特典をゲット",
-    "subtitle": "1か月あげて、1か月もらおう。",
-    "modalTitle": "友達を紹介",
-    "tabs": {
-      "refer": "紹介する",
-      "pastInvites": "過去の招待"
-    },
-    "howItWorks": {
-      "shareLink": "招待リンクを共有",
-      "theySignUp": "相手が登録すると",
-      "freeMonthOfPro": "Pro の無料 1 か月",
-      "youGet": "あなたも",
-      "freeMonth": "無料 1 か月",
-      "whenTheyDictate": "を獲得（相手が 2,000 語ディクテーションした時点で）"
-    },
-    "inviteLink": {
-      "title": "招待リンク",
-      "copy": "コピー",
-      "copied": "コピーしました"
-    },
-    "sendInvites": {
-      "title": "招待を送信",
-      "placeholder": "friend@example.com",
-      "send": "送信",
-      "sending": "送信中"
-    },
-    "stats": {
-      "referred": "紹介済み",
-      "converted": "登録済み",
-      "monthsEarned": "獲得した月数"
-    },
-    "status": {
-      "converted": "登録済み",
-      "opened": "開封済み",
-      "failed": "失敗",
-      "sent": "送信済み"
-    },
-    "friends": {
-      "title": "フレンド",
-      "completed": "完了",
-      "sentInvites": "送信済みの招待"
-    },
-    "empty": {
-      "title": "まだ招待を送信していません",
-      "description": "リンクを共有するか招待を送信して始めましょう"
-    },
-    "toasts": {
-      "copiedTitle": "コピーしました！",
-      "copiedDescription": "紹介リンクをクリップボードにコピーしました",
-      "copyFailedTitle": "コピーに失敗しました",
-      "copyFailedDescription": "リンクをクリップボードにコピーできませんでした",
-      "invalidEmailTitle": "無効なメールアドレス",
-      "invalidEmailDescription": "有効なメールアドレスを入力してください",
-      "inviteSentTitle": "招待を送信しました！",
-      "inviteSentDescription": "{{email}} に招待を送信しました",
-      "sendFailedTitle": "送信に失敗しました",
-      "sendFailedDescription": "招待の送信に失敗しました。もう一度お試しください。"
-    },
-    "errors": {
-      "unableToLoad": "紹介データを読み込めませんでした",
-      "unableToLoadStats": "紹介統計を読み込めませんでした。後でもう一度お試しください。"
-    },
-    "tryAgain": "再試行",
-    "card": {
-      "brand": "ScottySpeaks",
-      "signalId": "Signal ID",
-      "audioSignature": "あなたの音声シグネチャー",
-      "stop": "停止",
-      "playSignal": "シグナルを再生"
-    }
-  },
   "sidebar": {
     "home": "ホーム",
     "notes": "ノート",
@@ -1557,30 +1105,6 @@
     "defaultUser": "ユーザー",
     "notSignedIn": "未サインイン"
   },
-  "usage": {
-    "approachingLimit": "週間制限に近づいています",
-    "approachingLimitDescription": "今週の無料枠 {{limit}} 語のうち {{wordsUsed}} 語を使用しました。",
-    "yourPlan": "現在のプラン",
-    "trial": "トライアル（残り{{days}}日）",
-    "trial_other": "トライアル（残り{{days}}日）",
-    "pro": "Pro",
-    "unlimitedTrial": "トライアル期間中は無制限で文字起こし可能",
-    "unlimited": "無制限の文字起こし",
-    "manageSubscription": "サブスクリプションを管理",
-    "weeklyUsage": "週間使用量",
-    "limitReached": "制限に達しました",
-    "free": "無料",
-    "wordsRemaining": "残り{{remaining}}語",
-    "rollingLimit": "週間制限（ローリング方式）",
-    "upgradeToPro": "Proにアップグレード",
-    "useYourOwnKey": "自分のAPIキーを使用",
-    "upgradeUnlimited": "Proにアップグレード — 無制限の文字起こし"
-  },
-  "support": {
-    "joinDiscord": "Discord に参加",
-    "contactSupport": "サポートに問い合わせ",
-    "submitBug": "バグを報告"
-  },
   "apiKeyInput": {
     "placeholder": "API キーを入力",
     "label": "API キー",
@@ -1592,17 +1116,7 @@
     "addButton": "追加"
   },
   "gpu": {
-    "transcriptionBanner": "GPU で文字起こしを高速化",
-    "reasoningBanner": "GPU で AI 処理を高速化",
-    "enableButton": "GPU を有効化",
-    "active": "GPU アクセラレーション有効",
-    "ready": "GPUアクセラレーション準備完了",
-    "activating": "GPU を有効化中...",
-    "activationFailed": "GPU を有効化できませんでした",
-    "retry": "再試行",
-    "remove": "削除",
-    "dismiss": "後で",
-    "cancel": "キャンセル"
+    "active": "GPU アクセラレーション有効"
   },
   "app": {
     "toasts": {

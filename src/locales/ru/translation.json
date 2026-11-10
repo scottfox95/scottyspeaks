@@ -86,21 +86,6 @@
     "quit": "Закрыть",
     "cancel": "Отмена"
   },
-  "upgradePrompt": {
-    "paymentFailed": "Не удалось обработать платёж",
-    "weeklyLimit": "Вы достигли недельного лимита",
-    "pastDueDescription": "Сейчас вы на бесплатном плане — не волнуйтесь, у вас есть {{limit}} слов в неделю.\nОбновите способ оплаты, чтобы вернуться к безлимитному Pro.",
-    "limitDescription": "Использовано {{used}} из {{limit}} слов.\nВаша транскрипция сохранена и вставлена.",
-    "updatePayment": "Обновить способ оплаты",
-    "updatePaymentDescription": "Вернитесь к безлимитным Pro-транскрипциям.",
-    "upgradeToPro": "Перейти на Pro",
-    "upgradeDescription": "Перейдите на платный план от $8/мес.",
-    "useApiKey": "Использовать свой API-ключ",
-    "useApiKeyDescription": "Свой ключ — без ограничений.",
-    "switchToLocal": "Перейти на локальный режим",
-    "switchToLocalDescription": "Офлайн-транскрипция. Без ограничений.",
-    "rollingWeeklyLimit": "Скользящий недельный лимит"
-  },
   "windowControls": {
     "minimize": "Свернуть",
     "maximize": "Развернуть",
@@ -127,12 +112,9 @@
     "loading": "Загрузка...",
     "unknown": "Неизвестно",
     "availableModels": "Доступные модели",
-    "fast": "Быстрый",
     "hold": "Удержание",
-    "private": "Приватный",
     "tap": "Нажатие",
-    "close": "Закрыть",
-    "dismiss": "Скрыть"
+    "close": "Закрыть"
   },
   "onboarding": {
     "steps": {
@@ -225,16 +207,6 @@
         "yesterday": "Вчера"
       }
     },
-    "cloudMigration": {
-      "title": "Добро пожаловать в OpenWhispr Pro",
-      "description": "Ваш 7-дневный бесплатный пробный период активирован! Мы переключили транскрипцию на OpenWhispr Cloud для более быстрых и точных результатов. Ваши предыдущие настройки сохранены — вы можете вернуться к ним в любой момент в настройках.",
-      "viewSettings": "Открыть настройки"
-    },
-    "aiCta": {
-      "title": "Улучшите транскрипции с помощью ИИ",
-      "description": "Автоматически исправляйте грамматику, пунктуацию и форматирование прямо во время диктовки.",
-      "enable": "Включить ИИ-улучшение"
-    },
     "loading": "Загрузка...",
     "gpu": {
       "bannerTitle": "Доступно ускорение GPU",
@@ -298,16 +270,10 @@
     "fallback": {
       "whisperModelDescription": "Модель",
       "parakeetModelDescription": "Модель NVIDIA Parakeet"
-    },
-    "whisperModels": "Модели Whisper"
+    }
   },
   "hooks": {
     "audioRecording": {
-      "errorTitles": {
-        "sessionExpired": "Сессия истекла",
-        "offline": "Нет подключения к интернету",
-        "dailyLimitReached": "Дневной лимит достигнут"
-      },
       "fallback": {
         "title": "Резервный режим",
         "description": "Локальный Whisper не сработал. Использован OpenAI API."
@@ -441,67 +407,6 @@
       }
     }
   },
-  "auth": {
-    "cloudNotConfigured": "Облако не настроено",
-    "common": {
-      "back": "Назад",
-      "continue": "Продолжить",
-      "or": "или"
-    },
-    "emailStep": {
-      "continueWithEmail": "Продолжить с электронной почтой",
-      "continueWithoutAccount": "Продолжить без аккаунта",
-      "emailPlaceholder": "you@example.com"
-    },
-    "errors": {
-      "accountExistsSignIn": "Аккаунт с этой электронной почтой уже существует. Войдите в систему.",
-      "accountNotFoundCreate": "Аккаунт с этой электронной почтой не найден. Создайте аккаунт.",
-      "authNotConfigured": "Аутентификация не настроена",
-      "createAccountFailed": "Не удалось создать аккаунт",
-      "failedProviderSignIn": "Не удалось войти через {{provider}}",
-      "failedUserCheck": "Не удалось проверить аккаунт пользователя",
-      "generic": "Что-то пошло не так. Попробуйте ещё раз.",
-      "invalidCredentials": "Неверный адрес электронной почты или пароль",
-      "plusAliasUnsupported": "Алиасы электронной почты с символом «+» не поддерживаются"
-    },
-    "getStarted": "Начать",
-    "legal": {
-      "and": "и",
-      "prefix": "Продолжая, вы соглашаетесь с нашими",
-      "privacy": "Политикой конфиденциальности",
-      "suffix": "",
-      "terms": "Условиями использования"
-    },
-    "passwordForm": {
-      "createAccount": "Создать аккаунт",
-      "createAccountButton": "Создать аккаунт",
-      "createAccountLink": "Создать аккаунт",
-      "createPasswordPlaceholder": "Придумайте пароль",
-      "creatingAccount": "Создание аккаунта...",
-      "enterPasswordPlaceholder": "Введите пароль",
-      "forgotPassword": "Забыли пароль?",
-      "fullNamePlaceholder": "Полное имя",
-      "haveAccount": "Уже есть аккаунт?",
-      "newHere": "Впервые здесь?",
-      "passwordMinLength": "Пароль должен содержать не менее 8 символов",
-      "signIn": "Войти",
-      "signInLink": "Войти",
-      "signingIn": "Вход...",
-      "welcomeBack": "С возвращением"
-    },
-    "signedIn": {
-      "ready": "Готово",
-      "welcomeBack": "С возвращением",
-      "welcomeBackName": "С возвращением, {{name}}"
-    },
-    "social": {
-      "completeInBrowser": "Завершите вход в браузере",
-      "continueWithGoogle": "Продолжить с Google"
-    },
-    "welcomeSubtitle": "Диктуйте где угодно голосом",
-    "welcomeTitle": "Добро пожаловать в ScottySpeaks",
-    "sessionExpired": "Сессия истекла. Пожалуйста, войдите снова."
-  },
   "cleanupPrompt": "Очистка",
   "developerSection": {
     "currentLogFile": "Текущий файл логов",
@@ -569,40 +474,10 @@
     }
   },
   "dictionarySuffix": "Суффикс словаря",
-  "emailVerification": {
-    "checkEmailDescription": "Мы отправили ссылку для подтверждения на",
-    "checkEmailTitle": "Проверьте почту",
-    "errors": {
-      "resendFailed": "Не удалось повторно отправить письмо. Попробуйте ещё раз.",
-      "serverUnreachable": "Не удалось подключиться к серверу. Проверьте соединение и попробуйте снова."
-    },
-    "resendButton": "Отправить письмо повторно",
-    "resendIn": "Повторная отправка через {{seconds}} с",
-    "verifiedDescription": "Ваш аккаунт настроен.",
-    "verifiedTitle": "Электронная почта подтверждена",
-    "waiting": "Ожидание подтверждения..."
-  },
   "errorBoundary": {
     "description": "Произошла непредвиденная ошибка. Перезагрузите, чтобы попробовать снова.",
     "reload": "Перезагрузить",
     "title": "Что-то пошло не так"
-  },
-  "forgotPassword": {
-    "back": "Назад",
-    "backToSignIn": "Вернуться к входу",
-    "emailPlaceholder": "Введите вашу электронную почту",
-    "goBack": "Вернуться",
-    "notConfigured": "Аутентификация ещё не настроена.",
-    "sendResetLink": "Отправить ссылку для сброса",
-    "sending": "Отправка...",
-    "subtitle": "Введите вашу электронную почту, и мы отправим вам ссылку для сброса пароля",
-    "success": {
-      "description": "Мы отправили ссылку для сброса пароля на",
-      "help": "Не получили письмо? Проверьте папку «Спам» или попробуйте снова.",
-      "title": "Проверьте почту",
-      "tryAnother": "Попробовать другой адрес"
-    },
-    "title": "Сброс пароля"
   },
   "fullPrompt": "Полный промпт",
   "hotkeyGuidance": {
@@ -687,30 +562,6 @@
     "unknownDevice": "Неизвестное устройство",
     "using": "Используется:"
   },
-  "pasteToolsInfo": {
-    "checking": "Проверка системных возможностей...",
-    "installCommands": {
-      "archLinux": "# Arch Linux",
-      "debianUbuntu": "# Debian / Ubuntu",
-      "debianUbuntuMint": "# Debian / Ubuntu / Mint",
-      "fedoraRhel": "# Fedora / RHEL"
-    },
-    "installPrefix": "Для автоматической вставки текста установите",
-    "methodReady": "для автоматической вставки текста",
-    "noteXwaylandAlso": "Примечание: для приложений XWayland также работает xdotool.",
-    "noteXwaylandOnly": "Примечание: автоматическая вставка работает только для приложений XWayland.",
-    "optionalEnableTitle": "Дополнительно: включите автоматическую вставку",
-    "readyTitle": "Автоматическая вставка готова",
-    "recheck": "Проверить снова",
-    "recheckChecking": "Проверка...",
-    "title": "Автоматическая вставка",
-    "usingMethodPrefix": "Используется",
-    "waylandClipboardDescription": "Автоматическая вставка недоступна в этой сессии Wayland. ScottySpeaks скопирует текст в буфер обмена, и вы сможете вставить его вручную с помощью Ctrl+V.",
-    "waylandClipboardTitle": "Режим буфера обмена в Wayland",
-    "windowsReady": "Windows поддерживает автоматическую вставку из коробки. Настройка не требуется!",
-    "withoutToolPrefix": "Без этого инструмента ScottySpeaks скопирует текст в буфер обмена. Вы сможете вставить его вручную с помощью Ctrl+V.",
-    "xwaylandAppsOnly": "автоматическая вставка работает только для приложений XWayland"
-  },
   "promptStudio": {
     "common": {
       "copied": "Скопировано",
@@ -758,7 +609,6 @@
       "none": "Нет",
       "outputLabel": "Результат",
       "processing": "Обработка...",
-      "openwhisprCloud": "OpenWhispr Cloud",
       "providerLabel": "Провайдер",
       "run": "Запустить тест",
       "customEndpoint": "Пользовательская конечная точка"
@@ -779,43 +629,13 @@
       "modified": "Изменён"
     }
   },
-  "resetPassword": {
-    "backToSignIn": "Вернуться к входу",
-    "confirmPasswordPlaceholder": "Подтвердите новый пароль",
-    "continue": "Продолжить",
-    "errors": {
-      "passwordMinLength": "Пароль должен содержать не менее 8 символов",
-      "passwordsDoNotMatch": "Пароли не совпадают"
-    },
-    "goBack": "Вернуться",
-    "newPasswordPlaceholder": "Новый пароль",
-    "notConfigured": "Аутентификация не настроена.",
-    "passwordMinLength": "Пароль должен содержать не менее 8 символов",
-    "resetButton": "Сбросить пароль",
-    "resetting": "Сброс...",
-    "subtitle": "Введите новый пароль ниже",
-    "success": {
-      "description": "Ваш пароль обновлён. Вы вошли в систему.",
-      "title": "Пароль успешно сброшен"
-    },
-    "title": "Создание нового пароля"
-  },
   "settingsModal": {
     "groups": {
-      "account": "Аккаунт",
       "app": "Приложение",
       "speechAi": "Речь и ИИ",
       "system": "Система"
     },
     "sections": {
-      "account": {
-        "description": "Профиль и вход",
-        "label": "Аккаунт"
-      },
-      "plansBilling": {
-        "description": "Тарифы, использование и оплата",
-        "label": "Тарифы и оплата"
-      },
       "general": {
         "description": "Внешний вид, звуки и автозапуск",
         "label": "Настройки"
@@ -844,125 +664,6 @@
     "title": "Настройки"
   },
   "settingsPage": {
-    "account": {
-      "badges": {
-        "free": "Бесплатный",
-        "limitReached": "Лимит достигнут",
-        "pastDue": "Просрочен",
-        "pro": "Pro",
-        "trial": "Пробный"
-      },
-      "billing": {
-        "couldNotOpenDescription": "Не удалось открыть страницу оплаты. Попробуйте ещё раз.",
-        "couldNotOpenTitle": "Не удалось открыть оплату",
-        "manageBilling": "Управление оплатой",
-        "opening": "Открытие...",
-        "updatePaymentMethod": "Обновить способ оплаты"
-      },
-      "checkout": {
-        "couldNotOpenDescription": "Не удалось открыть страницу оформления. Попробуйте ещё раз.",
-        "couldNotOpenTitle": "Не удалось открыть оформление",
-        "opening": "Открытие...",
-        "upgradeToPro": "Перейти на Pro"
-      },
-      "disabled": "Отключено",
-      "featuresDisabled": "Функции аккаунта отключены",
-      "featuresDisabledDescription": "Установите VITE_NEON_AUTH_URL в файле .env для включения функций аккаунта.",
-      "notConfigured": "Аутентификация не настроена",
-      "notSignedIn": "Вы не вошли в систему",
-      "notSignedInDescription": "Создайте аккаунт, чтобы разблокировать премиум-функции.",
-      "offline": "Нет сети",
-      "pastDue": {
-        "description": "Сейчас вы на бесплатном плане. Обновите способ оплаты, чтобы вернуться к Pro.",
-        "title": "Не удалось обработать платёж"
-      },
-      "planDescriptions": {
-        "freeUsage": "{{used}} / {{limit}} слов на этой неделе",
-        "nextBilling": "Следующее списание: {{date}}",
-        "pastDue": "{{used}} / {{limit}} бесплатных слов на этой неделе — обновите платёж для восстановления Pro",
-        "trial": "Осталось {{days}} дней — безлимитные транскрипции",
-        "unlimited": "Без ограничений"
-      },
-      "planLabels": {
-        "free": "Бесплатный",
-        "pro": "Pro",
-        "trial": "Пробный"
-      },
-      "planTitle": "Тариф",
-      "rollingWeeklyLimit": "Скользящий недельный лимит",
-      "signOut": {
-        "failedDescription": "Произошла ошибка при выходе. Попробуйте ещё раз.",
-        "failedTitle": "Не удалось выйти",
-        "signOut": "Выйти",
-        "signingOut": "Выход..."
-      },
-      "signedIn": "Вы вошли",
-      "title": "Аккаунт",
-      "toasts": {
-        "approachingLimit": {
-          "description": "Вы использовали {{used}} из {{limit}} бесплатных слов на этой неделе. Перейдите на Pro для безлимитного использования.",
-          "title": "Приближение к недельному лимиту"
-        }
-      },
-      "trialCta": {
-        "button": "Создать бесплатный аккаунт",
-        "description": "Безлимитные транскрипции, приоритетная обработка и многое другое.",
-        "title": "Попробуйте Pro бесплатно на 7 дней"
-      },
-      "pricing": {
-        "title": "Тарифы",
-        "monthly": "Ежемесячно",
-        "annual": "Ежегодно",
-        "annualBadge": "Скидка 17%",
-        "free": {
-          "name": "Бесплатный",
-          "price": "$0",
-          "period": "навсегда",
-          "features": [
-            "2 000 слов/неделя",
-            "Локальные модели ИИ",
-            "Свои API-ключи",
-            "Словарь и сниппеты",
-            "Поддержка 100+ языков",
-            "Без хранения данных"
-          ]
-        },
-        "pro": {
-          "name": "Pro",
-          "monthlyPrice": "$8",
-          "monthlyPeriod": "/мес.",
-          "annualPrice": "$80",
-          "annualPeriod": "/год",
-          "features": [
-            "Всё из Бесплатного",
-            "Безлимитное использование",
-            "Транскрипция в реальном времени",
-            "Новейшие аудио- и ИИ-модели",
-            "iOS/Android (скоро)",
-            "Без хранения данных",
-            "Приоритетная поддержка"
-          ],
-          "cta": "Начать",
-          "switchToAnnual": "Перейти на годовой"
-        },
-        "enterprise": {
-          "name": "Корпоративный",
-          "price": "Индивидуально",
-          "features": [
-            "Облачная синхронизация",
-            "Командные функции (скоро)",
-            "SSO и соответствие требованиям"
-          ],
-          "cta": "Связаться с нами"
-        },
-        "currentPlan": "Текущий тариф"
-      },
-      "signedOutPlans": {
-        "button": "Создать бесплатный аккаунт"
-      },
-      "user": "Пользователь",
-      "wordsRemaining": "Осталось {{remaining}}"
-    },
     "agentConfig": {
       "agentName": "Имя агента",
       "cleanupExample": "Очистка",
@@ -987,8 +688,6 @@
       }
     },
     "aiModels": {
-      "customSetup": "Пользовательская настройка",
-      "customSetupDescription": "Используйте собственного провайдера и API-ключ.",
       "description": "Очищайте транскрипции, обрабатывайте команды и исправляйте ошибки, сохраняя вашу манеру речи.",
       "enableTextCleanup": "Включить очистку текста",
       "polishStyle": {
@@ -999,19 +698,7 @@
         "verbatimDescription": "Сохраняет ваши слова в точности, включая слова-паразиты. Добавляет только пунктуацию и заглавные буквы."
       },
       "enableTextCleanupDescription": "ИИ улучшает качество транскрипции",
-      "openwhisprCloud": "OpenWhispr Cloud",
-      "openwhisprCloudDescription": "Просто работает. Настройка не требуется.",
-      "title": "ИИ-улучшение текста",
-      "toasts": {
-        "switchedCloud": {
-          "description": "Улучшение текста будет использовать облачный сервис OpenWhispr.",
-          "title": "Переключено на OpenWhispr Cloud"
-        },
-        "switchedCustom": {
-          "description": "Настройте собственного провайдера и API-ключ.",
-          "title": "Переключено на пользовательскую настройку"
-        }
-      }
+      "title": "ИИ-улучшение текста"
     },
     "developer": {
       "clearCache": "Очистить кеш",
@@ -1175,35 +862,13 @@
       "troubleshoot": "Диагностика",
       "troubleshootingTitle": "Устранение неполадок"
     },
-    "privacy": {
-      "cloudBackup": "Облачное резервное копирование",
-      "cloudBackupDescription": "Сохраняйте транскрипции в облаке, чтобы никогда их не потерять.",
-      "description": "Контролируйте, какие данные покидают ваше устройство. По умолчанию всё отключено.",
-      "title": "Конфиденциальность",
-      "usageAnalytics": "Аналитика использования",
-      "usageAnalyticsDescription": "Помогите нам улучшить ScottySpeaks, делясь анонимными метриками производительности. Мы никогда не отправляем содержимое транскрипций — только данные о времени и ошибках."
-    },
     "prompts": {
       "description": "Просматривайте, настраивайте и тестируйте единый системный промпт, который управляет очисткой текста и обнаружением инструкций",
       "title": "Студия промптов"
     },
     "transcription": {
-      "customSetup": "Пользовательская настройка",
-      "customSetupDescription": "Используйте собственного провайдера и API-ключ.",
       "description": "Выберите, как ScottySpeaks будет транскрибировать вашу речь",
-      "openwhisprCloud": "OpenWhispr Cloud",
-      "openwhisprCloudDescription": "Просто работает. Настройка не требуется.",
-      "title": "Распознавание речи",
-      "toasts": {
-        "switchedCloud": {
-          "description": "Транскрипция будет использовать облачный сервис OpenWhispr.",
-          "title": "Переключено на OpenWhispr Cloud"
-        },
-        "switchedCustom": {
-          "description": "Настройте собственного провайдера и API-ключ.",
-          "title": "Переключено на пользовательскую настройку"
-        }
-      }
+      "title": "Распознавание речи"
     }
   },
   "models": {
@@ -1273,78 +938,6 @@
       }
     }
   },
-  "referral": {
-    "modalTitle": "Реферальная программа",
-    "title": "Приглашайте и получайте награды",
-    "subtitle": "Подарите месяц. Получите месяц.",
-    "tabs": {
-      "refer": "Пригласить",
-      "pastInvites": "Отправленные приглашения"
-    },
-    "howItWorks": {
-      "shareLink": "Поделитесь ссылкой-приглашением",
-      "theySignUp": "Они регистрируются и получают ",
-      "freeMonthOfPro": "бесплатный месяц Pro",
-      "youGet": "Вы получаете ",
-      "freeMonth": "бесплатный месяц",
-      "whenTheyDictate": ", когда они надиктуют 2 000 слов"
-    },
-    "inviteLink": {
-      "title": "Ваша ссылка-приглашение",
-      "copy": "Копировать",
-      "copied": "Скопировано"
-    },
-    "sendInvites": {
-      "title": "Отправить приглашения",
-      "placeholder": "friend@example.com",
-      "send": "Отправить",
-      "sending": "Отправка"
-    },
-    "stats": {
-      "referred": "Приглашено",
-      "converted": "Активировано",
-      "monthsEarned": "Месяцев заработано"
-    },
-    "status": {
-      "converted": "Активировано",
-      "opened": "Открыто",
-      "failed": "Не удалось",
-      "sent": "Отправлено"
-    },
-    "empty": {
-      "title": "Приглашения ещё не отправлены",
-      "description": "Поделитесь ссылкой или отправьте приглашение, чтобы начать"
-    },
-    "toasts": {
-      "copiedTitle": "Скопировано!",
-      "copiedDescription": "Реферальная ссылка скопирована в буфер обмена",
-      "copyFailedTitle": "Ошибка копирования",
-      "copyFailedDescription": "Не удалось скопировать ссылку в буфер обмена",
-      "invalidEmailTitle": "Неверный адрес электронной почты",
-      "invalidEmailDescription": "Пожалуйста, введите корректный адрес электронной почты",
-      "inviteSentTitle": "Приглашение отправлено!",
-      "inviteSentDescription": "Приглашение отправлено на {{email}}",
-      "sendFailedTitle": "Ошибка отправки",
-      "sendFailedDescription": "Не удалось отправить приглашение. Пожалуйста, попробуйте ещё раз."
-    },
-    "errors": {
-      "unableToLoad": "Не удалось загрузить данные реферальной программы",
-      "unableToLoadStats": "Не удалось загрузить статистику рефералов. Пожалуйста, попробуйте позже."
-    },
-    "tryAgain": "Попробовать снова",
-    "card": {
-      "brand": "ScottySpeaks",
-      "signalId": "Signal ID",
-      "audioSignature": "Ваша аудиоподпись",
-      "stop": "Стоп",
-      "playSignal": "Воспроизвести сигнал"
-    },
-    "friends": {
-      "title": "Друзья",
-      "completed": "Завершено",
-      "sentInvites": "Отправленные приглашения"
-    }
-  },
   "notes": {
     "folders": {
       "title": "Папки",
@@ -1378,52 +971,7 @@
       "saving": "Сохранение",
       "wordsCount": "{{count}} слов",
       "startWriting": "Начните писать...",
-      "staleIndicator": "Содержимое изменилось после улучшения",
-      "live": "Живой"
-    },
-    "upload": {
-      "title": "Загрузить аудио",
-      "using": "Используется {{model}}",
-      "dropOrBrowse": "Перетащите аудиофайл или нажмите для выбора",
-      "supportedFormats": "MP3, WAV, M4A, WebM, OGG, FLAC, AAC",
-      "dropToUpload": "Отпустите для загрузки",
-      "transcribe": "Транскрибировать",
-      "cancel": "Отмена",
-      "transcribingCloud": "Транскрибирование через облако...",
-      "transcribingLocal": "Локальное транскрибирование...",
-      "transcribingProvider": "Транскрибирование через {{provider}}...",
-      "transcriptionComplete": "Транскрибирование завершено",
-      "openNote": "Открыть заметку",
-      "uploadAnother": "Загрузить ещё",
-      "retry": "Повторить",
-      "startOver": "Начать сначала",
-      "transcriptionSettings": "Настройки транскрибирования",
-      "newFolder": "Новая папка",
-      "folderName": "Название папки",
-      "create": "Создать",
-      "setupTitle": "Настройте транскрибирование",
-      "setupDescription": "Выберите способ транскрибирования аудио. Это также применяется к живой диктовке.",
-      "continue": "Продолжить",
-      "openwhisprCloud": "OpenWhispr Cloud",
-      "custom": "Другой",
-      "selectFolder": "Выбрать папку",
-      "transcriptionFailed": "Ошибка транскрибирования",
-      "errorOccurred": "Произошла ошибка",
-      "noProviderTitle": "Провайдер транскрипции не настроен",
-      "noProviderDescription": "Добавьте API-ключ или скачайте локальную модель, чтобы начать транскрипцию.",
-      "noProviderAction": "Открыть настройки транскрипции",
-      "fileTooLarge": "Этот файл превышает ограничение в 500 MB.",
-      "largeFileNote": "Большие файлы разделяются и транскрибируются параллельно.",
-      "chunkProgress": "Транскрибирование части {{completed}} из {{total}}...",
-      "paidPlanRequired": "Облачная транскрипция файлов более 25 МБ требует платного плана. Большие файлы обрабатываются через OpenWhispr Cloud для надёжных и качественных результатов.",
-      "byokTooLarge": "Сторонние API-ключи поддерживают файлы только до 25 МБ.",
-      "byokTooLargeDetail": "Для файлов более 25 МБ OpenWhispr Cloud выполняет разделение, параллельную обработку и сборку — для надёжных результатов без ограничений сторонних провайдеров.",
-      "byokTooLargeNeedsAccount": "Создайте аккаунт и перейдите на платный план, чтобы транскрибировать большие файлы через OpenWhispr Cloud.",
-      "byokTooLargeNeedsUpgrade": "Перейдите на платный план, чтобы транскрибировать большие файлы через OpenWhispr Cloud.",
-      "switchToCloudForLargeFiles": "Переключитесь на OpenWhispr Cloud, чтобы транскрибировать этот файл.",
-      "createAccount": "Создать аккаунт",
-      "upgrade": "Обновить",
-      "switchToCloud": "OpenWhispr Cloud"
+      "staleIndicator": "Содержимое изменилось после улучшения"
     },
     "meeting": {
       "title": "Заметки со встреч",
@@ -1497,10 +1045,6 @@
       },
       "getStarted": "Начать"
     },
-    "realtimeBanner": {
-      "message": "Транскрипция в реальном времени доступна в Pro",
-      "upgrade": "Перейти"
-    },
     "enhance": {
       "title": "Ошибка улучшения"
     }
@@ -1561,30 +1105,6 @@
     "defaultUser": "Пользователь",
     "notSignedIn": "Не авторизован"
   },
-  "usage": {
-    "approachingLimit": "Приближается недельный лимит",
-    "approachingLimitDescription": "На этой неделе использовано {{wordsUsed}} / {{limit}} слов.",
-    "yourPlan": "Ваш тариф",
-    "trial": "Пробный период ({{days}} дн.)",
-    "trial_other": "Пробный период ({{days}} дн.)",
-    "pro": "Pro",
-    "unlimitedTrial": "Без ограничений в пробный период",
-    "unlimited": "Без ограничений",
-    "manageSubscription": "Управление подпиской",
-    "weeklyUsage": "За неделю",
-    "limitReached": "Лимит достигнут",
-    "free": "Бесплатно",
-    "wordsRemaining": "Осталось {{remaining}} слов",
-    "rollingLimit": "Скользящий недельный лимит",
-    "upgradeToPro": "Перейти на Pro",
-    "useYourOwnKey": "Свой API-ключ",
-    "upgradeUnlimited": "Pro — без ограничений"
-  },
-  "support": {
-    "joinDiscord": "Присоединиться к Discord",
-    "contactSupport": "Связаться с поддержкой",
-    "submitBug": "Сообщить об ошибке"
-  },
   "apiKeyInput": {
     "placeholder": "Введите ваш API-ключ",
     "label": "API-ключ",
@@ -1596,17 +1116,7 @@
     "addButton": "Добавить ключ"
   },
   "gpu": {
-    "transcriptionBanner": "Ускорьте транскрипцию с помощью GPU",
-    "reasoningBanner": "Ускорьте обработку ИИ с помощью GPU",
-    "enableButton": "Включить GPU",
-    "active": "Ускорение GPU активно",
-    "ready": "Ускорение GPU готово",
-    "activating": "Активация GPU...",
-    "activationFailed": "Не удалось активировать GPU",
-    "retry": "Повторить",
-    "remove": "Удалить",
-    "dismiss": "Не сейчас",
-    "cancel": "Отмена"
+    "active": "Ускорение GPU активно"
   },
   "app": {
     "toasts": {
