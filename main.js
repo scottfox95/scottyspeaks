@@ -198,9 +198,7 @@ function initializeCoreManagers() {
     parakeetManager,
     windowManager,
     updateManager,
-    windowsKeyManager: null,
     textEditMonitor,
-    whisperCudaManager: null,
     getTrayManager: () => trayManager,
     getPedalManager: () => pedalManager,
   });
@@ -838,13 +836,6 @@ async function startApp() {
     mouseHandsFree = false;
   });
 }
-
-// Listen for usage limit reached from dictation overlay, forward to control panel
-ipcMain.on("limit-reached", (_event, data) => {
-  if (isLiveWindow(windowManager?.controlPanelWindow)) {
-    windowManager.controlPanelWindow.webContents.send("limit-reached", data);
-  }
-});
 
 // App event handlers
 if (gotSingleInstanceLock) {

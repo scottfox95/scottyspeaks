@@ -86,21 +86,6 @@
     "quit": "Quitter",
     "cancel": "Annuler"
   },
-  "upgradePrompt": {
-    "paymentFailed": "Nous n'avons pas pu traiter votre paiement",
-    "weeklyLimit": "Vous avez atteint votre limite hebdomadaire",
-    "pastDueDescription": "Vous êtes temporairement sur le plan gratuit — pas de souci, vous avez encore {{limit}} mots par semaine.\nMettez à jour votre moyen de paiement pour revenir à Pro illimité.",
-    "limitDescription": "{{used}} de {{limit}} mots utilisés.\nVotre transcription a été sauvegardée et collée.",
-    "updatePayment": "Mettre à jour le moyen de paiement",
-    "updatePaymentDescription": "Retrouvez les transcriptions Pro illimitées.",
-    "upgradeToPro": "Passer à Pro",
-    "upgradeDescription": "Transcriptions illimitées. 9 $/mois.",
-    "useApiKey": "Utiliser votre propre clé API",
-    "useApiKeyDescription": "Apportez votre propre clé pour un usage illimité.",
-    "switchToLocal": "Passer en local",
-    "switchToLocalDescription": "Transcription hors ligne. Sans limites.",
-    "rollingWeeklyLimit": "Limite hebdomadaire glissante"
-  },
   "windowControls": {
     "minimize": "Réduire",
     "maximize": "Agrandir",
@@ -127,12 +112,9 @@
     "loading": "Chargement...",
     "unknown": "Inconnu",
     "availableModels": "Modèles disponibles",
-    "fast": "Rapide",
     "hold": "Maintenir",
-    "private": "Privé",
     "tap": "Appui",
-    "close": "Fermer",
-    "dismiss": "Ignorer"
+    "close": "Fermer"
   },
   "onboarding": {
     "steps": {
@@ -225,16 +207,6 @@
         "yesterday": "Hier"
       }
     },
-    "cloudMigration": {
-      "title": "Bienvenue sur OpenWhispr Pro",
-      "description": "Votre essai gratuit de 7 jours est actif ! Nous avons basculé la transcription vers OpenWhispr Cloud pour des résultats plus rapides et plus précis. Vos anciens réglages sont conservés : vous pouvez revenir en arrière à tout moment dans Paramètres.",
-      "viewSettings": "Voir les paramètres"
-    },
-    "aiCta": {
-      "title": "Améliorez vos transcriptions avec l'IA",
-      "description": "Corrige automatiquement grammaire, ponctuation et mise en forme pendant que vous parlez.",
-      "enable": "Activer l'amélioration IA"
-    },
     "loading": "Chargement...",
     "gpu": {
       "bannerTitle": "Accélération GPU disponible",
@@ -298,16 +270,10 @@
     "fallback": {
       "whisperModelDescription": "Modèle",
       "parakeetModelDescription": "Modèle NVIDIA Parakeet"
-    },
-    "whisperModels": "Modèles Whisper"
+    }
   },
   "hooks": {
     "audioRecording": {
-      "errorTitles": {
-        "sessionExpired": "Session expirée",
-        "offline": "Vous êtes hors ligne",
-        "dailyLimitReached": "Limite quotidienne atteinte"
-      },
       "fallback": {
         "title": "Mode de secours",
         "description": "Whisper local a échoué. L'API OpenAI a pris le relais."
@@ -444,67 +410,6 @@
       }
     }
   },
-  "auth": {
-    "cloudNotConfigured": "Cloud non configuré",
-    "common": {
-      "back": "Retour",
-      "continue": "Continuer",
-      "or": "ou"
-    },
-    "emailStep": {
-      "continueWithEmail": "Continuer avec l'e-mail",
-      "continueWithoutAccount": "Continuer sans compte",
-      "emailPlaceholder": "vous@exemple.com"
-    },
-    "errors": {
-      "accountExistsSignIn": "Un compte avec cet e-mail existe déjà. Veuillez vous connecter.",
-      "accountNotFoundCreate": "Aucun compte trouvé avec cet e-mail. Veuillez créer un compte.",
-      "authNotConfigured": "L'authentification n'est pas configurée",
-      "createAccountFailed": "Échec de la création du compte",
-      "failedProviderSignIn": "Échec de la connexion avec {{provider}}",
-      "failedUserCheck": "Échec de la vérification du compte utilisateur",
-      "generic": "Une erreur est survenue. Veuillez réessayer.",
-      "invalidCredentials": "E-mail ou mot de passe incorrect",
-      "plusAliasUnsupported": "Les alias d'e-mail avec « + » ne sont pas pris en charge"
-    },
-    "getStarted": "Commencer",
-    "legal": {
-      "and": "et",
-      "prefix": "En continuant, vous acceptez nos",
-      "privacy": "Politique de confidentialité",
-      "suffix": "",
-      "terms": "Conditions d'utilisation"
-    },
-    "passwordForm": {
-      "createAccount": "Créer un compte",
-      "createAccountButton": "Créer un compte",
-      "createAccountLink": "Créer un compte",
-      "createPasswordPlaceholder": "Créer un mot de passe",
-      "creatingAccount": "Création du compte...",
-      "enterPasswordPlaceholder": "Saisissez votre mot de passe",
-      "forgotPassword": "Mot de passe oublié ?",
-      "fullNamePlaceholder": "Nom complet",
-      "haveAccount": "Vous avez déjà un compte ?",
-      "newHere": "Nouveau ici ?",
-      "passwordMinLength": "Le mot de passe doit contenir au moins 8 caractères",
-      "signIn": "Se connecter",
-      "signInLink": "Se connecter",
-      "signingIn": "Connexion en cours...",
-      "welcomeBack": "Bon retour"
-    },
-    "signedIn": {
-      "ready": "Prêt",
-      "welcomeBack": "Bon retour",
-      "welcomeBackName": "Bon retour, {{name}}"
-    },
-    "social": {
-      "completeInBrowser": "Terminez la connexion dans votre navigateur",
-      "continueWithGoogle": "Continuer avec Google"
-    },
-    "welcomeSubtitle": "Dictez n'importe où en utilisant votre voix",
-    "welcomeTitle": "Bienvenue sur ScottySpeaks",
-    "sessionExpired": "Session expirée. Veuillez relancer le processus d'inscription."
-  },
   "cleanupPrompt": "Correction",
   "developerSection": {
     "currentLogFile": "Fichier journal actuel",
@@ -572,40 +477,10 @@
     }
   },
   "dictionarySuffix": "Suffixe du dictionnaire",
-  "emailVerification": {
-    "checkEmailDescription": "Nous avons envoyé un lien de vérification à",
-    "checkEmailTitle": "Vérifiez votre e-mail",
-    "errors": {
-      "resendFailed": "Nous n'avons pas pu renvoyer l'e-mail. Veuillez réessayer.",
-      "serverUnreachable": "Impossible de joindre le serveur. Vérifiez votre connexion et réessayez."
-    },
-    "resendButton": "Renvoyer l'e-mail de vérification",
-    "resendIn": "Renvoyer dans {{seconds}}s",
-    "verifiedDescription": "Votre compte est prêt.",
-    "verifiedTitle": "E-mail vérifié",
-    "waiting": "En attente de la vérification..."
-  },
   "errorBoundary": {
     "description": "Une erreur inattendue s'est produite. Veuillez recharger pour réessayer.",
     "reload": "Recharger",
     "title": "Une erreur est survenue"
-  },
-  "forgotPassword": {
-    "back": "Retour",
-    "backToSignIn": "Retour à la connexion",
-    "emailPlaceholder": "Saisissez votre e-mail",
-    "goBack": "Retour",
-    "notConfigured": "L'authentification n'est pas encore configurée.",
-    "sendResetLink": "Envoyer le lien de réinitialisation",
-    "sending": "Envoi...",
-    "subtitle": "Saisissez votre e-mail et nous vous enverrons un lien de réinitialisation",
-    "success": {
-      "description": "Nous avons envoyé un lien de réinitialisation de mot de passe à",
-      "help": "Vous n'avez pas reçu l'e-mail ? Vérifiez votre dossier spam ou réessayez.",
-      "title": "Vérifiez votre e-mail",
-      "tryAnother": "Essayer un autre e-mail"
-    },
-    "title": "Réinitialiser votre mot de passe"
   },
   "fullPrompt": "Prompt complet",
   "hotkeyGuidance": {
@@ -690,30 +565,6 @@
     "unknownDevice": "Appareil inconnu",
     "using": "Utilisation :"
   },
-  "pasteToolsInfo": {
-    "checking": "Vérification des capacités du système...",
-    "installCommands": {
-      "archLinux": "# Arch Linux",
-      "debianUbuntu": "# Debian / Ubuntu",
-      "debianUbuntuMint": "# Debian / Ubuntu / Mint",
-      "fedoraRhel": "# Fedora / RHEL"
-    },
-    "installPrefix": "Pour le collage automatique de texte, installez",
-    "methodReady": "pour le collage automatique de texte",
-    "noteXwaylandAlso": "Note : pour les apps XWayland, xdotool fonctionne aussi.",
-    "noteXwaylandOnly": "Note : le collage automatique fonctionne uniquement pour les apps XWayland.",
-    "optionalEnableTitle": "Optionnel : activer le collage automatique",
-    "readyTitle": "Collage automatique prêt",
-    "recheck": "Revérifier",
-    "recheckChecking": "Vérification...",
-    "title": "Collage automatique",
-    "usingMethodPrefix": "Utilisation de",
-    "waylandClipboardDescription": "Le collage automatique n'est pas disponible dans cette session Wayland. ScottySpeaks copiera le texte dans le presse-papiers et vous pourrez coller manuellement avec Ctrl+V.",
-    "waylandClipboardTitle": "Mode presse-papiers sur Wayland",
-    "windowsReady": "Windows prend en charge le collage automatique nativement. Aucune configuration requise !",
-    "withoutToolPrefix": "Sans cet outil, ScottySpeaks copiera le texte dans le presse-papiers. Vous pourrez ensuite coller manuellement avec Ctrl+V.",
-    "xwaylandAppsOnly": "le collage automatique fonctionne uniquement pour les apps XWayland"
-  },
   "promptStudio": {
     "common": {
       "copied": "Copié",
@@ -761,7 +612,6 @@
       "none": "Aucun",
       "outputLabel": "Sortie",
       "processing": "Traitement...",
-      "openwhisprCloud": "OpenWhispr Cloud",
       "providerLabel": "Fournisseur",
       "run": "Lancer le test",
       "customEndpoint": "Endpoint personnalisé"
@@ -782,43 +632,13 @@
       "modified": "Modifié"
     }
   },
-  "resetPassword": {
-    "backToSignIn": "Retour à la connexion",
-    "confirmPasswordPlaceholder": "Confirmez le nouveau mot de passe",
-    "continue": "Continuer",
-    "errors": {
-      "passwordMinLength": "Le mot de passe doit contenir au moins 8 caractères",
-      "passwordsDoNotMatch": "Les mots de passe ne correspondent pas"
-    },
-    "goBack": "Retour",
-    "newPasswordPlaceholder": "Nouveau mot de passe",
-    "notConfigured": "L'authentification n'est pas configurée.",
-    "passwordMinLength": "Le mot de passe doit contenir au moins 8 caractères",
-    "resetButton": "Réinitialiser le mot de passe",
-    "resetting": "Réinitialisation...",
-    "subtitle": "Saisissez votre nouveau mot de passe ci-dessous",
-    "success": {
-      "description": "Votre mot de passe a été mis à jour. Vous êtes maintenant connecté.",
-      "title": "Mot de passe réinitialisé avec succès"
-    },
-    "title": "Créer un nouveau mot de passe"
-  },
   "settingsModal": {
     "groups": {
-      "account": "Compte",
       "app": "Application",
       "speechAi": "Parole & IA",
       "system": "Système"
     },
     "sections": {
-      "account": {
-        "description": "Profil & connexion",
-        "label": "Compte"
-      },
-      "plansBilling": {
-        "description": "Forfaits, utilisation & facturation",
-        "label": "Forfaits & facturation"
-      },
       "general": {
         "description": "Apparence, sons & démarrage",
         "label": "Préférences"
@@ -847,125 +667,6 @@
     "title": "Paramètres"
   },
   "settingsPage": {
-    "account": {
-      "badges": {
-        "free": "Gratuit",
-        "limitReached": "Limite atteinte",
-        "pastDue": "Paiement en retard",
-        "pro": "Pro",
-        "trial": "Essai"
-      },
-      "billing": {
-        "couldNotOpenDescription": "Nous avons eu un problème pour ouvrir la page de facturation. Veuillez réessayer.",
-        "couldNotOpenTitle": "Impossible d'ouvrir la facturation",
-        "manageBilling": "Gérer la facturation",
-        "opening": "Ouverture...",
-        "updatePaymentMethod": "Mettre à jour le moyen de paiement"
-      },
-      "checkout": {
-        "couldNotOpenDescription": "Nous avons eu un problème pour ouvrir la page de paiement. Veuillez réessayer.",
-        "couldNotOpenTitle": "Impossible d'ouvrir le paiement",
-        "opening": "Ouverture...",
-        "upgradeToPro": "Passer à Pro"
-      },
-      "disabled": "Désactivé",
-      "featuresDisabled": "Fonctionnalités du compte désactivées",
-      "featuresDisabledDescription": "Définissez VITE_NEON_AUTH_URL dans votre fichier .env pour activer les fonctionnalités du compte.",
-      "notConfigured": "L'authentification n'est pas configurée",
-      "notSignedIn": "Non connecté",
-      "notSignedInDescription": "Créez un compte pour débloquer les fonctionnalités premium.",
-      "offline": "Hors ligne",
-      "pastDue": {
-        "description": "Vous êtes temporairement sur le plan gratuit. Mettez à jour votre moyen de paiement pour revenir à Pro.",
-        "title": "Nous n'avons pas pu traiter votre paiement"
-      },
-      "planDescriptions": {
-        "freeUsage": "{{used}} / {{limit}} mots cette semaine",
-        "nextBilling": "Prochaine facturation : {{date}}",
-        "pastDue": "{{used}} / {{limit}} mots gratuits cette semaine - mettez à jour le paiement pour restaurer Pro",
-        "trial": "{{days}} jours restants - transcriptions illimitées",
-        "unlimited": "Illimité"
-      },
-      "planLabels": {
-        "free": "Gratuit",
-        "pro": "Pro",
-        "trial": "Essai"
-      },
-      "planTitle": "Plan",
-      "pricing": {
-        "title": "Forfaits",
-        "monthly": "Mensuel",
-        "annual": "Annuel",
-        "annualBadge": "Économisez 17 %",
-        "free": {
-          "name": "Gratuit",
-          "price": "$0",
-          "period": "pour toujours",
-          "features": [
-            "2 000 mots/semaine",
-            "Modèles IA locaux",
-            "Apportez vos propres clés",
-            "Dictionnaire et extraits",
-            "Prise en charge de plus de 100 langues",
-            "Aucune rétention de données"
-          ]
-        },
-        "pro": {
-          "name": "Pro",
-          "monthlyPrice": "$8",
-          "monthlyPeriod": "/mois",
-          "annualPrice": "$80",
-          "annualPeriod": "/an",
-          "features": [
-            "Tout ce qui est dans Gratuit",
-            "Utilisation illimitée",
-            "Transcription en temps réel",
-            "Derniers modèles audio & IA",
-            "iOS/Android (bientôt)",
-            "Aucune rétention de données",
-            "Support prioritaire"
-          ],
-          "cta": "Commencer",
-          "switchToAnnual": "Passer à l'annuel"
-        },
-        "enterprise": {
-          "name": "Entreprise",
-          "price": "Sur devis",
-          "features": [
-            "Synchronisation cloud",
-            "Fonctionnalités d'équipe (bientôt)",
-            "SSO & conformité"
-          ],
-          "cta": "Nous contacter"
-        },
-        "currentPlan": "Plan actuel"
-      },
-      "rollingWeeklyLimit": "Limite hebdomadaire glissante",
-      "signOut": {
-        "failedDescription": "Un problème est survenu lors de la déconnexion. Veuillez réessayer.",
-        "failedTitle": "Impossible de se déconnecter",
-        "signOut": "Se déconnecter",
-        "signingOut": "Déconnexion..."
-      },
-      "signedIn": "Connecté",
-      "title": "Compte",
-      "toasts": {
-        "approachingLimit": {
-          "description": "Vous avez utilisé {{used}} de {{limit}} mots gratuits cette semaine. Passez à Pro pour une utilisation illimitée.",
-          "title": "Limite hebdomadaire bientôt atteinte"
-        }
-      },
-      "trialCta": {
-        "button": "Créer un compte gratuit",
-        "description": "Transcriptions illimitées, traitement prioritaire et plus encore.",
-        "title": "Essayez Pro gratuitement pendant 7 jours"
-      },
-      "signedOutPlans": {
-        "button": "Créer un compte gratuit"
-      },
-      "user": "Utilisateur",
-      "wordsRemaining": "{{remaining}} restants"
-    },
     "agentConfig": {
       "agentName": "Nom de l'agent",
       "cleanupExample": "Correction",
@@ -990,8 +691,6 @@
       }
     },
     "aiModels": {
-      "customSetup": "Configuration personnalisée",
-      "customSetupDescription": "Utilisez votre propre fournisseur et clé API.",
       "description": "Corrige les transcriptions, gère les commandes et corrige les erreurs tout en préservant votre ton.",
       "enableTextCleanup": "Activer la correction de texte",
       "polishStyle": {
@@ -1002,19 +701,7 @@
         "verbatimDescription": "Conserve vos mots exacts et les hésitations. Ajoute uniquement la ponctuation et les majuscules."
       },
       "enableTextCleanupDescription": "L'IA améliore la qualité de transcription",
-      "openwhisprCloud": "OpenWhispr Cloud",
-      "openwhisprCloudDescription": "Fonctionne directement. Aucune configuration requise.",
-      "title": "Amélioration du texte par IA",
-      "toasts": {
-        "switchedCloud": {
-          "description": "L'amélioration de texte utilisera le service cloud OpenWhispr.",
-          "title": "Basculé vers OpenWhispr Cloud"
-        },
-        "switchedCustom": {
-          "description": "Configurez votre propre fournisseur et clé API.",
-          "title": "Basculé vers la configuration personnalisée"
-        }
-      }
+      "title": "Amélioration du texte par IA"
     },
     "developer": {
       "clearCache": "Vider le cache",
@@ -1178,35 +865,13 @@
       "troubleshoot": "Dépanner",
       "troubleshootingTitle": "Dépannage"
     },
-    "privacy": {
-      "cloudBackup": "Sauvegarde cloud",
-      "cloudBackupDescription": "Sauvegardez vos transcriptions dans le cloud pour ne jamais les perdre.",
-      "description": "Contrôlez quelles données quittent votre appareil. Tout est désactivé par défaut.",
-      "title": "Confidentialité",
-      "usageAnalytics": "Analyse d'utilisation",
-      "usageAnalyticsDescription": "Aidez-nous à améliorer ScottySpeaks en partageant des métriques de performance anonymes. Nous n'envoyons jamais le contenu de vos transcriptions — uniquement des données de performance et d'erreurs."
-    },
     "prompts": {
       "description": "Affichez, personnalisez et testez le prompt système unifié qui gère la correction du texte et la détection des instructions",
       "title": "Studio de prompts"
     },
     "transcription": {
-      "customSetup": "Configuration personnalisée",
-      "customSetupDescription": "Utilisez votre propre fournisseur et clé API.",
       "description": "Choisissez comment ScottySpeaks transcrit votre voix",
-      "openwhisprCloud": "OpenWhispr Cloud",
-      "openwhisprCloudDescription": "Fonctionne directement. Aucune configuration requise.",
-      "title": "Reconnaissance vocale",
-      "toasts": {
-        "switchedCloud": {
-          "description": "La transcription utilisera le service cloud OpenWhispr.",
-          "title": "Basculé vers OpenWhispr Cloud"
-        },
-        "switchedCustom": {
-          "description": "Configurez votre propre fournisseur et clé API.",
-          "title": "Basculé vers la configuration personnalisée"
-        }
-      }
+      "title": "Reconnaissance vocale"
     }
   },
   "models": {
@@ -1293,97 +958,6 @@
     "defaultUser": "Utilisateur",
     "notSignedIn": "Non connecté"
   },
-  "referral": {
-    "title": "Parrainez et gagnez des récompenses",
-    "modalTitle": "Parrainez et gagnez des récompenses",
-    "subtitle": "Offrez un mois. Recevez un mois.",
-    "tabs": {
-      "refer": "Parrainer",
-      "pastInvites": "Invitations passées"
-    },
-    "howItWorks": {
-      "shareLink": "Partagez votre lien d'invitation",
-      "theySignUp": "Ils s'inscrivent et obtiennent un ",
-      "freeMonthOfPro": "mois gratuit de Pro",
-      "youGet": "Vous recevez un ",
-      "freeMonth": "mois gratuit",
-      "whenTheyDictate": " lorsqu'ils dictent 2 000 mots"
-    },
-    "inviteLink": {
-      "title": "Votre lien d'invitation",
-      "copy": "Copier",
-      "copied": "Copié"
-    },
-    "sendInvites": {
-      "title": "Envoyer des invitations",
-      "placeholder": "friend@example.com",
-      "send": "Envoyer",
-      "sending": "Envoi en cours"
-    },
-    "stats": {
-      "referred": "Parrainés",
-      "converted": "Convertis",
-      "monthsEarned": "Mois gagnés"
-    },
-    "status": {
-      "converted": "Converti",
-      "opened": "Ouvert",
-      "failed": "Échoué",
-      "sent": "Envoyé"
-    },
-    "friends": {
-      "title": "Amis",
-      "completed": "Complété",
-      "sentInvites": "Invitations envoyées"
-    },
-    "empty": {
-      "title": "Aucune invitation envoyée",
-      "description": "Partagez votre lien ou envoyez une invitation pour commencer"
-    },
-    "toasts": {
-      "copiedTitle": "Copié !",
-      "copiedDescription": "Lien de parrainage copié dans le presse-papiers",
-      "copyFailedTitle": "Échec de la copie",
-      "copyFailedDescription": "Impossible de copier le lien dans le presse-papiers",
-      "invalidEmailTitle": "E-mail invalide",
-      "invalidEmailDescription": "Veuillez entrer une adresse e-mail valide",
-      "inviteSentTitle": "Invitation envoyée !",
-      "inviteSentDescription": "Invitation envoyée à {{email}}",
-      "sendFailedTitle": "Échec de l'envoi",
-      "sendFailedDescription": "Impossible d'envoyer l'invitation. Veuillez réessayer."
-    },
-    "errors": {
-      "unableToLoad": "Impossible de charger les données de parrainage",
-      "unableToLoadStats": "Impossible de charger les statistiques de parrainage. Veuillez réessayer plus tard."
-    },
-    "tryAgain": "Réessayer",
-    "card": {
-      "brand": "ScottySpeaks",
-      "signalId": "Signal ID",
-      "audioSignature": "Votre signature audio",
-      "stop": "Arrêter",
-      "playSignal": "Lire le signal"
-    }
-  },
-  "usage": {
-    "approachingLimit": "Limite hebdomadaire bientôt atteinte",
-    "approachingLimitDescription": "Vous avez utilisé {{wordsUsed}} de vos {{limit}} mots gratuits cette semaine.",
-    "yourPlan": "Votre abonnement",
-    "trial": "Essai ({{days}} jour restant)",
-    "trial_other": "Essai ({{days}} jours restants)",
-    "pro": "Pro",
-    "unlimitedTrial": "Transcriptions illimitées pendant votre période d'essai",
-    "unlimited": "Transcriptions illimitées",
-    "manageSubscription": "Gérer l'abonnement",
-    "weeklyUsage": "Utilisation hebdomadaire",
-    "limitReached": "Limite atteinte",
-    "free": "Gratuit",
-    "wordsRemaining": "{{remaining}} mots restants",
-    "rollingLimit": "Limite hebdomadaire glissante",
-    "upgradeToPro": "Passer à Pro",
-    "useYourOwnKey": "Utiliser votre propre clé API",
-    "upgradeUnlimited": "Passer à Pro — transcriptions illimitées"
-  },
   "notes": {
     "folders": {
       "title": "Dossiers",
@@ -1417,52 +991,7 @@
       "saving": "Enregistrement",
       "wordsCount": "{{count}} mots",
       "startWriting": "Commencez à écrire...",
-      "staleIndicator": "Le contenu a changé depuis l'amélioration",
-      "live": "En direct"
-    },
-    "upload": {
-      "title": "Téléverser un fichier audio",
-      "using": "Utilisation de {{model}}",
-      "dropOrBrowse": "Déposez un fichier audio ou cliquez pour parcourir",
-      "supportedFormats": "MP3, WAV, M4A, WebM, OGG, FLAC, AAC",
-      "dropToUpload": "Déposez pour téléverser",
-      "transcribe": "Transcrire",
-      "cancel": "Annuler",
-      "transcribingCloud": "Transcription via le cloud...",
-      "transcribingLocal": "Transcription locale...",
-      "transcribingProvider": "Transcription via {{provider}}...",
-      "transcriptionComplete": "Transcription terminée",
-      "openNote": "Ouvrir la note",
-      "uploadAnother": "Téléverser un autre fichier",
-      "retry": "Réessayer",
-      "startOver": "Recommencer",
-      "transcriptionSettings": "Paramètres de transcription",
-      "newFolder": "Nouveau dossier",
-      "folderName": "Nom du dossier",
-      "create": "Créer",
-      "setupTitle": "Configurer la transcription",
-      "setupDescription": "Choisissez comment transcrire votre audio. Cela s'applique également à la dictée en direct.",
-      "continue": "Continuer",
-      "openwhisprCloud": "OpenWhispr Cloud",
-      "custom": "Personnalisé",
-      "selectFolder": "Sélectionner un dossier",
-      "transcriptionFailed": "Échec de la transcription",
-      "errorOccurred": "Une erreur est survenue",
-      "noProviderTitle": "Aucun fournisseur de transcription configuré",
-      "noProviderDescription": "Ajoutez une clé API ou téléchargez un modèle local pour commencer à transcrire.",
-      "noProviderAction": "Ouvrir les paramètres de transcription",
-      "fileTooLarge": "Ce fichier dépasse la limite de 500 MB.",
-      "largeFileNote": "Les fichiers volumineux sont découpés et transcrits en parallèle.",
-      "chunkProgress": "Transcription de la partie {{completed}} sur {{total}}...",
-      "paidPlanRequired": "La transcription cloud pour les fichiers de plus de 25 Mo nécessite un abonnement payant. Les fichiers volumineux sont traités avec OpenWhispr Cloud pour des résultats fiables et de haute qualité.",
-      "byokTooLarge": "Les clés API tierces ne prennent en charge que les fichiers jusqu'à 25 Mo.",
-      "byokTooLargeDetail": "Pour les fichiers de plus de 25 Mo, OpenWhispr Cloud gère le découpage, le traitement parallèle et le réassemblage — pour des résultats fiables sans dépendre des limites des fournisseurs tiers.",
-      "byokTooLargeNeedsAccount": "Créez un compte et passez à un abonnement payant pour transcrire des fichiers plus volumineux avec OpenWhispr Cloud.",
-      "byokTooLargeNeedsUpgrade": "Passez à un abonnement payant pour transcrire des fichiers plus volumineux avec OpenWhispr Cloud.",
-      "switchToCloudForLargeFiles": "Passez à OpenWhispr Cloud pour transcrire ce fichier.",
-      "createAccount": "Créer un compte",
-      "upgrade": "Mettre à niveau",
-      "switchToCloud": "OpenWhispr Cloud"
+      "staleIndicator": "Le contenu a changé depuis l'amélioration"
     },
     "meeting": {
       "title": "Notes de réunion",
@@ -1536,10 +1065,6 @@
       },
       "getStarted": "Commencer"
     },
-    "realtimeBanner": {
-      "message": "Transcription en temps réel disponible avec Pro",
-      "upgrade": "Passer à Pro"
-    },
     "enhance": {
       "title": "Erreur d'amélioration"
     }
@@ -1583,11 +1108,6 @@
       "save": "Enregistrer"
     }
   },
-  "support": {
-    "joinDiscord": "Rejoindre Discord",
-    "contactSupport": "Contacter le support",
-    "submitBug": "Signaler un bug"
-  },
   "apiKeyInput": {
     "placeholder": "Collez votre clé API",
     "label": "Clé API",
@@ -1599,17 +1119,7 @@
     "addButton": "ajouter"
   },
   "gpu": {
-    "transcriptionBanner": "Accélérez la transcription avec le GPU",
-    "reasoningBanner": "Accélérez le traitement IA avec le GPU",
-    "enableButton": "Activer le GPU",
-    "active": "Accélération GPU active",
-    "ready": "Accélération GPU prête",
-    "activating": "Activation du GPU...",
-    "activationFailed": "Impossible d'activer le GPU",
-    "retry": "Réessayer",
-    "remove": "Supprimer",
-    "dismiss": "Pas maintenant",
-    "cancel": "Annuler"
+    "active": "Accélération GPU active"
   },
   "app": {
     "toasts": {

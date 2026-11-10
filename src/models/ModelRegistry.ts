@@ -1,5 +1,5 @@
 import modelDataRaw from "./modelRegistryData.json";
-import { isCloudReasoningMode, getSettings } from "../stores/settingsStore";
+import { getSettings } from "../stores/settingsStore";
 
 export interface ModelDefinition {
   id: string;
@@ -252,10 +252,6 @@ export function getReasoningModelLabel(modelId: string): string {
 }
 
 export function getModelProvider(modelId: string): string {
-  if (isCloudReasoningMode()) {
-    return "openwhispr";
-  }
-
   if (getSettings().reasoningProvider === "custom") {
     return "custom";
   }

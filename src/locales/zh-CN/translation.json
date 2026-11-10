@@ -86,21 +86,6 @@
     "quit": "退出",
     "cancel": "取消"
   },
-  "upgradePrompt": {
-    "paymentFailed": "我们无法处理你的付款",
-    "weeklyLimit": "你已达到本周的使用上限",
-    "pastDueDescription": "你目前使用的是免费版——别担心，每周仍有 {{limit}} 个词的额度。\n更新支付方式即可恢复无限制的 Pro 版。",
-    "limitDescription": "已使用 {{used}} / {{limit}} 个词。\n你的转录已保存并粘贴。",
-    "updatePayment": "更新支付方式",
-    "updatePaymentDescription": "恢复无限制的 Pro 版转录。",
-    "upgradeToPro": "升级到 Pro",
-    "upgradeDescription": "升级到付费方案，每月最低 $8 起。",
-    "useApiKey": "使用自己的 API Key",
-    "useApiKeyDescription": "使用你自己的密钥，无限制使用。",
-    "switchToLocal": "切换到本地模式",
-    "switchToLocalDescription": "离线转录，无使用限制。",
-    "rollingWeeklyLimit": "滚动周限额"
-  },
   "windowControls": {
     "minimize": "最小化",
     "maximize": "最大化",
@@ -127,12 +112,9 @@
     "loading": "加载中...",
     "unknown": "未知",
     "availableModels": "可用模型",
-    "fast": "快速",
     "hold": "按住",
-    "private": "隐私",
     "tap": "点按",
-    "close": "关闭",
-    "dismiss": "忽略"
+    "close": "关闭"
   },
   "onboarding": {
     "steps": {
@@ -225,16 +207,6 @@
         "yesterday": "昨天"
       }
     },
-    "cloudMigration": {
-      "title": "欢迎使用 OpenWhispr Pro",
-      "description": "你的 7 天免费试用已激活！我们已将转录切换到 OpenWhispr 云端，以获得更快、更准确的结果。你之前的设置已保存——随时可以在设置中切换回去。",
-      "viewSettings": "查看设置"
-    },
-    "aiCta": {
-      "title": "用 AI 提升你的转录质量",
-      "description": "在你说话的同时，自动修正语法、标点和格式。",
-      "enable": "启用 AI 增强"
-    },
     "loading": "加载中...",
     "gpu": {
       "bannerTitle": "GPU 加速可用",
@@ -298,16 +270,10 @@
     "fallback": {
       "whisperModelDescription": "模型",
       "parakeetModelDescription": "NVIDIA Parakeet 模型"
-    },
-    "whisperModels": "Whisper 模型"
+    }
   },
   "hooks": {
     "audioRecording": {
-      "errorTitles": {
-        "sessionExpired": "会话已过期",
-        "offline": "你已离线",
-        "dailyLimitReached": "已达到每日上限"
-      },
       "fallback": {
         "title": "回退模式",
         "description": "本地 Whisper 失败，已改用 OpenAI API。"
@@ -444,67 +410,6 @@
       }
     }
   },
-  "auth": {
-    "cloudNotConfigured": "云端未配置",
-    "common": {
-      "back": "返回",
-      "continue": "继续",
-      "or": "或"
-    },
-    "emailStep": {
-      "continueWithEmail": "使用邮箱继续",
-      "continueWithoutAccount": "不登录继续",
-      "emailPlaceholder": "you@example.com"
-    },
-    "errors": {
-      "accountExistsSignIn": "此邮箱已注册账户，请直接登录。",
-      "accountNotFoundCreate": "未找到此邮箱的账户，请先注册。",
-      "authNotConfigured": "身份验证未配置",
-      "createAccountFailed": "创建账户失败",
-      "failedProviderSignIn": "使用 {{provider}} 登录失败",
-      "failedUserCheck": "检查用户账户失败",
-      "generic": "出了点问题，请重试。",
-      "invalidCredentials": "邮箱或密码无效",
-      "plusAliasUnsupported": "不支持包含“+”的邮箱别名"
-    },
-    "getStarted": "开始使用",
-    "legal": {
-      "and": "和",
-      "prefix": "继续即表示你同意我们的",
-      "privacy": "隐私政策",
-      "suffix": "",
-      "terms": "服务条款"
-    },
-    "passwordForm": {
-      "createAccount": "创建账户",
-      "createAccountButton": "创建账户",
-      "createAccountLink": "创建账户",
-      "createPasswordPlaceholder": "创建密码",
-      "creatingAccount": "正在创建账户...",
-      "enterPasswordPlaceholder": "输入密码",
-      "forgotPassword": "忘记密码？",
-      "fullNamePlaceholder": "姓名",
-      "haveAccount": "已有账户？",
-      "newHere": "新用户？",
-      "passwordMinLength": "密码至少需要 8 个字符",
-      "signIn": "登录",
-      "signInLink": "登录",
-      "signingIn": "正在登录...",
-      "welcomeBack": "欢迎回来"
-    },
-    "signedIn": {
-      "ready": "就绪",
-      "welcomeBack": "欢迎回来",
-      "welcomeBackName": "欢迎回来，{{name}}"
-    },
-    "social": {
-      "completeInBrowser": "在浏览器中完成登录",
-      "continueWithGoogle": "使用 Google 继续"
-    },
-    "welcomeSubtitle": "随时随地用语音输入",
-    "welcomeTitle": "欢迎使用 ScottySpeaks",
-    "sessionExpired": "会话已过期，请重新登录。"
-  },
   "cleanupPrompt": "文本整理",
   "developerSection": {
     "currentLogFile": "当前日志文件",
@@ -572,40 +477,10 @@
     }
   },
   "dictionarySuffix": "词典后缀",
-  "emailVerification": {
-    "checkEmailDescription": "我们已向以下邮箱发送了验证链接",
-    "checkEmailTitle": "查看你的邮箱",
-    "errors": {
-      "resendFailed": "无法重新发送邮件，请重试。",
-      "serverUnreachable": "无法连接到服务器，请检查网络连接后重试。"
-    },
-    "resendButton": "重新发送验证邮件",
-    "resendIn": "{{seconds}} 秒后可重新发送",
-    "verifiedDescription": "你的账户已准备就绪。",
-    "verifiedTitle": "邮箱已验证",
-    "waiting": "正在等待验证..."
-  },
   "errorBoundary": {
     "description": "发生了意外错误，请重新加载后重试。",
     "reload": "重新加载",
     "title": "出了点问题"
-  },
-  "forgotPassword": {
-    "back": "返回",
-    "backToSignIn": "返回登录",
-    "emailPlaceholder": "输入你的邮箱",
-    "goBack": "返回",
-    "notConfigured": "身份验证尚未配置。",
-    "sendResetLink": "发送重置链接",
-    "sending": "正在发送...",
-    "subtitle": "输入你的邮箱，我们将发送重置链接",
-    "success": {
-      "description": "我们已将密码重置链接发送至",
-      "help": "没有收到邮件？请检查垃圾邮件文件夹或重试。",
-      "title": "查看你的邮箱",
-      "tryAnother": "尝试其他邮箱"
-    },
-    "title": "重置密码"
   },
   "fullPrompt": "完整提示词",
   "hotkeyGuidance": {
@@ -690,30 +565,6 @@
     "unknownDevice": "未知设备",
     "using": "当前使用："
   },
-  "pasteToolsInfo": {
-    "checking": "正在检查系统功能...",
-    "installCommands": {
-      "archLinux": "# Arch Linux",
-      "debianUbuntu": "# Debian / Ubuntu",
-      "debianUbuntuMint": "# Debian / Ubuntu / Mint",
-      "fedoraRhel": "# Fedora / RHEL"
-    },
-    "installPrefix": "如需自动粘贴文本，请安装",
-    "methodReady": "用于自动粘贴文本",
-    "noteXwaylandAlso": "注意：对于 XWayland 应用，xdotool 也适用。",
-    "noteXwaylandOnly": "注意：自动粘贴仅适用于 XWayland 应用。",
-    "optionalEnableTitle": "可选：启用自动粘贴",
-    "readyTitle": "自动粘贴已就绪",
-    "recheck": "重新检查",
-    "recheckChecking": "检查中...",
-    "title": "自动粘贴",
-    "usingMethodPrefix": "使用",
-    "waylandClipboardDescription": "此 Wayland 会话不支持自动粘贴。ScottySpeaks 会将文本复制到剪贴板，你可以使用 Ctrl+V 手动粘贴。",
-    "waylandClipboardTitle": "Wayland 上的剪贴板模式",
-    "windowsReady": "Windows 原生支持自动粘贴，无需额外设置！",
-    "withoutToolPrefix": "如果不安装此工具，ScottySpeaks 会将文本复制到剪贴板，你可以使用 Ctrl+V 手动粘贴。",
-    "xwaylandAppsOnly": "自动粘贴仅适用于 XWayland 应用"
-  },
   "promptStudio": {
     "common": {
       "copied": "已复制",
@@ -761,7 +612,6 @@
       "none": "无",
       "outputLabel": "输出",
       "processing": "处理中...",
-      "openwhisprCloud": "OpenWhispr Cloud",
       "providerLabel": "服务商",
       "run": "运行测试",
       "customEndpoint": "自定义端点"
@@ -782,43 +632,13 @@
       "modified": "已修改"
     }
   },
-  "resetPassword": {
-    "backToSignIn": "返回登录",
-    "confirmPasswordPlaceholder": "确认新密码",
-    "continue": "继续",
-    "errors": {
-      "passwordMinLength": "密码至少需要 8 个字符",
-      "passwordsDoNotMatch": "两次输入的密码不一致"
-    },
-    "goBack": "返回",
-    "newPasswordPlaceholder": "新密码",
-    "notConfigured": "身份验证未配置。",
-    "passwordMinLength": "密码至少需要 8 个字符",
-    "resetButton": "重置密码",
-    "resetting": "正在重置...",
-    "subtitle": "在下方输入你的新密码",
-    "success": {
-      "description": "密码已更新，你现在已登录。",
-      "title": "密码重置成功"
-    },
-    "title": "创建新密码"
-  },
   "settingsModal": {
     "groups": {
-      "account": "账户",
       "app": "应用",
       "speechAi": "语音与 AI",
       "system": "系统"
     },
     "sections": {
-      "account": {
-        "description": "个人资料与登录",
-        "label": "账户"
-      },
-      "plansBilling": {
-        "description": "套餐、用量与账单",
-        "label": "套餐与账单"
-      },
       "general": {
         "description": "外观、声音与启动",
         "label": "偏好设置"
@@ -847,121 +667,6 @@
     "title": "设置"
   },
   "settingsPage": {
-    "account": {
-      "badges": {
-        "free": "免费版",
-        "limitReached": "已达上限",
-        "pastDue": "逾期未付",
-        "pro": "Pro",
-        "trial": "试用"
-      },
-      "billing": {
-        "couldNotOpenDescription": "打开账单页面时出错，请重试。",
-        "couldNotOpenTitle": "无法打开账单",
-        "manageBilling": "管理账单",
-        "opening": "正在打开...",
-        "updatePaymentMethod": "更新支付方式"
-      },
-      "checkout": {
-        "couldNotOpenDescription": "打开结账页面时出错，请重试。",
-        "couldNotOpenTitle": "无法打开结账页",
-        "opening": "正在打开...",
-        "upgradeToPro": "升级到 Pro"
-      },
-      "disabled": "已禁用",
-      "featuresDisabled": "账户功能已禁用",
-      "featuresDisabledDescription": "在 .env 文件中设置 VITE_NEON_AUTH_URL 以启用账户功能。",
-      "notConfigured": "身份验证未配置",
-      "notSignedIn": "未登录",
-      "notSignedInDescription": "创建账户以解锁高级功能。",
-      "offline": "离线",
-      "pastDue": {
-        "description": "你目前使用的是免费版。更新支付方式即可恢复 Pro 版。",
-        "title": "我们无法处理你的付款"
-      },
-      "planDescriptions": {
-        "freeUsage": "本周已使用 {{used}} / {{limit}} 个词",
-        "nextBilling": "下次扣费：{{date}}",
-        "pastDue": "本周 {{used}} / {{limit}} 免费词数——更新支付方式以恢复 Pro",
-        "trial": "剩余 {{days}} 天——无限转录",
-        "unlimited": "无限制"
-      },
-      "planLabels": {
-        "free": "免费版",
-        "pro": "Pro",
-        "trial": "试用"
-      },
-      "planTitle": "套餐",
-      "rollingWeeklyLimit": "滚动周限额",
-      "signOut": {
-        "failedDescription": "退出登录时出错，请重试。",
-        "failedTitle": "无法退出登录",
-        "signOut": "退出登录",
-        "signingOut": "正在退出..."
-      },
-      "signedIn": "已登录",
-      "title": "账户",
-      "toasts": {
-        "approachingLimit": {
-          "description": "本周已使用 {{used}} / {{limit}} 个免费词数。升级到 Pro 可享受无限使用。",
-          "title": "即将达到周限额"
-        }
-      },
-      "trialCta": {
-        "button": "免费创建账户",
-        "description": "无限转录、优先处理等更多功能。",
-        "title": "免费试用 Pro 版 7 天"
-      },
-      "pricing": {
-        "title": "套餐",
-        "monthly": "按月",
-        "annual": "按年",
-        "annualBadge": "省 17%",
-        "free": {
-          "name": "免费版",
-          "price": "$0",
-          "period": "永久",
-          "features": [
-            "每周 2,000 字",
-            "本地 AI 模型",
-            "自带 API Key",
-            "词典和片段",
-            "支持 100+ 种语言",
-            "零数据留存"
-          ]
-        },
-        "pro": {
-          "name": "Pro",
-          "monthlyPrice": "$8",
-          "monthlyPeriod": "/月",
-          "annualPrice": "$80",
-          "annualPeriod": "/年",
-          "features": [
-            "包含免费版所有功能",
-            "无限使用",
-            "实时转录",
-            "最新音频和 AI 模型",
-            "iOS/Android（即将推出）",
-            "零数据留存",
-            "优先支持"
-          ],
-          "cta": "开始使用",
-          "switchToAnnual": "切换为年付"
-        },
-        "enterprise": {
-          "name": "企业版",
-          "price": "自定义",
-          "features": ["云端同步", "团队功能（即将推出）", "SSO 与合规"],
-          "cta": "联系我们"
-        },
-        "currentPlan": "当前套餐"
-      },
-      "signedOutPlans": {
-        "button": "免费创建账户"
-      },
-      "user": "用户",
-      "wordsRemaining": "剩余 {{remaining}} 个词"
-    },
     "agentConfig": {
       "agentName": "助手名称",
       "cleanupExample": "文本整理",
@@ -986,8 +691,6 @@
       }
     },
     "aiModels": {
-      "customSetup": "自定义设置",
-      "customSetupDescription": "使用你自己的服务商和 API Key。",
       "description": "整理转录文本、处理指令、修正错误，同时保留你的语气风格。",
       "enableTextCleanup": "启用文本整理",
       "polishStyle": {
@@ -998,19 +701,7 @@
         "verbatimDescription": "完整保留你的原话和口头禅，仅添加标点和大小写。"
       },
       "enableTextCleanupDescription": "AI 提升转录质量",
-      "openwhisprCloud": "OpenWhispr 云端",
-      "openwhisprCloudDescription": "开箱即用，无需配置。",
-      "title": "AI 文本增强",
-      "toasts": {
-        "switchedCloud": {
-          "description": "文本增强将使用 OpenWhispr 云端服务。",
-          "title": "已切换到 OpenWhispr 云端"
-        },
-        "switchedCustom": {
-          "description": "请配置你的服务商和 API Key。",
-          "title": "已切换到自定义设置"
-        }
-      }
+      "title": "AI 文本增强"
     },
     "developer": {
       "clearCache": "清除缓存",
@@ -1174,35 +865,13 @@
       "troubleshoot": "排查问题",
       "troubleshootingTitle": "问题排查"
     },
-    "privacy": {
-      "cloudBackup": "云端备份",
-      "cloudBackupDescription": "将转录记录保存到云端，确保永不丢失。",
-      "description": "控制哪些数据会离开你的设备。默认全部关闭。",
-      "title": "隐私",
-      "usageAnalytics": "使用分析",
-      "usageAnalyticsDescription": "通过分享匿名性能数据帮助我们改进 ScottySpeaks。我们绝不发送转录内容——仅发送计时和错误数据。"
-    },
     "prompts": {
       "description": "查看、自定义和测试用于文本整理和指令识别的统一系统提示词",
       "title": "提示词工作室"
     },
     "transcription": {
-      "customSetup": "自定义设置",
-      "customSetupDescription": "使用你自己的服务商和 API Key。",
       "description": "选择 ScottySpeaks 转录语音的方式",
-      "openwhisprCloud": "OpenWhispr 云端",
-      "openwhisprCloudDescription": "开箱即用，无需配置。",
-      "title": "语音转文字",
-      "toasts": {
-        "switchedCloud": {
-          "description": "转录将使用 OpenWhispr 云端服务。",
-          "title": "已切换到 OpenWhispr 云端"
-        },
-        "switchedCustom": {
-          "description": "请配置你的服务商和 API Key。",
-          "title": "已切换到自定义设置"
-        }
-      }
+      "title": "语音转文字"
     }
   },
   "models": {
@@ -1272,78 +941,6 @@
       }
     }
   },
-  "referral": {
-    "modalTitle": "推荐计划",
-    "title": "推荐赚取奖励",
-    "subtitle": "送一个月，得一个月。",
-    "tabs": {
-      "refer": "推荐",
-      "pastInvites": "历史邀请"
-    },
-    "howItWorks": {
-      "shareLink": "分享你的邀请链接",
-      "theySignUp": "对方注册即可获得",
-      "freeMonthOfPro": "一个月免费 Pro",
-      "youGet": "你将获得",
-      "freeMonth": "一个月免费",
-      "whenTheyDictate": "当对方听写满 2,000 个词时"
-    },
-    "inviteLink": {
-      "title": "你的邀请链接",
-      "copy": "复制",
-      "copied": "已复制"
-    },
-    "sendInvites": {
-      "title": "发送邀请",
-      "placeholder": "friend@example.com",
-      "send": "发送",
-      "sending": "发送中"
-    },
-    "stats": {
-      "referred": "已推荐",
-      "converted": "已转化",
-      "monthsEarned": "已获得月数"
-    },
-    "status": {
-      "converted": "已转化",
-      "opened": "已打开",
-      "failed": "失败",
-      "sent": "已发送"
-    },
-    "empty": {
-      "title": "尚未发送任何邀请",
-      "description": "分享你的链接或发送邀请以开始使用"
-    },
-    "toasts": {
-      "copiedTitle": "已复制！",
-      "copiedDescription": "推荐链接已复制到剪贴板",
-      "copyFailedTitle": "复制失败",
-      "copyFailedDescription": "无法将链接复制到剪贴板",
-      "invalidEmailTitle": "邮箱地址无效",
-      "invalidEmailDescription": "请输入有效的邮箱地址",
-      "inviteSentTitle": "邀请已发送！",
-      "inviteSentDescription": "邀请已发送至 {{email}}",
-      "sendFailedTitle": "发送失败",
-      "sendFailedDescription": "邀请发送失败，请重试。"
-    },
-    "errors": {
-      "unableToLoad": "无法加载推荐数据",
-      "unableToLoadStats": "无法加载推荐统计数据，请稍后重试。"
-    },
-    "tryAgain": "重试",
-    "card": {
-      "brand": "ScottySpeaks",
-      "signalId": "Signal ID",
-      "audioSignature": "你的声纹签名",
-      "stop": "停止",
-      "playSignal": "播放信号"
-    },
-    "friends": {
-      "title": "好友",
-      "completed": "已完成",
-      "sentInvites": "已发出的邀请"
-    }
-  },
   "notes": {
     "folders": {
       "title": "文件夹",
@@ -1377,52 +974,7 @@
       "saving": "保存中",
       "wordsCount": "{{count}} 个词",
       "startWriting": "开始书写...",
-      "staleIndicator": "内容在增强后已更改",
-      "live": "实时"
-    },
-    "upload": {
-      "title": "上传音频",
-      "using": "使用 {{model}}",
-      "dropOrBrowse": "拖放音频文件或点击浏览",
-      "supportedFormats": "MP3、WAV、M4A、WebM、OGG、FLAC、AAC",
-      "dropToUpload": "拖放以上传",
-      "transcribe": "转录",
-      "cancel": "取消",
-      "transcribingCloud": "正在通过云端转录...",
-      "transcribingLocal": "正在本地转录...",
-      "transcribingProvider": "正在通过 {{provider}} 转录...",
-      "transcriptionComplete": "转录完成",
-      "openNote": "打开笔记",
-      "uploadAnother": "上传另一个",
-      "retry": "重试",
-      "startOver": "重新开始",
-      "transcriptionSettings": "转录设置",
-      "newFolder": "新建文件夹",
-      "folderName": "文件夹名称",
-      "create": "创建",
-      "setupTitle": "设置转录",
-      "setupDescription": "选择转录音频的方式。此设置也适用于实时听写。",
-      "continue": "继续",
-      "openwhisprCloud": "OpenWhispr Cloud",
-      "custom": "自定义",
-      "selectFolder": "选择文件夹",
-      "transcriptionFailed": "转录失败",
-      "errorOccurred": "发生错误",
-      "noProviderTitle": "尚未设置转录服务商",
-      "noProviderDescription": "添加 API Key 或下载本地模型以开始转录。",
-      "noProviderAction": "打开转录设置",
-      "fileTooLarge": "此文件超过了 500 MB 的大小限制。",
-      "largeFileNote": "大文件将被分割并平行转录。",
-      "chunkProgress": "正在转录第 {{completed}} 部分，共 {{total}} 部分...",
-      "paidPlanRequired": "超过 25 MB 的文件需要付费计划才能使用云端转录。大文件通过 OpenWhispr Cloud 处理，确保可靠、高质量的结果。",
-      "byokTooLarge": "第三方 API 密钥仅支持 25 MB 以内的文件。",
-      "byokTooLargeDetail": "超过 25 MB 的文件由 OpenWhispr Cloud 负责分割、并行处理和重组——无需依赖第三方服务限制，即可获得可靠的结果。",
-      "byokTooLargeNeedsAccount": "创建账户并升级到付费计划，即可使用 OpenWhispr Cloud 转录更大的文件。",
-      "byokTooLargeNeedsUpgrade": "升级到付费计划，即可使用 OpenWhispr Cloud 转录更大的文件。",
-      "switchToCloudForLargeFiles": "切换到 OpenWhispr Cloud 来转录此文件。",
-      "createAccount": "创建账户",
-      "upgrade": "升级",
-      "switchToCloud": "OpenWhispr Cloud"
+      "staleIndicator": "内容在增强后已更改"
     },
     "meeting": {
       "title": "会议笔记",
@@ -1496,10 +1048,6 @@
       },
       "getStarted": "开始使用"
     },
-    "realtimeBanner": {
-      "message": "Pro 版可使用实时转录",
-      "upgrade": "升级"
-    },
     "enhance": {
       "title": "增强错误"
     }
@@ -1560,30 +1108,6 @@
     "defaultUser": "用户",
     "notSignedIn": "未登录"
   },
-  "usage": {
-    "approachingLimit": "即将达到周限额",
-    "approachingLimitDescription": "你本周已使用 {{wordsUsed}} / {{limit}} 个免费词数。",
-    "yourPlan": "你的套餐",
-    "trial": "试用期（剩余 {{days}} 天）",
-    "trial_other": "试用期（剩余 {{days}} 天）",
-    "pro": "Pro",
-    "unlimitedTrial": "试用期间无限转录",
-    "unlimited": "无限转录",
-    "manageSubscription": "管理订阅",
-    "weeklyUsage": "每周用量",
-    "limitReached": "已达上限",
-    "free": "免费版",
-    "wordsRemaining": "剩余 {{remaining}} 个词",
-    "rollingLimit": "滚动周限额",
-    "upgradeToPro": "升级到 Pro",
-    "useYourOwnKey": "使用自己的 API Key",
-    "upgradeUnlimited": "升级到 Pro — 无限转录"
-  },
-  "support": {
-    "joinDiscord": "加入 Discord",
-    "contactSupport": "联系支持",
-    "submitBug": "提交 Bug"
-  },
   "apiKeyInput": {
     "placeholder": "输入你的 API Key",
     "label": "API Key",
@@ -1595,17 +1119,7 @@
     "addButton": "添加密钥"
   },
   "gpu": {
-    "transcriptionBanner": "使用 GPU 加速转录",
-    "reasoningBanner": "使用 GPU 加速 AI 处理",
-    "enableButton": "启用 GPU",
-    "active": "GPU 加速已启用",
-    "ready": "GPU 加速已就绪",
-    "activating": "正在激活 GPU...",
-    "activationFailed": "无法激活 GPU",
-    "retry": "重试",
-    "remove": "移除",
-    "dismiss": "暂不启用",
-    "cancel": "取消"
+    "active": "GPU 加速已启用"
   },
   "app": {
     "toasts": {

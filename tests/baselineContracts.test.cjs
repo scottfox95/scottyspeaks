@@ -22,57 +22,95 @@ function loadTypeScriptModule(relativePath) {
   return loaded.exports;
 }
 
-const auth = loadTypeScriptModule("src/lib/neonAuth.ts");
-const { useUsage } = loadTypeScriptModule("src/hooks/useUsage.ts");
+const defaults = loadTypeScriptModule("src/stores/localFirstDefaults.ts");
 
-test("withSessionRefresh invokes an async operation and returns its resolved value", async () => {
-  let calls = 0;
+function storage(initial = {}) {
+  const values = new Map(Object.entries(initial));
+  return {
+    values,
+    getItem: (key) => (values.has(key) ? values.get(key) : null),
+    setItem: (key, value) => values.set(key, String(value)),
+    removeItem: (key) => values.delete(key),
+  };
+}
 
-  const result = await auth.withSessionRefresh(async () => {
-    calls += 1;
-    return { success: true, text: "transcribed" };
+test("a fresh install keeps local-first defaults and writes nothing but the marker", () => {
+  const store = storage();
+  defaults.migrateToLocalFirstDefaults(store);
+  assert.deepEqual([...store.values.keys()], [defaults.LOCAL_FIRST_MIGRATION_KEY]);
+  assert.equal(defaults.DEFAULT_POLISH_MODEL, "qwen3-4b-instruct-2507-q4_k_m");
+  assert.equal(defaults.DEFAULT_POLISH_PROVIDER, "qwen");
+  assert.equal(defaults.DEFAULT_PARAKEET_MODEL, "parakeet-tdt-0.6b-v3");
+});
+
+test("a working BYOK cloud setup that relied on the old default stays on the cloud", () => {
+  const store = storage({ openaiApiKey: "sk-test", cloudTranscriptionMode: "byok" });
+  defaults.migrateToLocalFirstDefaults(store);
+  assert.equal(store.getItem("useLocalWhisper"), "false");
+});
+
+test("an install routed to the dead OpenWhispr cloud moves to local", () => {
+  const implicit = storage({ cloudTranscriptionMode: "openwhispr" });
+  defaults.migrateToLocalFirstDefaults(implicit);
+  assert.equal(implicit.getItem("useLocalWhisper"), null); // new default: local
+
+  const explicit = storage({ useLocalWhisper: "false", cloudTranscriptionMode: "openwhispr" });
+  defaults.migrateToLocalFirstDefaults(explicit);
+  assert.equal(explicit.getItem("useLocalWhisper"), "true");
+});
+
+test("an existing whisper.cpp user keeps whisper.cpp", () => {
+  const store = storage({ useLocalWhisper: "true" });
+  defaults.migrateToLocalFirstDefaults(store);
+  assert.equal(store.getItem("localTranscriptionProvider"), "whisper");
+
+  const parakeet = storage({ useLocalWhisper: "true", localTranscriptionProvider: "nvidia" });
+  defaults.migrateToLocalFirstDefaults(parakeet);
+  assert.equal(parakeet.getItem("localTranscriptionProvider"), "nvidia");
+});
+
+test("a chosen polish model keeps the provider it was chosen under", () => {
+  const store = storage({ reasoningModel: "gpt-5-mini" });
+  defaults.migrateToLocalFirstDefaults(store);
+  assert.equal(store.getItem("reasoningProvider"), "openai");
+
+  const explicit = storage({ reasoningModel: "claude-haiku-4-5", reasoningProvider: "anthropic" });
+  defaults.migrateToLocalFirstDefaults(explicit);
+  assert.equal(explicit.getItem("reasoningProvider"), "anthropic");
+});
+
+test("stale sign-in state is removed and the migration runs only once", () => {
+  const store = storage({
+    isSignedIn: "true",
+    cloudReasoningMode: "openwhispr",
+    cloudTranscriptionMode: "openwhispr",
   });
+  defaults.migrateToLocalFirstDefaults(store);
+  assert.equal(store.getItem("isSignedIn"), null);
+  assert.equal(store.getItem("cloudReasoningMode"), null);
+  assert.equal(store.getItem("cloudTranscriptionMode"), null);
 
-  assert.deepEqual(result, { success: true, text: "transcribed" });
-  assert.equal(calls, 1);
+  store.setItem("isSignedIn", "true");
+  defaults.migrateToLocalFirstDefaults(store);
+  assert.equal(store.getItem("isSignedIn"), "true"); // marker set: no second pass
 });
 
-test("withSessionRefresh preserves operation failures", async () => {
-  const failure = new Error("cloud unavailable");
-
-  await assert.rejects(
-    async () => await auth.withSessionRefresh(async () => Promise.reject(failure)),
-    failure
-  );
-});
-
-test("disabled authentication operations return an explicit unavailable result", async () => {
-  const social = await auth.signInWithSocial("google");
-  const reset = await auth.resetPassword("password123", "token");
-  const request = await auth.requestPasswordReset("person@example.com");
-
-  for (const result of [social, reset, request]) {
-    assert.equal(result.data, null);
-    assert.match(result.error.message, /not available/i);
-  }
-});
-
-test("local usage exposes the complete unlimited contract", async () => {
-  const usage = useUsage();
-
-  assert.equal(usage.plan, "local");
-  assert.equal(usage.hasLoaded, true);
-  assert.equal(usage.isOverLimit, false);
-  assert.equal(usage.isApproachingLimit, false);
-  assert.equal(usage.checkoutLoading, false);
-  assert.equal(usage.limit, Infinity);
-  assert.equal(typeof usage.openBillingPortal, "function");
-
-  const checkout = await usage.openCheckout("annual");
-  const billing = await usage.openBillingPortal();
-  assert.deepEqual(checkout, {
-    success: false,
-    error: "Subscriptions are not available in this local-only build.",
-  });
-  assert.deepEqual(billing, checkout);
+test("nothing in the renderer reads sign-in state or routes to OpenWhispr cloud", () => {
+  const root = path.resolve(__dirname, "..", "src");
+  const offenders = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === "node_modules" || entry.name === "dist" || entry.name === "locales")
+        continue;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (/\.(jsx?|tsx?)$/.test(entry.name) && entry.name !== "localFirstDefaults.ts") {
+        const text = fs.readFileSync(full, "utf8");
+        if (/\bisSignedIn\b|\bcloudTranscriptionMode\b|\bcloudReasoningMode\b|\bcloudTranscribe\(|\bcloudReason\(/.test(text))
+          offenders.push(path.relative(root, full));
+      }
+    }
+  };
+  walk(root);
+  assert.deepEqual(offenders, []);
 });

@@ -1,7 +1,7 @@
 import { ReadAloud } from "../speech/ReadAloud";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Download, Loader2, FileText, Sparkles, AlignLeft, Radio } from "lucide-react";
+import { Download, Loader2, FileText, Sparkles, AlignLeft } from "lucide-react";
 import { MarkdownTextarea } from "../ui/MarkdownTextarea";
 import {
   DropdownMenu,
@@ -15,7 +15,6 @@ import type { ActionProcessingState } from "../../hooks/useActionProcessing";
 import ActionProcessingOverlay from "./ActionProcessingOverlay";
 import DictationWidget from "./DictationWidget";
 import { normalizeDbDate } from "../../utils/dateFormatting";
-import { useSettingsStore } from "../../stores/settingsStore";
 
 function formatNoteDate(dateStr: string): string {
   const date = normalizeDbDate(dateStr);
@@ -41,11 +40,8 @@ interface NoteEditorProps {
   onContentChange: (content: string) => void;
   isSaving: boolean;
   isRecording: boolean;
-  partialTranscript: string;
   finalTranscript: string | null;
   onFinalTranscriptConsumed: () => void;
-  streamingCommit: string | null;
-  onStreamingCommitConsumed: () => void;
   isProcessing: boolean;
   onStartRecording: () => void;
   onStopRecording: () => void;
@@ -134,11 +130,8 @@ export default function NoteEditor({
   isSaving,
   isRecording,
   isProcessing,
-  partialTranscript,
   finalTranscript,
   onFinalTranscriptConsumed,
-  streamingCommit,
-  onStreamingCommitConsumed,
   onStartRecording,
   onStopRecording,
   onExportNote,
@@ -152,24 +145,6 @@ export default function NoteEditor({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
   const prevNoteIdRef = useRef<number>(note.id);
-
-  const isSignedIn = useSettingsStore((s) => s.isSignedIn);
-  const cloudMode = useSettingsStore((s) => s.cloudTranscriptionMode);
-  const useLocalWhisper = useSettingsStore((s) => s.useLocalWhisper);
-  const canStream = isSignedIn && cloudMode === "openwhispr" && !useLocalWhisper;
-
-  const [liveMode, setLiveMode] = useState(() => {
-    const pref = localStorage.getItem("notesStreamingPreference");
-    return pref === "streaming" || (pref !== "batch" && canStream);
-  });
-
-  const handleLiveToggle = useCallback(() => {
-    setLiveMode((prev) => {
-      const next = !prev;
-      localStorage.setItem("notesStreamingPreference", next ? "streaming" : "batch");
-      return next;
-    });
-  }, []);
 
   const cursorPosRef = useRef(0);
   const selectionEndRef = useRef(0);
@@ -461,36 +436,6 @@ export default function NoteEditor({
     prevRecordingRef.current = isRecording;
   }, [isRecording]);
 
-  // Partial effect: only replace the active partial zone [partialStart, end].
-  // Committed text before partialStart is untouched — users can edit it freely.
-  useEffect(() => {
-    if (!partialTranscript || !dictationRef.current) return;
-
-    const { partialStart, end } = dictationRef.current;
-    const hasCommitted = partialStart > dictationRef.current.start;
-    const textToInsert = (hasCommitted ? " " : "") + partialTranscript;
-    const newEnd = partialStart + textToInsert.length;
-
-    replaceContentRange(partialStart, end, textToInsert);
-    dictationRef.current.end = newEnd;
-  }, [partialTranscript, replaceContentRange]); // note.content intentionally excluded
-
-  // Streaming commit: a Deepgram segment was finalized. Replace the partial zone
-  // with the committed text and advance partialStart for the next utterance.
-  useEffect(() => {
-    if (streamingCommit == null || !dictationRef.current) return;
-
-    const { partialStart, end } = dictationRef.current;
-    const newPartialStart = partialStart + streamingCommit.length;
-
-    replaceContentRange(partialStart, end, streamingCommit);
-    dictationRef.current.partialStart = newPartialStart;
-    dictationRef.current.end = newPartialStart;
-    dictationRef.current.committedChars += streamingCommit.length;
-
-    onStreamingCommitConsumed();
-  }, [streamingCommit, onStreamingCommitConsumed, replaceContentRange]); // note.content intentionally excluded
-
   // Final transcript (on recording stop).
   useEffect(() => {
     if (finalTranscript == null) return;
@@ -688,21 +633,6 @@ export default function NoteEditor({
                   )}
                 </button>
               </div>
-            )}
-            {canStream && (
-              <button
-                onClick={handleLiveToggle}
-                className={cn(
-                  "shrink-0 h-6 px-1.5 flex items-center gap-1 rounded-md text-xs font-medium transition-colors duration-150",
-                  liveMode
-                    ? "bg-primary/8 text-primary/70 hover:bg-primary/12 dark:bg-primary/12 dark:text-primary/80"
-                    : "bg-foreground/3 dark:bg-white/3 text-foreground/25 hover:text-foreground/40 hover:bg-foreground/6 dark:hover:bg-white/6"
-                )}
-                aria-label={t("notes.editor.live")}
-              >
-                <Radio size={9} />
-                {t("notes.editor.live")}
-              </button>
             )}
             {onExportNote && (
               <DropdownMenu>

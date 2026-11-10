@@ -1,6 +1,5 @@
 const { globalShortcut } = require("electron");
 const debugLogger = require("./debugLogger");
-const GnomeShortcutManager = require("./gnomeShortcut");
 const { i18nMain } = require("./i18nMain");
 
 // Delay to ensure localStorage is accessible after window load
@@ -70,8 +69,6 @@ class HotkeyManager {
     this.currentHotkey = process.platform === "darwin" ? "GLOBE" : "Control+Super";
     this.isInitialized = false;
     this.isListeningMode = false;
-    this.gnomeManager = null;
-    this.useGnome = false;
     this.hotkeyCallback = null;
   }
 
@@ -296,31 +293,6 @@ class HotkeyManager {
     }
   }
 
-  async initializeGnomeShortcuts(callback) {
-    if (process.platform !== "linux" || !GnomeShortcutManager.isWayland()) {
-      return false;
-    }
-
-    if (GnomeShortcutManager.isGnome()) {
-      try {
-        this.gnomeManager = new GnomeShortcutManager();
-
-        const dbusOk = await this.gnomeManager.initDBusService(callback);
-        if (dbusOk) {
-          this.useGnome = true;
-          this.hotkeyCallback = callback;
-          return true;
-        }
-      } catch (err) {
-        debugLogger.log("[HotkeyManager] GNOME shortcut init failed:", err.message);
-        this.gnomeManager = null;
-        this.useGnome = false;
-      }
-    }
-
-    return false;
-  }
-
   async initializeHotkey(mainWindow, callback) {
     if (!mainWindow || !callback) {
       throw new Error("mainWindow and callback are required");
@@ -328,43 +300,6 @@ class HotkeyManager {
 
     this.mainWindow = mainWindow;
     this.hotkeyCallback = callback;
-
-    if (process.platform === "linux" && GnomeShortcutManager.isWayland()) {
-      const gnomeOk = await this.initializeGnomeShortcuts(callback);
-
-      if (gnomeOk) {
-        const registerGnomeHotkey = async () => {
-          try {
-            const savedHotkey = await mainWindow.webContents.executeJavaScript(`
-              localStorage.getItem("dictationKey") || ""
-            `);
-            const hotkey = savedHotkey && savedHotkey.trim() !== "" ? savedHotkey : "Control+Super";
-            const gnomeHotkey = GnomeShortcutManager.convertToGnomeFormat(hotkey);
-
-            const success = await this.gnomeManager.registerKeybinding(gnomeHotkey);
-            if (success) {
-              this.currentHotkey = hotkey;
-              debugLogger.log(`[HotkeyManager] GNOME hotkey "${hotkey}" registered successfully`);
-            } else {
-              debugLogger.log("[HotkeyManager] GNOME keybinding failed, falling back to X11");
-              this.useGnome = false;
-              this.loadSavedHotkeyOrDefault(mainWindow, callback);
-            }
-          } catch (err) {
-            debugLogger.log(
-              "[HotkeyManager] GNOME keybinding failed, falling back to X11:",
-              err.message
-            );
-            this.useGnome = false;
-            this.loadSavedHotkeyOrDefault(mainWindow, callback);
-          }
-        };
-
-        setTimeout(registerGnomeHotkey, HOTKEY_REGISTRATION_DELAY_MS);
-        this.isInitialized = true;
-        return;
-      }
-    }
 
     if (process.platform === "linux") {
       globalShortcut.unregisterAll();
@@ -509,29 +444,6 @@ class HotkeyManager {
     }
 
     try {
-      if (this.useGnome && this.gnomeManager) {
-        debugLogger.log(`[HotkeyManager] Updating GNOME hotkey to "${hotkey}"`);
-        const gnomeHotkey = GnomeShortcutManager.convertToGnomeFormat(hotkey);
-        const success = await this.gnomeManager.updateKeybinding(gnomeHotkey);
-        if (!success) {
-          return {
-            success: false,
-            message: `Failed to update GNOME hotkey to "${hotkey}". Check the format is valid.`,
-          };
-        }
-        this.currentHotkey = hotkey;
-        const saved = await this.saveHotkeyToRenderer(hotkey);
-        if (!saved) {
-          debugLogger.warn(
-            "[HotkeyManager] GNOME hotkey registered but failed to persist to localStorage"
-          );
-        }
-        return {
-          success: true,
-          message: `Hotkey updated to: ${hotkey} (via GNOME native shortcut)`,
-        };
-      }
-
       const result = this.setupShortcuts(hotkey, callback);
       if (result.success) {
         const saved = await this.saveHotkeyToRenderer(hotkey);
@@ -562,19 +474,12 @@ class HotkeyManager {
   }
 
   unregisterAll() {
-    if (this.gnomeManager) {
-      this.gnomeManager.unregisterKeybinding().catch((err) => {
-        debugLogger.warn("[HotkeyManager] Error unregistering GNOME keybinding:", err.message);
-      });
-      this.gnomeManager.close();
-      this.gnomeManager = null;
-      this.useGnome = false;
-    }
     globalShortcut.unregisterAll();
   }
 
+  // GNOME Wayland shortcuts were removed (macOS-only build); kept for callers.
   isUsingGnome() {
-    return this.useGnome;
+    return false;
   }
 
   isHotkeyRegistered(hotkey) {
