@@ -99,12 +99,6 @@
 
 OpenWhispr tries clipboard methods in order: `wl-copy` (most reliable) → renderer `navigator.clipboard` → X11 fallback.
 
-### Windows-Specific Issues
-
-See [WINDOWS_TROUBLESHOOTING.md](WINDOWS_TROUBLESHOOTING.md) for:
-- Window visibility issues
-- FFmpeg permission problems
-
 ## Enable Debug Mode
 
 For detailed diagnostics, see [DEBUG.md](DEBUG.md).
