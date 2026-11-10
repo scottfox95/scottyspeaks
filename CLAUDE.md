@@ -2,6 +2,14 @@
 
 This repository is **ScottySpeaks (SS2)**, Scott's customized OpenWhispr-derived desktop dictation application. On the Mac Studio, `/Users/scott/Projects/ScottySpeaks` is the short Moshi alias for this checkout. Do not declare the Studio migration accepted from builds or automated tests alone: `/Applications/SS2.app` must complete first-launch macOS Microphone and Accessibility permission prompts, record a real spoken phrase, and paste the resulting text into a disposable document. System-audio/call capture is a separate later acceptance step.
 
+> **Removed in 0.3.15 (SS2 is macOS-only and local-first).** The upstream reference below still describes code that no longer exists. Don't recreate it from these notes:
+> - Windows/Linux paste and key listeners (`windowsKeyManager.js`, ydotool, nircmd, `resources/*.c`, NSIS);
+> - GNOME Wayland (`gnomeShortcut.js`), Vulkan and CUDA;
+> - OpenWhispr Cloud: auth, billing, referral, usage, Deepgram/AssemblyAI streaming, `neonAuth`;
+> - electron-updater and Google Fonts.
+>
+> Fresh installs default to local Parakeet (CoreML) and local Qwen3 4B Instruct polish. See `docs/model-reviews/2026-11-09-fable-5.2.md` for which review items were fixed, and where.
+
 # OpenWhispr Technical Reference for AI Assistants
 
 This document provides comprehensive technical details about the OpenWhispr project architecture for AI assistants working on the codebase.
@@ -679,9 +687,14 @@ The speech model cannot be taught a pronunciation (no fine-tuning; CTC boosting 
 - Style profiles gained `instructions` (free-text AI directives) and `aiPolish: false` (bypass, used by "Raw" profile).
 
 ### Voice command: replace-in-place
-When a voice command runs with nothing selected, `ClipboardManager.replaceLastPaste()` replaces the app's own previous paste instead of appending a duplicate. It selects back exactly `expectedText.length` characters, copies the selection, and replaces **only** on an exact match; any mismatch collapses the selection (right-arrow) and appends, so it can never overwrite text the app didn't produce. Capped at 1200 chars (`MAX_REPLACE_CHARS`).
+When a voice command runs with nothing selected, `ClipboardManager.replaceLastPaste()` replaces the app's own previous paste instead of appending a duplicate. It goes through the AX helper (`macos-recording-target`, op `replace`):
+- it sets the selection to the `expectedText.length` characters before the caret captured at the start;
+- it replaces **only** if `AXSelectedText` equals the expected text exactly;
+- on any mismatch it restores the range and refuses, so it can never overwrite text the app didn't produce.
 
-Selection uses `macos-fast-paste --select-back <N>` (CGEvent, ~142ms/111 chars). The osascript fallback costs ~9ms per keystroke and is therefore limited to 150 chars (`OSASCRIPT_SELECT_LIMIT`). After editing `resources/macos-fast-paste.swift`, run `npm run compile:fast-paste`.
+Unlike ordinary paste, replace still requires the exact field and caret (`verifyExactField`).
+
+(The older `macos-fast-paste --select-back`, `MAX_REPLACE_CHARS` and `OSASCRIPT_SELECT_LIMIT` path is gone.)
 
 ### Distribution & settings migration
 - `npm run share` → `~/Desktop/SS2-<date>.zip` (SS2.app + INSTALL.txt, no user data). Uses `ditto` so code signatures survive the round trip.
@@ -691,8 +704,19 @@ Selection uses `macos-fast-paste --select-back <N>` (CGEvent, ~142ms/111 chars).
 **Gatekeeper:** the app is signed with a local self-signed identity, not an Apple Developer ID, so on any *other* Mac the recipient must run `xattr -dr com.apple.quarantine /Applications/SS2.app` once after transfer. Documented in the generated INSTALL.txt. Builds are arm64-only (Apple Silicon).
 
 ### Shipping updates to other Macs
-`npm run publish` (patch bump; `-- minor` / `-- none` also accepted) bumps the version, builds, signs, installs locally, and publishes the zip as a **GitHub Release** on `scottfox95/scottyspeaks`.
+`npm run publish` (patch bump; `-- minor` / `-- major` / `-- none` also accepted) publishes the zip as a **GitHub Release** on `scottfox95/scottyspeaks`. Since 0.3.15 (`scripts/publish-update.js`, pure helpers in `scripts/lib/release-utils.js`):
+- **Preflight refuses** unless the git tree is clean (untracked files count), the signing identity exists, `gh auth status` passes and the version isn't released yet. Then it runs `npm test` and `npm run typecheck`.
+- **Version and build:** it commits the bump as `release: SS2 x.y.z`. After pack it checks that the build is signed by the same identity as the installed SS2; a different identity aborts unless `SS2_ALLOW_IDENTITY_CHANGE=1`.
+- **Release:** it zips from `dist/` before installing locally, pushes only the `vX.Y.Z` tag (never a branch) and creates the release with `--verify-tag`.
+- **Flags:** `--dry-run` runs the preflight and tests and changes nothing. Re-publishing an existing version needs `--replace`.
+- **Signing identity:** `scripts/ensure-signing.js` creates a new identity only with `SS2_ALLOW_NEW_IDENTITY=1`, and never during a release (`SS2_RELEASE=1`). A new identity resets Accessibility, Mic and Screen Recording on every Mac.
 
-On any other Mac: double-click `SS2-Update.command` (written to ~/Desktop on publish; send it over once, it self-updates thereafter). It reads the latest release from the GitHub API, compares `CFBundleShortVersionString`, downloads with curl, swaps `/Applications/SS2.app`, clears quarantine, verifies the signature, and relaunches. Needs only curl + python3 (both built into macOS) — no Node, no repo, and **no shared iCloud/Apple account**, since the work Mac uses a different one.
+On any other Mac: double-click `SS2-Update.command` (`scripts/SS2-Update.command`, attached to every release; send it over once). It:
+- reads the latest release with curl and JXA (no python3, which is only a Command Line Tools shim on a stock Mac);
+- compares versions numerically;
+- copies the new app next to the old one and verifies its bundle id, version and signature, and that it's signed by the same identity;
+- only then quits SS2 gracefully and swaps, restoring the old app on any failure.
 
-The bundled electron-updater (GitHub provider) is *not* used — Squirrel.Mac validates update signatures, unproven with a self-signed identity. Revisit with an Apple Developer ID.
+No Node, no repo, and **no shared iCloud/Apple account** is needed.
+
+In-app updates: `src/updater.js` (fetch + designated-requirement pin). electron-updater was removed in 0.3.15.
