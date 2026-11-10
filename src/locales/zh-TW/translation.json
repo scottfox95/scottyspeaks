@@ -1637,6 +1637,7 @@
     }
   },
   "meetings": {
+    "lowDiskError": "可用磁碟空間不足 2 GB。錄製通話前請先釋放空間。",
     "title": "通話筆記",
     "subtitle": "記錄對話，並與工作資料一起保存。",
     "settings": "通話筆記設定",
@@ -2082,6 +2083,10 @@
     "disk": {
       "title": "螢幕錄製已停止",
       "body": "磁碟剩餘空間不足 1 GB。錄製已儲存。"
+    },
+    "diskCall": {
+      "title": "通話錄音已停止",
+      "body": "磁碟剩餘空間不足 1 GB。目前已錄製的音訊已儲存。"
     },
     "startFailedCall": {
       "title": "通話錄製未能開始",

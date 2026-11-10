@@ -1641,6 +1641,7 @@
     }
   },
   "meetings": {
+    "lowDiskError": "Moins de 2 Go d'espace disque sont libres. Libérez de l'espace avant d'enregistrer un appel.",
     "title": "Notes d’appel",
     "subtitle": "Enregistrez la conversation. Conservez-la avec votre travail.",
     "settings": "Réglages des notes d’appel",
@@ -2088,6 +2089,10 @@
     "disk": {
       "title": "Enregistrement de l'écran arrêté",
       "body": "Il reste moins de 1 Go d'espace disque. L'enregistrement a été sauvegardé."
+    },
+    "diskCall": {
+      "title": "L'enregistrement de l'appel s'est arrêté",
+      "body": "Il reste moins de 1 Go d'espace disque. L'audio enregistré jusqu'ici est conservé."
     },
     "startFailedCall": {
       "title": "L'enregistrement de l'appel n'a pas démarré",

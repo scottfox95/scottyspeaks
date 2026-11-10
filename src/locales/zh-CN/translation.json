@@ -1637,6 +1637,7 @@
     }
   },
   "meetings": {
+    "lowDiskError": "可用磁盘空间不足 2 GB。录制通话前请先释放空间。",
     "title": "通话笔记",
     "subtitle": "记录对话，并与工作资料一起保存。",
     "settings": "通话笔记设置",
@@ -2082,6 +2083,10 @@
     "disk": {
       "title": "屏幕录制已停止",
       "body": "磁盘剩余空间不足 1 GB。录制已保存。"
+    },
+    "diskCall": {
+      "title": "通话录音已停止",
+      "body": "磁盘剩余空间不足 1 GB。目前已录制的音频已保存。"
     },
     "startFailedCall": {
       "title": "通话录制未能开始",

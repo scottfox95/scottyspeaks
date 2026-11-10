@@ -1637,6 +1637,7 @@
     }
   },
   "meetings": {
+    "lowDiskError": "Weniger als 2 GB Speicherplatz sind frei. Gib Speicherplatz frei, bevor du einen Anruf aufnimmst.",
     "title": "Gesprächsnotizen",
     "subtitle": "Zeichne das Gespräch auf. Bewahre es bei deiner Arbeit auf.",
     "settings": "Einstellungen für Gesprächsnotizen",
@@ -2084,6 +2085,10 @@
     "disk": {
       "title": "Bildschirmaufnahme beendet",
       "body": "Weniger als 1 GB Speicher frei. Die Aufnahme wurde gespeichert."
+    },
+    "diskCall": {
+      "title": "Anrufaufnahme gestoppt",
+      "body": "Weniger als 1 GB Speicherplatz ist frei. Die bisher aufgenommene Audiodatei ist gespeichert."
     },
     "startFailedCall": {
       "title": "Die Anrufaufnahme wurde nicht gestartet",

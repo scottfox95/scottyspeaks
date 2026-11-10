@@ -263,13 +263,13 @@ class ParakeetManager {
     });
 
     if (!output || !output.text) {
-      return { success: false, message: "No audio detected" };
+      return { success: false, message: "No audio detected", code: "noAudio" };
     }
 
     const text = output.text.trim();
 
     if (!text || text.length === 0) {
-      return { success: false, message: "No audio detected" };
+      return { success: false, message: "No audio detected", code: "noAudio" };
     }
 
     return { success: true, text, ...(Array.isArray(output.words) ? { words: output.words } : {}) };
@@ -313,8 +313,8 @@ class ParakeetManager {
         }
       } catch {}
 
-      if (!archiveReady) {
-        await downloadFile(modelConfig.url, archivePath, {
+      const download = () =>
+        downloadFile(modelConfig.url, archivePath, {
           timeout: 600000,
           signal,
           onProgress: (downloadedBytes, totalBytes) => {
@@ -329,13 +329,14 @@ class ParakeetManager {
             }
           },
         });
-      }
+      if (!archiveReady) await download();
 
       if (progressCallback) {
         progressCallback({ type: "installing", model: modelName, percentage: 100 });
       }
 
       const MAX_EXTRACT_RETRIES = 2;
+      let reused = archiveReady;
       for (let attempt = 1; attempt <= MAX_EXTRACT_RETRIES; attempt++) {
         try {
           await this._extractModel(archivePath, modelName);
@@ -344,9 +345,24 @@ class ParakeetManager {
           debugLogger.warn("Model extraction failed", {
             attempt,
             maxAttempts: MAX_EXTRACT_RETRIES,
+            reusedArchive: reused,
             error: extractError.message,
           });
+          if (reused) {
+            // An archive left by an earlier attempt may be truncated or
+            // corrupt. Replace it with a fresh download, which then gets the
+            // full retry budget.
+            reused = false;
+            await fsPromises.unlink(archivePath).catch(() => {});
+            await download();
+            attempt = 0;
+            continue;
+          }
           if (attempt >= MAX_EXTRACT_RETRIES) {
+            // The archive is reused when present, so a corrupt or truncated
+            // one would fail every retry until deleted by hand. Remove it so
+            // the next attempt downloads a fresh copy.
+            await fsPromises.unlink(archivePath).catch(() => {});
             const err = new Error(`Model installation failed: ${extractError.message}`);
             err.code = "EXTRACTION_FAILED";
             throw err;
