@@ -147,6 +147,8 @@ export interface HotkeyInputProps {
   disabled?: boolean;
   autoFocus?: boolean;
   validate?: (hotkey: string) => string | null | undefined;
+  /** For secondary shortcuts: called instead of the dictation-hotkey capture mode. */
+  onCaptureChange?: (capturing: boolean) => void;
 }
 
 export function mapKeyboardEventToHotkey(e: KeyboardEvent): string | null {
@@ -188,6 +190,7 @@ export function HotkeyInput({
   autoFocus = false,
   variant = "default",
   validate,
+  onCaptureChange,
 }: HotkeyInputProps & HotkeyInputVariant) {
   const { t } = useTranslation();
   const [isCapturing, setIsCapturing] = useState(false);
@@ -396,12 +399,19 @@ export function HotkeyInput({
     [disabled, buildModifierOnlyHotkey, finalizeCapture]
   );
 
+  // Inputs for a secondary shortcut pass onCaptureChange and must leave the
+  // dictation hotkey's capture mode alone, which would otherwise re-register
+  // the captured keys as the dictation hotkey on blur.
+  const onCaptureChangeRef = useRef(onCaptureChange);
+  onCaptureChangeRef.current = onCaptureChange;
+
   const handleFocus = useCallback(() => {
     if (!disabled) {
       setIsCapturing(true);
       setValidationWarning(null);
       clearFnHeld();
-      window.electronAPI?.setHotkeyListeningMode?.(true);
+      if (onCaptureChangeRef.current) onCaptureChangeRef.current(true);
+      else window.electronAPI?.setHotkeyListeningMode?.(true);
     }
   }, [disabled, clearFnHeld]);
 
@@ -410,7 +420,8 @@ export function HotkeyInput({
     setActiveModifiers(new Set());
     setValidationWarning(null);
     clearFnHeld();
-    window.electronAPI?.setHotkeyListeningMode?.(false, lastCapturedHotkeyRef.current);
+    if (onCaptureChangeRef.current) onCaptureChangeRef.current(false);
+    else window.electronAPI?.setHotkeyListeningMode?.(false, lastCapturedHotkeyRef.current);
     lastCapturedHotkeyRef.current = null;
     onBlur?.();
   }, [onBlur, clearFnHeld]);
@@ -423,7 +434,8 @@ export function HotkeyInput({
 
   useEffect(() => {
     return () => {
-      window.electronAPI?.setHotkeyListeningMode?.(false, null);
+      if (onCaptureChangeRef.current) onCaptureChangeRef.current(false);
+      else window.electronAPI?.setHotkeyListeningMode?.(false, null);
       if (warningTimeoutRef.current) clearTimeout(warningTimeoutRef.current);
     };
   }, []);

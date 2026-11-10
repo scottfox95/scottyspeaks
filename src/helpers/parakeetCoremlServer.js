@@ -41,6 +41,7 @@ class ParakeetCoremlServer {
     this.modelName = null;
     this.startupPromise = null;
     this.pending = [];
+    this.nextRequestId = 0;
     this.stdoutBuffer = "";
     this.cachedBinaryPath = null;
   }
@@ -177,11 +178,12 @@ class ParakeetCoremlServer {
         continue;
       }
 
-      const request = this.pending.shift();
-      if (!request) {
-        debugLogger.warn("parakeet-coreml response with no pending request", { message });
-        continue;
-      }
+      // The helper answers strictly in order. A request that timed out stays
+      // in the queue as `abandoned`, so its late reply is consumed and dropped
+      // here instead of being handed to the next dictation. The echoed id
+      // (newer helpers) double-checks the pairing.
+      const request = this._takeRequestFor(message);
+      if (!request) continue;
 
       clearTimeout(request.timer);
       if (message.type === "error") {
@@ -196,6 +198,33 @@ class ParakeetCoremlServer {
         });
       }
     }
+  }
+
+  _takeRequestFor(message) {
+    if (Number.isInteger(message.id)) {
+      const index = this.pending.findIndex((entry) => entry.id === message.id);
+      if (index === -1) {
+        debugLogger.warn("parakeet-coreml reply for an unknown request", { id: message.id });
+        return null;
+      }
+      // Anything queued before this id was answered out of band or lost; drop it.
+      const [request] = this.pending.splice(0, index + 1).slice(-1);
+      if (request.abandoned) {
+        debugLogger.warn("parakeet-coreml late reply discarded", { id: message.id });
+        return null;
+      }
+      return request;
+    }
+    const request = this.pending.shift();
+    if (!request) {
+      debugLogger.warn("parakeet-coreml response with no pending request", { type: message.type });
+      return null;
+    }
+    if (request.abandoned) {
+      debugLogger.warn("parakeet-coreml late reply discarded", { id: request.id });
+      return null;
+    }
+    return request;
   }
 
   _rejectAllPending(error) {
@@ -222,16 +251,23 @@ class ParakeetCoremlServer {
     }
 
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        const index = this.pending.findIndex((entry) => entry.timer === timer);
-        if (index !== -1) this.pending.splice(index, 1);
+      const id = ++this.nextRequestId;
+      const entry = { id, resolve, reject, timer: null, abandoned: false };
+      entry.timer = setTimeout(() => {
+        // Keep the slot: the helper will still answer this request eventually,
+        // and that answer must not be paired with the next one.
+        entry.abandoned = true;
         reject(new Error("parakeet-coreml transcription timed out"));
-      }, TRANSCRIPTION_TIMEOUT_MS);
+      }, options.timeoutMs || TRANSCRIPTION_TIMEOUT_MS);
 
-      this.pending.push({ resolve, reject, timer });
+      this.pending.push(entry);
 
       const meta = Buffer.from(
-        JSON.stringify({ language: options.language || "auto", timings: options.timings === true }),
+        JSON.stringify({
+          language: options.language || "auto",
+          timings: options.timings === true,
+          id,
+        }),
         "utf8"
       );
       const header = Buffer.alloc(8);
@@ -240,8 +276,9 @@ class ParakeetCoremlServer {
 
       this.process.stdin.write(Buffer.concat([header, meta, samplesBuffer]), (err) => {
         if (err) {
-          clearTimeout(timer);
-          const index = this.pending.findIndex((entry) => entry.timer === timer);
+          // A failed write never reached the helper, so no reply will come.
+          clearTimeout(entry.timer);
+          const index = this.pending.indexOf(entry);
           if (index !== -1) this.pending.splice(index, 1);
           reject(new Error(`parakeet-coreml write failed: ${err.message}`));
         }

@@ -26,6 +26,7 @@ const PERSISTED_KEYS = [
   "FLOATING_ICON_AUTO_HIDE",
   "UI_LANGUAGE",
   "WHISPER_CUDA_ENABLED",
+  "PASTE_LAST_HOTKEY",
 ];
 
 class EnvironmentManager {

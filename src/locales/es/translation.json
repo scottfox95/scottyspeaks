@@ -1883,7 +1883,20 @@
     "clipboardTitle": "No se pudo pegar, está en tu portapapeles",
     "clipboardDescription": "Pulsa ⌘V donde lo quieras. También está guardado en el historial.",
     "selectionReplaced": "Se reemplazó la selección.",
-    "dictationReplaced": "Se reemplazó el último dictado."
+    "dictationReplaced": "Se reemplazó el último dictado.",
+    "clipboardDescriptionApp": "No se pudo pegar en {{app}} ({{reason}}). Pulsa ⌘V donde lo quieras, o ⌃⌥V para pegar tu último dictado.",
+    "clipboardDescriptionReason": "No se pudo pegar ({{reason}}). Pulsa ⌘V donde lo quieras, o ⌃⌥V para pegar tu último dictado.",
+    "reasons": {
+      "secure-input": "hay un campo de contraseña activo",
+      "accessibility-required": "el permiso de Accesibilidad está desactivado",
+      "target-changed": "la app se cerró o perdió el foco",
+      "activation-failed": "no se pudo traer la app al frente",
+      "clipboard-changed": "el portapapeles cambió durante el pegado",
+      "no-target": "no había ninguna app al frente",
+      "helper-unavailable": "falta el asistente de pegado",
+      "target-timeout": "la app tardó demasiado en responder",
+      "unknown": "motivo desconocido"
+    }
   },
   "callAgent": {
     "tab": "Agentes",
@@ -2101,6 +2114,25 @@
     "ready": {
       "title": "SS2 {{version}} está listo",
       "body": "Se instala la próxima vez que cierres SS2, o ahora desde Ajustes."
+    }
+  },
+  "pasteLast": {
+    "nothing": "Aún no hay nada que pegar. Dicta algo primero.",
+    "onClipboard": "No se pudo pegar tu último dictado aquí. Está en el portapapeles: pulsa ⌘V.",
+    "failed": "No se pudo pegar tu último dictado.",
+    "settings": {
+      "title": "Pegar último dictado",
+      "description": "Pega tu dictado más reciente donde esté el cursor. Úsalo cuando un pegado no llegó, o cuando hablas primero y haces clic en el campo después.",
+      "reset": "Restablecer a {{hotkey}}",
+      "off": "Desactivar",
+      "unavailable": "Otra app usa ese atajo. Elige otro."
+    },
+    "log": {
+      "title": "Pegados recientes",
+      "empty": "Aún no hay pegados registrados.",
+      "ok": "pegado",
+      "refused": "rechazado",
+      "onClipboard": "en el portapapeles"
     }
   }
 }

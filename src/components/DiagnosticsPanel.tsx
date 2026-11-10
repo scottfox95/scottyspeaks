@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Activity, Copy, Check, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 interface Diagnostics {
+  generatedAt?: string;
   chip?: string;
   memoryGB?: number;
   lowPowerMode?: boolean;
@@ -153,6 +155,68 @@ export default function DiagnosticsPanel() {
             instantly — so "testing one two three" is never formatted, on any machine.
           </p>
         </>
+      )}
+
+      <PasteLog refreshKey={data?.generatedAt} />
+    </div>
+  );
+}
+
+interface PasteOutcome {
+  at: string;
+  source: string;
+  app: string;
+  role: string;
+  ok: boolean;
+  reason: string;
+  onClipboard: boolean;
+  ms: number | null;
+}
+
+/** Last 50 paste outcomes: where, and why a paste was refused. No transcript text is stored. */
+function PasteLog({ refreshKey }: { refreshKey?: string }) {
+  const { t } = useTranslation();
+  const [entries, setEntries] = useState<PasteOutcome[] | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    (window as any).electronAPI
+      ?.listPasteOutcomes?.()
+      .then((list: PasteOutcome[]) => live && setEntries(Array.isArray(list) ? list : []))
+      .catch(() => live && setEntries([]));
+    return () => {
+      live = false;
+    };
+  }, [refreshKey]);
+
+  if (!entries) return null;
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs font-medium text-muted-foreground/80">{t("pasteLast.log.title")}</p>
+      {entries.length === 0 ? (
+        <p className="text-xs text-muted-foreground">{t("pasteLast.log.empty")}</p>
+      ) : (
+        <div className="rounded-lg border border-border/60 px-3 py-1 max-h-64 overflow-y-auto">
+          {entries.map((e, i) => (
+            <div
+              key={`${e.at}-${i}`}
+              className="flex items-center justify-between gap-3 py-1.5 border-b border-border/40 last:border-0 text-xs"
+            >
+              <span className="text-muted-foreground tabular-nums shrink-0">
+                {new Date(e.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+              </span>
+              <span className="truncate flex-1">
+                {e.app || "—"}
+                {e.role ? <span className="text-muted-foreground"> · {e.role}</span> : null}
+              </span>
+              <span className={`shrink-0 ${e.ok ? "text-emerald-600" : "text-amber-600"}`}>
+                {e.ok
+                  ? t("pasteLast.log.ok")
+                  : `${t("pasteLast.log.refused")}: ${e.reason}${e.onClipboard ? ` · ${t("pasteLast.log.onClipboard")}` : ""}`}
+              </span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

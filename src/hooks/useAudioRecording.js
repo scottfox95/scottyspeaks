@@ -97,9 +97,18 @@ export const useAudioRecording = (toast, options = {}) => {
         const title = error.code === "PASTE_FAILED" ? t(`recordingTarget.${pasteKey}Title`) : error.code === "POLISH_UNAVAILABLE" ? t("dictationCleanup.polishUnavailableTitle") : getRecordingErrorTitle(error, t);
         const isSoftPasteFailure =
           error.code === "PASTE_FAILED" || error.code === "POLISH_UNAVAILABLE";
+        // Say which gate fired and where, so a refusal is never a mystery.
+        const reasonKey = `recordingTarget.reasons.${error.reason || "unknown"}`;
+        const reasonText = t(reasonKey) === reasonKey ? t("recordingTarget.reasons.unknown") : t(reasonKey);
+        const pasteDescription =
+          error.onClipboard && error.appName
+            ? t("recordingTarget.clipboardDescriptionApp", { app: error.appName, reason: reasonText })
+            : error.onClipboard
+              ? t("recordingTarget.clipboardDescriptionReason", { reason: reasonText })
+              : t(`recordingTarget.${pasteKey}Description`);
         toast({
           title,
-          description: error.code === "PASTE_FAILED" ? t(`recordingTarget.${pasteKey}Description`) : error.code === "POLISH_UNAVAILABLE" ? t("dictationCleanup.polishUnavailable") : error.description,
+          description: error.code === "PASTE_FAILED" ? pasteDescription : error.code === "POLISH_UNAVAILABLE" ? t("dictationCleanup.polishUnavailable") : error.description,
           variant: isSoftPasteFailure ? "default" : "destructive",
           duration: error.code === "AUTH_EXPIRED" ? 8000 : isSoftPasteFailure ? 6000 : undefined,
         });

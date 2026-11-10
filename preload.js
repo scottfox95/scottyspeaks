@@ -115,6 +115,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("replace-last-paste", newText, expectedText, options),
   getFrontmostApp: () => ipcRenderer.invoke("get-frontmost-app"),
   runDiagnostics: () => ipcRenderer.invoke("run-diagnostics"),
+  listPasteOutcomes: () => ipcRenderer.invoke("paste-outcomes:list"),
+  getPasteLastHotkey: () => ipcRenderer.invoke("paste-last:get"),
+  setPasteLastHotkey: (hotkey) => ipcRenderer.invoke("paste-last:set", hotkey),
+  suspendPasteLastHotkey: (suspended) => ipcRenderer.invoke("paste-last:suspend", suspended),
   getStyleExamples: (limit) => ipcRenderer.invoke("db-get-style-examples", limit),
   addStyleExample: (beforeText, afterText, source) =>
     ipcRenderer.invoke("db-add-style-example", beforeText, afterText, source),

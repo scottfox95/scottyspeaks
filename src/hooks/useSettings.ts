@@ -138,7 +138,8 @@ function useSettingsInternal() {
         localTranscriptionProvider,
         model: model || undefined,
         reasoningProvider,
-        reasoningModel: reasoningProvider === "local" ? reasoningModel : undefined,
+        // Main decides local vs cloud from the provider; always send the model.
+        reasoningModel: reasoningModel || undefined,
       })
       .catch((err) =>
         logger.warn(

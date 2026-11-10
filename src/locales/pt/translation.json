@@ -1883,7 +1883,20 @@
     "clipboardTitle": "Não deu para colar, está na sua área de transferência",
     "clipboardDescription": "Pressione ⌘V onde quiser. Também está salvo no histórico.",
     "selectionReplaced": "A seleção foi substituída.",
-    "dictationReplaced": "O último ditado foi substituído."
+    "dictationReplaced": "O último ditado foi substituído.",
+    "clipboardDescriptionApp": "Não foi possível colar em {{app}} ({{reason}}). Pressione ⌘V onde quiser, ou ⌃⌥V para colar seu último ditado.",
+    "clipboardDescriptionReason": "Não foi possível colar ({{reason}}). Pressione ⌘V onde quiser, ou ⌃⌥V para colar seu último ditado.",
+    "reasons": {
+      "secure-input": "um campo de senha está ativo",
+      "accessibility-required": "a permissão de Acessibilidade está desativada",
+      "target-changed": "o app fechou ou perdeu o foco",
+      "activation-failed": "não foi possível trazer o app para a frente",
+      "clipboard-changed": "a área de transferência mudou durante a colagem",
+      "no-target": "nenhum app estava em primeiro plano",
+      "helper-unavailable": "o auxiliar de colagem está ausente",
+      "target-timeout": "o app demorou demais para responder",
+      "unknown": "motivo desconhecido"
+    }
   },
   "callAgent": {
     "tab": "Agentes",
@@ -2101,6 +2114,25 @@
     "ready": {
       "title": "SS2 {{version}} está pronto",
       "body": "Será instalado na próxima vez que o SS2 for fechado, ou agora em Ajustes."
+    }
+  },
+  "pasteLast": {
+    "nothing": "Nada para colar ainda. Dite algo primeiro.",
+    "onClipboard": "Não foi possível colar seu último ditado aqui. Ele está na área de transferência: pressione ⌘V.",
+    "failed": "Não foi possível colar seu último ditado.",
+    "settings": {
+      "title": "Colar último ditado",
+      "description": "Cola seu ditado mais recente onde o cursor estiver. Use quando uma colagem não funcionou, ou quando você fala primeiro e clica no campo depois.",
+      "reset": "Redefinir para {{hotkey}}",
+      "off": "Desativar",
+      "unavailable": "Outro app já usa esse atalho. Escolha outro."
+    },
+    "log": {
+      "title": "Colagens recentes",
+      "empty": "Nenhuma colagem registrada ainda.",
+      "ok": "colado",
+      "refused": "recusado",
+      "onClipboard": "na área de transferência"
     }
   }
 }

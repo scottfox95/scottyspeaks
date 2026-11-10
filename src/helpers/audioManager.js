@@ -1,5 +1,5 @@
 import { openRecordingMicrophone } from "./recordingActivity";
-import { cleanupChoices, applyDictationCleanup, respectsCleanupChoices, isNamedDictationCommand } from "../services/polish/dictationCleanup";
+import { cleanupChoices, applyDictationCleanup, cleanupViolation, isNamedDictationCommand } from "../services/polish/dictationCleanup";
 import { getSystemPrompt } from "../config/prompts";
 import { getModelProvider } from "../models/ModelRegistry";
 import ReasoningService from "../services/ReasoningService";
@@ -113,6 +113,27 @@ function extractNegations(text) {
   return markers;
 }
 
+// Common words that open a sentence only because of grammar. Polish
+// legitimately drops or rewords them ("So, …", "There's some that…"), and
+// protecting them as if they were names threw away 77 of 361 good polish
+// results on Scott's own dictations. Any other capitalized word, including a
+// name at the start of a sentence ("Élodie will…"), stays protected.
+const SENTENCE_OPENERS = new Set(
+  (
+    "a an the and but or so yet also plus then now well okay ok oh hey hi yes yeah yep no nope " +
+    "i i'm i'd i'll i've me my we we're we'll we've our us you you're you'll you've your he she it it's " +
+    "they they're their them this that these those there there's here here's what what's why how when " +
+    "where who which whose if because since though although while unless until after before as just " +
+    "actually basically honestly really maybe perhaps probably obviously anyway alright right sure " +
+    "is are was were am be been do does did don't doesn't didn't can can't could couldn't will won't " +
+    "would wouldn't should shouldn't shall may might must have has had haven't hasn't let let's " +
+    "please thanks thank send add make check go get put take tell ask give keep try use see look " +
+    "find set call write update remind need want think know like one some any all every each both " +
+    "even still only not never always sometimes first second third next last finally otherwise " +
+    "instead however also overall meanwhile sorry wait um uh"
+  ).split(" ")
+);
+
 function extractProtectedNames(text) {
   const names = [];
   const matches = text.matchAll(/[\p{L}\p{M}][\p{L}\p{M}'’-]*/gu);
@@ -121,16 +142,107 @@ function extractProtectedNames(text) {
     const firstCharacter = [...token][0];
     const hasCase = firstCharacter.toLocaleLowerCase() !== firstCharacter.toLocaleUpperCase();
     const isCapitalized = hasCase && firstCharacter === firstCharacter.toLocaleUpperCase();
-    if (isCapitalized) names.push(token.toLocaleLowerCase());
+    if (!isCapitalized) continue;
+    const before = text.slice(0, match.index).trimEnd();
+    const startsSentence = before === "" || /[.!?:;\n"“(—–-]$/.test(before);
+    if (/^I(?:['’](?:m|d|ll|ve))?$/.test(token)) continue;
+    if (startsSentence && SENTENCE_OPENERS.has(token.toLocaleLowerCase().replace(/’/g, "'")))
+      continue;
+    names.push(token.toLocaleLowerCase());
   }
   return names;
 }
 
-function sameTokens(left, right) {
-  if (left.length !== right.length) return false;
-  const sortedLeft = [...left].sort();
-  const sortedRight = [...right].sort();
-  return sortedLeft.every((token, index) => token === sortedRight[index]);
+const NUMBER_WORDS =
+  /\b(?:zero|oh|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|half|quarter)\b(?:[\s-]+(?:and\s+)?\b(?:zero|oh|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion)\b)*/gi;
+
+/**
+ * Every number the speaker gave as digits survives unchanged, and polish may
+ * only add digits where the transcript had a spelled-out number ("ten ninety
+ * nine" → 1099, "seven fifty" → 750; the paste path does the same).
+ * Currency signs and unit suffixes don't count as a change ("625" → "$625").
+ */
+const SHARE_FILLERS = new Set(
+  "um uh like so just really actually basically you know i mean kind sort of okay ok well and".split(" ")
+);
+
+// Who is speaking to whom must not change: "check my email" → "check your
+// email" turns a note to self into an instruction. Compare first- and
+// second-person pronoun counts (contractions expanded).
+const PERSON_PRONOUNS = new Set("i me my mine myself we us our ours you your yours yourself".split(" "));
+function personPronouns(text) {
+  const counts = {};
+  for (const word of (text.toLowerCase().replace(/[’]/g, "'").match(/[a-z']+/g) || []).flatMap(
+    (w) => (CONTRACTIONS[w] || w.replace(/'(?:m|re|ve|ll|d|s)$/, "")).split(" ")
+  ))
+    if (PERSON_PRONOUNS.has(word)) counts[word === "me" || word === "myself" ? "i" : word] = (counts[word === "me" || word === "myself" ? "i" : word] || 0) + 1;
+  return counts;
+}
+function samePerson(input, output) {
+  const a = personPronouns(input);
+  const b = personPronouns(output);
+  const groups = { first: ["i", "my", "mine"], plural: ["we", "us", "our", "ours"], second: ["you", "your", "yours", "yourself"] };
+  // Dropping a filler "you know" is fine; switching person is not.
+  for (const keys of Object.values(groups)) {
+    const n = (c) => keys.reduce((s, k) => s + (c[k] || 0), 0);
+    if (n(b) > n(a)) return false;
+  }
+  const inFirst = groups.first.some((k) => a[k]);
+  const outFirst = groups.first.some((k) => b[k]);
+  return !(inFirst && !outFirst && groups.second.some((k) => b[k]));
+}
+const CONTRACTIONS = {
+  "don't": "do not", "didn't": "did not", "doesn't": "does not", "isn't": "is not", "can't": "can not",
+  "won't": "will not", "it's": "it is", "i'm": "i am", "we're": "we are", "you're": "you are",
+  "they're": "they are", "that's": "that is", "there's": "there is", "what's": "what is",
+  "i've": "i have", "i'll": "i will", "we'll": "we will", "let's": "let us", "gonna": "going to", "wanna": "want to",
+};
+// Spoken formatting commands are meant to disappear ("new paragraph" → a blank line).
+const SPOKEN_COMMANDS =
+  /\b(?:new (?:line|paragraph)|period|full stop|comma|colon|semicolon|question mark|exclamation (?:point|mark)|scratch that|(?:open |close )?quote|unquote|bullet(?: point)?|numbered list|dash|hyphen)\b/g;
+// Numbers are checked separately (numbersPreserved), so spelled-out numbers
+// turning into digits ("nineteen thousand" → 19,000) don't count as rewording.
+function contentWords(text) {
+  return (
+    text
+      .toLowerCase()
+      .replace(/[’]/g, "'")
+      .replace(SPOKEN_COMMANDS, " ")
+      .replace(NUMBER_WORDS, " ")
+      .match(/[a-z']+/g) || []
+  )
+    .flatMap((word) => (CONTRACTIONS[word] || word).split(" "))
+    .filter((word) => !SHARE_FILLERS.has(word));
+}
+
+/** Share of the input's content words that appear in the output, in order (LCS). */
+function keptWordShare(input, output) {
+  const a = contentWords(input);
+  const b = contentWords(output);
+  if (!a.length) return 1;
+  const row = new Array(b.length + 1).fill(0);
+  for (let i = 1; i <= a.length; i++) {
+    let diagonal = 0;
+    for (let j = 1; j <= b.length; j++) {
+      const above = row[j];
+      row[j] = a[i - 1] === b[j - 1] ? diagonal + 1 : Math.max(row[j], row[j - 1]);
+      diagonal = above;
+    }
+  }
+  return row[b.length] / a.length;
+}
+
+function numbersPreserved(input, output) {
+  const core = (token) => token.replace(/^[$€£¥]/, "").replace(/(?:%|[a-z]{1,4})$/i, "");
+  const inCores = extractNumericTokens(input).map(core);
+  const outCores = extractNumericTokens(output).map(core);
+  const remaining = [...outCores];
+  for (const value of inCores) {
+    const index = remaining.indexOf(value);
+    if (index === -1) return false;
+    remaining.splice(index, 1);
+  }
+  return remaining.length <= (input.match(NUMBER_WORDS) || []).length;
 }
 
 const PLACEHOLDER_KEYS = {
@@ -416,6 +528,29 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     return this.captureSnapshot;
   }
 
+  /** Capture target → settings snapshot → inference lane. Resolves false when cancelled or failed. */
+  async prepareRecording(target, captureTarget, attempt) {
+    const cancelled = () => this._cancelledRecordingAttempt === attempt;
+    try {
+      if (captureTarget) await this.captureRecordingTarget(target);
+      if (cancelled()) return false;
+      await this.snapshotCaptureSettings(target);
+      if (cancelled()) return false;
+      if (this.processingSettings().useLocalWhisper) {
+        const token = await window.electronAPI.reserveLocalInference();
+        if (cancelled()) {
+          await this.releaseLocalInference(token);
+          return false;
+        }
+        this._localInferenceToken = token;
+      }
+      return true;
+    } catch (error) {
+      logger.warn("Recording preparation failed", { error: error.message }, "audio");
+      return false;
+    }
+  }
+
   setPipelineStage(pipelineStage) {
     this.onStateChange?.({ isRecording: false, isProcessing: true, isStreaming: false, pipelineStage });
   }
@@ -424,6 +559,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     const attempt = Symbol();
     const target = recordingTarget || { token: null, released: false };
     let started = false;
+    let prepared = Promise.resolve(false);
     let microphone;
     try {
       if (
@@ -437,18 +573,11 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
       this._recordingStartAttempt = attempt;
       this._recordingTarget = target;
-      if (!recordingTarget) await this.captureRecordingTarget(target);
-      if (this._cancelledRecordingAttempt === attempt) return false;
-      await this.snapshotCaptureSettings(target);
-      if (this._cancelledRecordingAttempt === attempt) return false;
-      if (this.processingSettings().useLocalWhisper) {
-        const token = await window.electronAPI.reserveLocalInference();
-        if (this._cancelledRecordingAttempt === attempt) {
-          await this.releaseLocalInference(token);
-          return false;
-        }
-        this._localInferenceToken = token;
-      }
+      // The paste-target capture (an AX round trip that can take up to 2.5 s in
+      // a slow app), the settings snapshot and the inference reservation run
+      // alongside the microphone instead of before it, so hold-to-talk no
+      // longer clips the first words. Processing waits for them on stop.
+      prepared = this.prepareRecording(target, !recordingTarget, attempt);
 
       const constraints = await this.getAudioConstraints();
       if (this._cancelledRecordingAttempt === attempt) return false;
@@ -530,6 +659,11 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           ? (Date.now() - this.recordingStartTime) / 1000
           : null;
         this.recordingStartTime = null;
+        if (!(await prepared)) {
+          this.isProcessing = false;
+          this.onStateChange?.({ isRecording: false, isProcessing: false });
+          return;
+        }
         await this.processAudio(audioBlob, { durationSeconds, recordingTarget: target });
 
       };
@@ -539,6 +673,15 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       this.isRecording = true;
       this.onStateChange?.({ isRecording: true, isProcessing: false });
 
+      if (!(await prepared)) {
+        // Cancelled (or the reservation failed) while the mic was already live.
+        if (
+          this.mediaRecorder?.state === "recording" &&
+          this._cancelledRecordingAttempt !== attempt
+        )
+          this.cancelRecording();
+        return false;
+      }
       return true;
     } catch (error) {
       await this.releaseLocalInference();
@@ -568,6 +711,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       return false;
     } finally {
       if (!started) {
+        // Preparation may still be in flight; give back whatever it reserves.
+        void prepared.then((ok) => ok && this.releaseLocalInference());
         if (this._recordingStartAttempt === attempt) this.cleanupSilenceDetection();
         if (microphone) await microphone.release();
         if (this._batchMicrophone === microphone) this._batchMicrophone = null;
@@ -1281,8 +1426,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
    * hallucinated) — in which case the raw transcript is used.
    */
   validatePolishOutput(input, output) {
+    return AudioManager.prototype.explainPolishOutput(input, output).text;
+  }
+
+  /** Same check, plus which rule refused: `{ text, reason }` (reason "" when accepted). */
+  explainPolishOutput(input, output) {
     if (typeof input !== "string" || !input.trim() || typeof output !== "string" || !output) {
-      return null;
+      return { text: null, reason: "invalid" };
     }
 
     let out = output
@@ -1309,7 +1459,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       .join("\n")
       .trim();
 
-    if (!out) return null;
+    if (!out) return { text: null, reason: "empty" };
 
     const inWords = input.split(/\s+/).filter(Boolean).length;
     const outWords = out.split(/\s+/).filter(Boolean).length;
@@ -1321,14 +1471,14 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     // come back as invented bullet lists — 14/32 sampled truncations grew by
     // >3 words and none were caught.
     const allowedGrowth = Math.max(3, Math.round(inWords * 0.1));
-    if (outWords > inWords + allowedGrowth) return null; // expanded → invented content
-    if (inWords >= 12 && outWords < inWords * 0.4) return null; // shrunk → summarized/answered
-
+    if (outWords > inWords + allowedGrowth) return { text: null, reason: "grew" }; // expanded → invented content
+    if (inWords >= 12 && outWords < inWords * 0.4) return { text: null, reason: "shrank" }; // shrunk → summarized/answered
     // Numbers and negation carry disproportionate meaning. Accept harmless
     // formatting variants (1,200 → 1200 and can't → cannot), but fall back to
     // the raw transcript if the model adds, removes, or changes either signal.
-    if (!sameTokens(extractNumericTokens(input), extractNumericTokens(out))) return null;
-    if (!sameTokens(extractNegations(input), extractNegations(out))) return null;
+    if (!numbersPreserved(input, out)) return { text: null, reason: "numbers" };
+    if (extractNegations(input).length !== extractNegations(out).length)
+      return { text: null, reason: "negation" };
 
     // Preserve names and acronyms already present in the transcript. This is a
     // conservative signal rather than a semantic-equivalence claim: a rejected
@@ -1336,7 +1486,15 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     const outputWords = new Set(
       out.toLocaleLowerCase().match(/[\p{L}\p{M}][\p{L}\p{M}'’-]*/gu) || []
     );
-    if (extractProtectedNames(input).some((name) => !outputWords.has(name))) return null;
+    if (extractProtectedNames(input).some((name) => !outputWords.has(name)))
+      return { text: null, reason: "names" };
+
+    // Cleanup, not ghost-writing: at least 85% of the speaker's own words
+    // (fillers and spoken commands aside) must survive, in order. Measured on
+    // Scott's dictations with the full polish prompt, edits below that dropped
+    // or reworded real content ("what you say" → "what I said").
+    if (inWords >= 6 && keptWordShare(input, out) < 0.85) return { text: null, reason: "rewrote" };
+    if (!samePerson(input, out)) return { text: null, reason: "pronouns" };
 
     // A trailing connective strongly suggests recording stopped mid-thought.
     // Punctuation/case cleanup remains valid, while invented completion does not.
@@ -1348,7 +1506,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       TRUNCATED_ENDING_WORDS.has(inputLastWord) &&
       outputLexicalWords.at(-1) !== inputLastWord
     ) {
-      return null;
+      return { text: null, reason: "completed-truncation" };
     }
 
     // The model answered the dictation instead of rewriting it
@@ -1356,10 +1514,10 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       /^(sure[,!.]|here('|’)s |i can('|’)t |as an ai)/i.test(out) &&
       !/^(sure|here)/i.test(input.trim())
     ) {
-      return null;
+      return { text: null, reason: "answered" };
     }
 
-    return out;
+    return { text: out, reason: "" };
   }
 
   _withTimeout(promise, ms, label) {
@@ -1415,8 +1573,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         this.processWithReasoningModel(baseline, snapshot.model, null, snapshot),
         POLISH_TIMEOUT_MS, "Polish"
       );
-      const validated = this.validatePolishOutput(baseline, result);
-      if (validated === null || !respectsCleanupChoices(baseline, validated, snapshot.cleanup)) return baseline;
+      const { text: validated, reason } = this.explainPolishOutput(baseline, result);
+      const violation = validated === null ? reason : cleanupViolation(baseline, validated, snapshot.cleanup);
+      if (violation) {
+        // Why polish was set aside lands in logs/ss2.log; the text never does.
+        logger.warn("Polish result set aside; cleanup kept", { reason: violation, words: baseline.split(/\s+/).length }, "polish");
+        return baseline;
+      }
       if (evidence) evidence.polished = true;
       this.lastPolishInfo = { polished: true, raw };
       return validated;
@@ -2157,7 +2320,12 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     try {
       const pasted = await window.electronAPI.pasteText(text, options);
       if (pasted?.success === false) {
-        this.onError?.({ code: "PASTE_FAILED", onClipboard: pasted.onClipboard === true });
+        this.onError?.({
+          code: "PASTE_FAILED",
+          onClipboard: pasted.onClipboard === true,
+          reason: typeof pasted.reason === "string" ? pasted.reason : "",
+          appName: typeof pasted.appName === "string" ? pasted.appName : "",
+        });
         return { ...pasted, text: pasted.text ?? text };
       }
       this.lastPastedText = pasted?.text ?? text;

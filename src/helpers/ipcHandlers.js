@@ -20,6 +20,10 @@ const {
   undoDictionaryCorrections,
 } = require("../utils/correctionLearner");
 const { normalizeSpokenForm } = require("../utils/spokenFormatting");
+const { fixQuestionPunctuation } = require("../utils/questionPunctuation");
+
+const CLOUD_REASONING_PROVIDERS = ["openai", "anthropic", "gemini", "groq", "custom", "openwhispr"];
+const isCloudReasoningProvider = (provider) => CLOUD_REASONING_PROVIDERS.includes(provider);
 
 const MISTRAL_TRANSCRIPTION_URL = "https://api.mistral.ai/v1/audio/transcriptions";
 
@@ -159,7 +163,9 @@ class IPCHandlers {
   /** Spoken numbers and symbols → digits and "/" ("six oh six" → 606). Never blocks a paste. */
   _normalizeSpokenForm(text) {
     try {
-      return normalizeSpokenForm(text);
+      // Questions the recognizer ended with "." get their "?" back here, after
+      // polish, so every engine and the short no-polish path are covered.
+      return fixQuestionPunctuation(normalizeSpokenForm(text));
     } catch (error) {
       debugLogger.debug("[SpokenForm] Normalization failed", { error: error.message });
       return text;
@@ -1899,10 +1905,23 @@ class IPCHandlers {
         });
       }
 
-      if (prefs.reasoningProvider === "local" && prefs.reasoningModel) {
+      // The renderer's provider is a model *family* id for local models
+      // ("qwen", "granite"), not "local". Only a real cloud provider may clear
+      // the polish model and stop llama-server; anything else is local, and
+      // its model is persisted so launch prewarms the one actually selected.
+      if (!isCloudReasoningProvider(prefs.reasoningProvider) && prefs.reasoningModel) {
+        const changedModel = process.env.LOCAL_REASONING_MODEL !== prefs.reasoningModel;
         setVars.REASONING_PROVIDER = "local";
         setVars.LOCAL_REASONING_MODEL = prefs.reasoningModel;
-      } else if (prefs.reasoningProvider && prefs.reasoningProvider !== "local") {
+        if (changedModel) {
+          const modelManager = require("./modelManagerBridge").default;
+          modelManager.prewarmServer?.(prefs.reasoningModel).catch((err) => {
+            debugLogger.debug("llama-server prewarm after model change failed", {
+              error: err.message,
+            });
+          });
+        }
+      } else if (isCloudReasoningProvider(prefs.reasoningProvider)) {
         clearVars.push("REASONING_PROVIDER", "LOCAL_REASONING_MODEL");
         const modelManager = require("./modelManagerBridge").default;
         modelManager.stopServer().catch((err) => {

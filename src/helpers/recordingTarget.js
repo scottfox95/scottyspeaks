@@ -77,13 +77,18 @@ class RecordingTargetManager {
         return { available: false, token: null, reason: this.reason(ready) };
       }
       entry.pid = ready.pid;
+      entry.appName = typeof ready.appName === "string" ? ready.appName.slice(0, 200) : "";
+      entry.bundleId = typeof ready.bundleId === "string" ? ready.bundleId.slice(0, 200) : "";
+      entry.role = typeof ready.role === "string" ? ready.role.slice(0, 60) : "";
       entry.lifetime = setTimeout(() => this.release(token, owner), this.lifetimeMs);
       entry.lifetime.unref?.();
       return {
         available: true,
         token,
         pid: ready.pid,
-        appName: typeof ready.appName === "string" ? ready.appName.slice(0, 200) : "",
+        appName: entry.appName,
+        bundleId: entry.bundleId,
+        role: entry.role,
       };
     } catch {
       if (entry) this.release(token, owner);
@@ -171,9 +176,15 @@ class RecordingTargetManager {
         entry,
         expected === undefined ? { op: "paste", text } : { op: "replace", text, expected }
       );
+      const about = {
+        pid: entry.pid,
+        appName: entry.appName,
+        bundleId: entry.bundleId,
+        role: entry.role,
+      };
       return result.ok
-        ? { success: true, pid: entry.pid }
-        : { success: false, reason: this.reason(result) };
+        ? { success: true, ...about }
+        : { success: false, reason: this.reason(result), ...about };
     } finally {
       this.release(token, owner);
     }

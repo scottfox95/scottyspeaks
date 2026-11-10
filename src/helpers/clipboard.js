@@ -446,13 +446,22 @@ class ClipboardManager {
 
   async pasteText(text, options = {}) {
     if (process.platform === "darwin") {
+      const started = Date.now();
       const result = this.recordingTargets
         ? await this.recordingTargets.paste(options.targetToken, options.webContents?.id, text)
         : { success: false, reason: "helper-unavailable" };
-      if (result.success) return { ...result, manualCopy: false };
-      // The helper never posts ⌘V after a refusal, so the transcript can't
-      // also land in another field. Leave it on the clipboard for a manual ⌘V.
-      return { ...result, manualCopy: true, onClipboard: this.leaveOnClipboard(text) };
+      const outcome = result.success
+        ? { ...result, manualCopy: false }
+        : // The helper never posts ⌘V after a refusal, so the transcript can't
+          // also land in another field. Leave it on the clipboard for a manual ⌘V.
+          { ...result, manualCopy: true, onClipboard: this.leaveOnClipboard(text) };
+      this.recordPasteOutcome({
+        ...outcome,
+        source: options.source,
+        ms: Date.now() - started,
+        chars: text.length,
+      });
+      return outcome;
     }
     const startTime = Date.now();
     const platform = process.platform;
@@ -522,6 +531,23 @@ class ClipboardManager {
       });
       throw error;
     }
+  }
+
+  recordPasteOutcome(outcome) {
+    try {
+      const entry = this.pasteOutcomes?.record(outcome);
+      if (entry && !entry.ok)
+        debugLogger.warn(
+          "Paste refused",
+          {
+            app: entry.app,
+            role: entry.role,
+            reason: entry.reason,
+            onClipboard: entry.onClipboard,
+          },
+          "clipboard"
+        );
+    } catch {}
   }
 
   /** Puts a transcript on the clipboard after a failed paste; true when written. */

@@ -569,6 +569,16 @@ const { t } = useTranslation();
 - Default model: `qwen3-4b-instruct-2507-q4_k_m` (2.5GB, non-thinking instruct — Qwen3-8B thinking mode took 20s; this does 0.4–3s). Prewarmed at app start (main.js).
 - Prompt: `cleanupPrompt` in `src/locales/*/prompts.json` (synced across locales). Context blocks (style profile `instructions`, frontmost app, learned examples) appended via `src/services/polish/polishContext.ts`.
 - Safety: 20s timeout + output validation (length ratio, answered-instead-of-rewrote detection) → falls back to raw transcript. `audioManager.processTranscription` is the orchestrator.
+- **Dictation prompt (0.3.15):** `config/prompts.ts` sends `cleanupPrompt` (or `verbatimPrompt`) plus `cleanupInstructions()` appended as "CLEANUP CHOICES". Until 0.3.15 dictation got *only* the six-line choices block, so polish barely edited anything.
+- **Guards** (`explainPolishOutput` in audioManager.js, `cleanupViolation` in dictationCleanup.ts) return a reason, which is logged to `logs/ss2.log` (never the text):
+  - `rewrote`: under 85% of content words kept, in order.
+  - `pronouns`: first/second person changed.
+  - `names`: mid-sentence capitals, and sentence-start words that aren't common openers.
+  - `numbers`: given digits preserved; spelled numbers may become digits.
+  - `negation`: count-based.
+  - `kept-word:*`: only meaningful uses when filler removal is on.
+  - Measured on 518 real dictations: polish applied 128 → 274, no latency change. Harness method: replay `capture.json` `rawText` through llama-server with the real prompt; keep results out of git.
+- **Question marks:** `src/utils/questionPunctuation.js` runs in `paste-text` after spoken-form normalization. A pitch-rise detector was measured on Scott's audio and rejected (about 8 false flips per correct one).
 - llama-server MUST run with `--reasoning-format none` (llamaServer.js) and ctx-size clamped ≤16384 (modelManagerBridge) — 128k+ ctx causes Metal "Compute error" on 16GB.
 
 **Polish is now the latency budget.** Measured on Granite 4.0 Micro (what Scott's machine has selected; the code default in `settingsStore.POLISH_MODEL` is still Qwen3-4B-Instruct), for a 10s / 41-word dictation:

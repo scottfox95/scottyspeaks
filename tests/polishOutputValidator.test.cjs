@@ -127,3 +127,45 @@ test("falls back to the raw transcript when polished output is suspicious", asyn
   assert.equal(await manager.processTranscription(input, "test"), input);
   assert.deepEqual(manager.lastPolishInfo, { polished: false, raw: input });
 });
+
+const explain = (input, output) => AudioManager.prototype.explainPolishOutput.call({}, input, output);
+
+test("sentence openers are not names: dropping 'So' or 'But' is ordinary cleanup", () => {
+  const input = "So I think the draft is solid. But the middle section needs work.";
+  const output = "I think the draft is solid, but the middle section needs work.";
+  assert.equal(validatePolishOutput(input, output), output);
+});
+
+test("names mid-sentence and at the start stay protected", () => {
+  assert.equal(explain("Send it to Priya today.", "Send it to Mia today.").reason, "names");
+  assert.equal(explain("Élodie will review the draft.", "Amélie will review the draft.").reason, "names");
+});
+
+test("spoken numbers may become digits; digits the speaker gave may not change", () => {
+  const input = "Can I offset ten ninety nine income with losses in the market";
+  const output = "Can I offset 1099 income with losses in the market?";
+  assert.equal(validatePolishOutput(input, output), output);
+  assert.equal(explain("Offer 625 for the unit.", "Offer $625 for the unit.").text, "Offer $625 for the unit.");
+  assert.equal(explain("Offer 625 for the unit.", "Offer 600 for the unit.").reason, "numbers");
+});
+
+test("negation may change form but not count", () => {
+  const input = "Does this not mean the whole unit will need to be replaced?";
+  assert.equal(explain(input, "Doesn't this mean the whole unit will need to be replaced?").reason, "");
+  assert.equal(explain(input, "This means the whole unit will need to be replaced.").reason, "negation");
+});
+
+test("rewording the speaker's content is rejected (cleanup, not ghost-writing)", () => {
+  const input =
+    "This looks good to me, but I'm wondering how to make it really click with Georgie before we send it.";
+  assert.equal(
+    explain(input, "This looks good to me. Should we polish it for Georgie before sending?").reason,
+    "rewrote"
+  );
+});
+
+test("switching who is speaking is rejected", () => {
+  const input = "Check my Tenenbaum email for an update from Adam.";
+  assert.equal(explain(input, "Check your Tenenbaum email for an update from Adam.").reason, "pronouns");
+  assert.equal(explain(input, "Check my Tenenbaum email for an update from Adam.").reason, "");
+});

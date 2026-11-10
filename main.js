@@ -27,16 +27,27 @@ if (process.platform === "darwin" && app.getName() !== "ScottySpeaks") {
 }
 
 // Add global error handling for uncaught exceptions
+// Both also land in logs/ss2.log (warnings and errors are always written there).
+const logProcessFault = (label, error) => {
+  try {
+    require("./src/helpers/debugLogger").error(label, {
+      error: error?.message || String(error),
+      stack: typeof error?.stack === "string" ? error.stack.slice(0, 2000) : undefined,
+    });
+  } catch {}
+};
 process.on("uncaughtException", (error) => {
   console.error("Uncaught Exception:", error);
   if (error.code === "EPIPE") {
     return;
   }
   console.error("Error stack:", error.stack);
+  logProcessFault("Uncaught exception", error);
 });
 
 process.on("unhandledRejection", (reason, promise) => {
   console.error("Unhandled Rejection at:", promise, "reason:", reason);
+  logProcessFault("Unhandled rejection", reason);
 });
 
 // Import helper module classes (but don't instantiate yet - wait for app.whenReady())
@@ -71,6 +82,7 @@ let recordingActive = () => false;
 let globeKeyManager = null;
 let textEditMonitor = null;
 let pedalManager = null;
+let pasteLastManager = null;
 let ipcHandlers = null;
 let globeKeyAlertShown = false;
 
@@ -118,6 +130,11 @@ function initializeCoreManagers() {
     ) : null,
   });
   clipboardManager.recordingTargets = recordingTargets;
+  const { PasteOutcomeLog } = require("./src/helpers/pasteOutcomes");
+  clipboardManager.pasteOutcomes = new PasteOutcomeLog(
+    require("path").join(app.getPath("userData"), "paste-outcomes.jsonl")
+  );
+  ipcMain.handle("paste-outcomes:list", () => clipboardManager.pasteOutcomes.list(50));
   require("./src/helpers/recordingTargetHandlers").registerRecordingTargetHandlers({
     ipcMain, app, windowManager, manager: recordingTargets,
   });
@@ -280,6 +297,49 @@ async function startApp() {
 
   // Phase 2: Initialize remaining managers after windows are visible
   initializeDeferredManagers();
+
+  if (process.platform === "darwin") {
+    const { PasteLastManager } = require("./src/helpers/pasteLast");
+    pasteLastManager = new PasteLastManager({
+      globalShortcut,
+      recordingTargets: clipboardManager.recordingTargets,
+      clipboardManager,
+      getLastText: () => databaseManager.getTranscriptions(1)?.[0]?.text || "",
+      getOwner: () => {
+        const win = windowManager.mainWindow;
+        return win && !win.isDestroyed() ? win.webContents.id : null;
+      },
+      notify: ({ reason, onClipboard }) => {
+        const { Notification } = require("electron");
+        if (!Notification.isSupported()) return;
+        const body =
+          reason === "nothing-to-paste"
+            ? i18nMain.t("pasteLast.nothing")
+            : onClipboard
+              ? i18nMain.t("pasteLast.onClipboard")
+              : i18nMain.t("pasteLast.failed");
+        new Notification({ title: "SS2", body, silent: true }).show();
+      },
+    });
+    const registered = pasteLastManager.register();
+    if (!registered.success)
+      debugLogger.warn("Paste-last hotkey unavailable", { hotkey: registered.hotkey });
+    ipcMain.handle("paste-last:get", () => ({
+      hotkey: pasteLastManager.getHotkey(),
+      registered: pasteLastManager.registered,
+    }));
+    // While Settings captures a new shortcut, the current one must not fire.
+    ipcMain.handle("paste-last:suspend", (_event, suspended) => {
+      pasteLastManager.register(suspended ? "" : pasteLastManager.getHotkey());
+      return { success: true };
+    });
+    ipcMain.handle("paste-last:set", async (_event, hotkey) => {
+      if (typeof hotkey !== "string" || hotkey.length > 60) return { success: false, error: "invalid" };
+      const result = pasteLastManager.set(hotkey);
+      if (result.success) await environmentManager.saveAllKeysToEnvFile().catch(() => {});
+      return result;
+    });
+  }
 
   // Non-blocking server pre-warming
   const whisperSettings = {
@@ -854,6 +914,7 @@ if (gotSingleInstanceLock) {
   });
 
   app.on("will-quit", () => {
+    pasteLastManager?.dispose();
     if (hotkeyManager) {
       hotkeyManager.unregisterAll();
     } else {

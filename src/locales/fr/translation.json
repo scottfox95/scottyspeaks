@@ -1883,7 +1883,20 @@
     "clipboardTitle": "Le collage n’a pas abouti, le texte est dans votre presse-papiers",
     "clipboardDescription": "Appuyez sur ⌘V à l’endroit voulu. Il est aussi enregistré dans l’historique.",
     "selectionReplaced": "Votre sélection a été remplacée.",
-    "dictationReplaced": "Votre dernière dictée a été remplacée."
+    "dictationReplaced": "Votre dernière dictée a été remplacée.",
+    "clipboardDescriptionApp": "Impossible de coller dans {{app}} ({{reason}}). Appuyez sur ⌘V à l'endroit voulu, ou ⌃⌥V pour coller votre dernière dictée.",
+    "clipboardDescriptionReason": "Impossible de coller ({{reason}}). Appuyez sur ⌘V à l'endroit voulu, ou ⌃⌥V pour coller votre dernière dictée.",
+    "reasons": {
+      "secure-input": "un champ de mot de passe est actif",
+      "accessibility-required": "l'autorisation Accessibilité est désactivée",
+      "target-changed": "l'app s'est fermée ou a perdu le focus",
+      "activation-failed": "l'app n'a pas pu revenir au premier plan",
+      "clipboard-changed": "le presse-papiers a changé pendant le collage",
+      "no-target": "aucune app n'était au premier plan",
+      "helper-unavailable": "l'outil de collage est absent",
+      "target-timeout": "l'app a mis trop de temps à répondre",
+      "unknown": "raison inconnue"
+    }
   },
   "callAgent": {
     "tab": "Agents",
@@ -2101,6 +2114,25 @@
     "ready": {
       "title": "SS2 {{version}} est prêt",
       "body": "Il s'installera à la prochaine fermeture de SS2, ou maintenant depuis les Réglages."
+    }
+  },
+  "pasteLast": {
+    "nothing": "Rien à coller pour l'instant. Dictez d'abord quelque chose.",
+    "onClipboard": "Impossible de coller votre dernière dictée ici. Elle est dans le presse-papiers : appuyez sur ⌘V.",
+    "failed": "Impossible de coller votre dernière dictée.",
+    "settings": {
+      "title": "Coller la dernière dictée",
+      "description": "Colle votre dictée la plus récente là où se trouve le curseur. Utile quand un collage n'a pas abouti, ou quand vous parlez d'abord puis cliquez dans le champ.",
+      "reset": "Rétablir {{hotkey}}",
+      "off": "Désactiver",
+      "unavailable": "Ce raccourci est déjà utilisé par une autre app. Choisissez-en un autre."
+    },
+    "log": {
+      "title": "Collages récents",
+      "empty": "Aucun collage enregistré.",
+      "ok": "collé",
+      "refused": "refusé",
+      "onClipboard": "laissé dans le presse-papiers"
     }
   }
 }

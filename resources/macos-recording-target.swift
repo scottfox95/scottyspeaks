@@ -1,3 +1,4 @@
+import Carbon
 import Cocoa
 import Foundation
 
@@ -63,19 +64,31 @@ func restoreClipboard(_ pasteboard: NSPasteboard, originals: [NSPasteboardItem],
         if !originals.isEmpty { pasteboard.writeObjects(originals) }
     }
 }
+// Clipboard managers skip items carrying these types (nspasteboard.org), so the
+// temporary dictation write doesn't land in the user's clipboard history.
+let transientTypes = [NSPasteboard.PasteboardType("org.nspasteboard.TransientType"),
+                      NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")]
+func writeDictation(_ text: String, to pasteboard: NSPasteboard) -> Bool {
+    let item = NSPasteboardItem()
+    guard item.setString(text, forType: .string) else { return false }
+    for type in transientTypes { item.setData(Data(), forType: type) }
+    return pasteboard.writeObjects([item])
+}
+
 func performPasteTransaction(_ text: String, pasteboard: NSPasteboard, verifyTarget: () -> String?, dispatchPaste: () -> Bool) -> String? {
     guard cancellationRequested == 0 else { return "target-cancelled" }
     if let reason = verifyTarget() { return reason }
     let snapshotCount = pasteboard.changeCount
-    let (snapshot, snapshotError) = snapshotClipboard(pasteboard)
-    guard let originals = snapshot else { return snapshotError ?? "clipboard-unavailable" }
+    // A clipboard that can't be snapshotted (a huge screenshot, a lazy type)
+    // no longer vetoes the paste: paste anyway and skip the restore.
+    let (snapshot, _) = snapshotClipboard(pasteboard)
     guard cancellationRequested == 0 else { return "target-cancelled" }
     if let reason = verifyTarget() { return reason }
     guard pasteboard.changeCount == snapshotCount else { return "clipboard-changed" }
     guard cancellationRequested == 0 else { return "target-cancelled" }
     let emptyCount = pasteboard.clearContents()
-    guard pasteboard.setString(text, forType: .string) else {
-        if pasteboard.changeCount == emptyCount, !originals.isEmpty { pasteboard.writeObjects(originals) }
+    guard writeDictation(text, to: pasteboard) else {
+        if pasteboard.changeCount == emptyCount, let originals = snapshot, !originals.isEmpty { pasteboard.writeObjects(originals) }
         return "clipboard-write-failed"
     }
     let ownCount = pasteboard.changeCount
@@ -90,7 +103,7 @@ func performPasteTransaction(_ text: String, pasteboard: NSPasteboard, verifyTar
         let restoreAfter = Date().addingTimeInterval(0.35)
         while Date() < restoreAfter { usleep(10000) }
     }
-    restoreClipboard(pasteboard, originals: originals, ownCount: ownCount)
+    if let originals = snapshot { restoreClipboard(pasteboard, originals: originals, ownCount: ownCount) }
     return failure ?? (sent ? nil : cancellationRequested != 0 ? "target-cancelled" : "paste-failed")
 }
 
@@ -166,31 +179,37 @@ guard let targetApp = NSWorkspace.shared.frontmostApplication,
 }
 let pid = targetApp.processIdentifier
 let application = AXUIElementCreateApplication(pid)
-guard let field = elementAttribute(application, kAXFocusedUIElementAttribute),
-      let window = elementAttribute(field, kAXWindowAttribute) ?? elementAttribute(application, kAXFocusedWindowAttribute),
-      eligibleField(role: attribute(field, kAXRoleAttribute) as? String,
-                    subrole: attribute(field, kAXSubroleAttribute) as? String,
-                    enabled: (attribute(field, kAXEnabledAttribute) as? NSNumber)?.boolValue) else {
-    reply(["ok": false, "reason": "unverifiable-field"]); exit(1)
+// Electron apps (Slack, VS Code, Notion, Claude, Obsidian) build their AX tree
+// only when asked. Without this their text fields are invisible to AX.
+_ = AXUIElementSetAttributeValue(application, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+
+func focusedElement() -> AXUIElement? { elementAttribute(application, kAXFocusedUIElementAttribute) }
+func isSecure(_ element: AXUIElement?) -> Bool {
+    if IsSecureEventInputEnabled() { return true }
+    guard let element else { return false }
+    return (attribute(element, kAXSubroleAttribute) as? String) == kAXSecureTextFieldSubrole
 }
-guard var originalSelection = selection(field) else {
-    reply(["ok": false, "reason": "unverifiable-selection"]); exit(1)
-}
+
+// The gate is the target *app*: alive, frontmost (re-activated if needed) and
+// not in secure input. A field is recorded when one is exposed, but it is no
+// longer required, and clicking into another field or moving the caret while
+// speaking pastes at the current focus instead of refusing.
+let capturedField: AXUIElement? = {
+    guard let element = focusedElement() else { return nil }
+    return eligibleField(role: attribute(element, kAXRoleAttribute) as? String,
+                         subrole: attribute(element, kAXSubroleAttribute) as? String,
+                         enabled: (attribute(element, kAXEnabledAttribute) as? NSNumber)?.boolValue) ? element : nil
+}()
+let capturedRole = (focusedElement().flatMap { attribute($0, kAXRoleAttribute) as? String }) ?? ""
+if isSecure(focusedElement()) { reply(["ok": false, "reason": "secure-input"]); exit(1) }
+var originalSelection = capturedField.flatMap(selection) ?? CFRange(location: 0, length: 0)
 let deadline = Date().addingTimeInterval(6 * 3600)
-reply(["ok": true, "event": "ready", "pid": pid, "appName": targetApp.localizedName ?? ""])
+reply(["ok": true, "event": "ready", "pid": pid, "appName": targetApp.localizedName ?? "",
+       "bundleId": targetApp.bundleIdentifier ?? "", "role": capturedRole, "field": capturedField != nil])
 
 func verify() -> String? {
     guard cancellationRequested == 0 else { return "target-cancelled" }
-    guard Date() < deadline, !targetApp.isTerminated,
-          let focused = elementAttribute(application, kAXFocusedUIElementAttribute), CFEqual(focused, field),
-          let focusedWindow = elementAttribute(application, kAXFocusedWindowAttribute), CFEqual(focusedWindow, window),
-          eligibleField(role: attribute(field, kAXRoleAttribute) as? String,
-                        subrole: attribute(field, kAXSubroleAttribute) as? String,
-                        enabled: (attribute(field, kAXEnabledAttribute) as? NSNumber)?.boolValue) else { return "target-changed" }
-    do {
-        let before = originalSelection
-        guard let now = selection(field), now.location == before.location, now.length == before.length else { return "selection-changed" }
-    }
+    guard Date() < deadline, !targetApp.isTerminated else { return "target-changed" }
     if NSWorkspace.shared.frontmostApplication?.processIdentifier != pid {
         guard targetApp.activate(options: [.activateIgnoringOtherApps]) else { return "activation-failed" }
         for _ in 0..<25 {
@@ -198,13 +217,17 @@ func verify() -> String? {
             usleep(10000)
         }
     }
-    guard NSWorkspace.shared.frontmostApplication?.processIdentifier == pid,
-          let focused = elementAttribute(application, kAXFocusedUIElementAttribute), CFEqual(focused, field),
-          let focusedWindow = elementAttribute(application, kAXFocusedWindowAttribute), CFEqual(focusedWindow, window) else { return "target-changed" }
-    do {
-        let before = originalSelection
-        guard let now = selection(field), now.location == before.location, now.length == before.length else { return "selection-changed" }
-    }
+    guard NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { return "target-changed" }
+    if isSecure(focusedElement()) { return "secure-input" }
+    return nil
+}
+
+/// Replacing our own previous paste is the one operation that still needs
+/// the exact field and caret captured at the start.
+func verifyExactField() -> String? {
+    if let reason = verify() { return reason }
+    guard let field = capturedField, let focused = focusedElement(), CFEqual(focused, field) else { return "target-changed" }
+    guard let now = selection(field), now.location == originalSelection.location, now.length == originalSelection.length else { return "selection-changed" }
     return nil
 }
 
@@ -216,21 +239,22 @@ func paste(_ text: String) -> String? {
 
 // Explicit voice commands may inspect only the selected text, never a field value.
 func selectedText() -> String? {
-    guard originalSelection.length <= 200_000 else { return nil }
+    guard let field = capturedField, originalSelection.length <= 200_000 else { return nil }
     return attribute(field, kAXSelectedTextAttribute) as? String
 }
 func replace(_ text: String, expected: String) -> String? {
-    if let reason = verify() { return reason }
+    guard let field = capturedField else { return "unverifiable-replacement" }
+    if let reason = verifyExactField() { return reason }
     let before = originalSelection
     guard before.length == 0, !expected.isEmpty, expected.utf16.count <= before.location else { return "unverifiable-replacement" }
     var replacement = CFRange(location: before.location - expected.utf16.count, length: expected.utf16.count)
     guard let value = AXValueCreate(.cfRange, &replacement),
           AXUIElementSetAttributeValue(field, kAXSelectedTextRangeAttribute as CFString, value) == .success else { return "selection-failed" }
     originalSelection = replacement
-    if let reason = verify() { return reason }
+    if let reason = verifyExactField() { return reason }
     guard selectedText() == expected else {
         // Restore our range only while the same field and our range still verify.
-        if verify() == nil {
+        if verifyExactField() == nil {
             var prior = before
             if let priorValue = AXValueCreate(.cfRange, &prior) {
                 _ = AXUIElementSetAttributeValue(field, kAXSelectedTextRangeAttribute as CFString, priorValue)
@@ -261,8 +285,11 @@ while Date() < deadline && cancellationRequested == 0 {
         if op == "verify" {
             if let reason = verify() { reply(["ok": false, "reason": reason]) } else { reply(["ok": true]) }
         } else if op == "selection" {
-            if let reason = verify() { reply(["ok": false, "reason": reason]) }
-            else if originalSelection.length == 0 { reply(["ok": true, "text": NSNull()]) }
+            // No exposed field, or nothing selected at capture: there is no selection to use.
+            if capturedField == nil || originalSelection.length == 0 {
+                if let reason = verify() { reply(["ok": false, "reason": reason]) } else { reply(["ok": true, "text": NSNull()]) }
+            }
+            else if let reason = verifyExactField() { reply(["ok": false, "reason": reason]) }
             else if let text = selectedText(), text.utf8.count <= 200_000 { reply(["ok": true, "text": text]) }
             else { reply(["ok": false, "reason": "selection-unavailable"]) }
         } else if op == "replace", let text = request["text"] as? String, !text.isEmpty, text.utf8.count <= 200_000,

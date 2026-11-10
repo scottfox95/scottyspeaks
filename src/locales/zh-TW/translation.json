@@ -1877,7 +1877,20 @@
     "clipboardTitle": "未能貼上，文字已在剪貼簿中",
     "clipboardDescription": "在需要的位置按 ⌘V。它也已儲存在歷史記錄中。",
     "selectionReplaced": "已取代所選文字。",
-    "dictationReplaced": "已取代上次聽寫。"
+    "dictationReplaced": "已取代上次聽寫。",
+    "clipboardDescriptionApp": "無法貼到 {{app}}（{{reason}}）。在需要的位置按 ⌘V，或按 ⌃⌥V 貼上最後一次聽寫。",
+    "clipboardDescriptionReason": "無法貼上（{{reason}}）。在需要的位置按 ⌘V，或按 ⌃⌥V 貼上最後一次聽寫。",
+    "reasons": {
+      "secure-input": "密碼欄位正在使用中",
+      "accessibility-required": "輔助使用權限已關閉",
+      "target-changed": "App 已關閉或失去焦點",
+      "activation-failed": "無法將 App 切回前景",
+      "clipboard-changed": "貼上時剪貼簿發生變化",
+      "no-target": "前景沒有 App",
+      "helper-unavailable": "缺少貼上輔助程式",
+      "target-timeout": "App 回應逾時",
+      "unknown": "未知原因"
+    }
   },
   "callAgent": {
     "tab": "代理",
@@ -2095,6 +2108,25 @@
     "ready": {
       "title": "SS2 {{version}} 已就緒",
       "body": "將在下次結束 SS2 時安裝，也可在設定中立即安裝。"
+    }
+  },
+  "pasteLast": {
+    "nothing": "還沒有可貼上的內容。請先聽寫。",
+    "onClipboard": "無法在此貼上最後一次聽寫。它在剪貼簿中：按 ⌘V。",
+    "failed": "無法貼上最後一次聽寫。",
+    "settings": {
+      "title": "貼上最後一次聽寫",
+      "description": "將最近一次聽寫貼到游標所在位置。適用於貼上沒有成功，或先說話再點進輸入欄的情況。",
+      "reset": "重設為 {{hotkey}}",
+      "off": "關閉",
+      "unavailable": "此快速鍵已被其他 App 使用。請另選一個。"
+    },
+    "log": {
+      "title": "最近的貼上",
+      "empty": "尚無貼上記錄。",
+      "ok": "已貼上",
+      "refused": "被拒絕",
+      "onClipboard": "留在剪貼簿"
     }
   }
 }

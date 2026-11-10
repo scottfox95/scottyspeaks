@@ -58,8 +58,14 @@ export function getSystemPrompt(
   const prompts = getPromptBundle(uiLanguage);
 
   if (capture && !capture.command) {
-    // Dictation capture uses an explicit immutable contract; commands use their own service.
-    let prompt = cleanupInstructions(capture.cleanup);
+    // Dictation gets the full polish prompt (punctuation, questions, lists,
+    // paragraphs, spoken commands, worked examples) with the person's cleanup
+    // choices layered on top as overriding rules. Until 0.3.15 it got only the
+    // six-line choices block, so the model barely edited anything and most
+    // dictations pasted the way the recognizer heard them.
+    const base = getPolishStyle() === "verbatim" ? prompts.verbatimPrompt : prompts.cleanupPrompt;
+    let prompt =
+      base.replace(/\{\{agentName\}\}/g, name) + "\n\n" + cleanupInstructions(capture.cleanup);
     const instruction = getLanguageInstruction(language);
     if (instruction) prompt += "\n\n" + instruction;
     if (customDictionary?.length) prompt += prompts.dictionarySuffix + customDictionary.join(", ");
