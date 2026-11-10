@@ -1880,6 +1880,8 @@
   "recordingTarget": {
     "manualTitle": "Texto listo para copiar",
     "manualDescription": "No se pudo verificar el campo de texto original. El resultado está guardado en el historial. Usa Copiar allí para pegarlo manualmente.",
+    "clipboardTitle": "No se pudo pegar, está en tu portapapeles",
+    "clipboardDescription": "Pulsa ⌘V donde lo quieras. También está guardado en el historial.",
     "selectionReplaced": "Se reemplazó la selección.",
     "dictationReplaced": "Se reemplazó el último dictado."
   },

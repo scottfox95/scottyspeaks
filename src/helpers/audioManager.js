@@ -2157,7 +2157,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     try {
       const pasted = await window.electronAPI.pasteText(text, options);
       if (pasted?.success === false) {
-        this.onError?.({ code: "PASTE_FAILED" });
+        this.onError?.({ code: "PASTE_FAILED", onClipboard: pasted.onClipboard === true });
         return { ...pasted, text: pasted.text ?? text };
       }
       this.lastPastedText = pasted?.text ?? text;

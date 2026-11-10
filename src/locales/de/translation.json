@@ -1876,6 +1876,8 @@
   "recordingTarget": {
     "manualTitle": "Text zum Kopieren bereit",
     "manualDescription": "Das ursprüngliche Textfeld konnte nicht überprüft werden. Das Ergebnis ist im Verlauf gespeichert. Verwende dort Kopieren, um es selbst einzufügen.",
+    "clipboardTitle": "Einfügen hat nicht geklappt, der Text ist in deiner Zwischenablage",
+    "clipboardDescription": "Drücke ⌘V an der gewünschten Stelle. Er ist auch im Verlauf gespeichert.",
     "selectionReplaced": "Deine Auswahl wurde ersetzt.",
     "dictationReplaced": "Dein letztes Diktat wurde ersetzt."
   },

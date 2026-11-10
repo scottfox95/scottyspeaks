@@ -1880,6 +1880,8 @@
   "recordingTarget": {
     "manualTitle": "Texto pronto para copiar",
     "manualDescription": "Não foi possível verificar o campo de texto original. O resultado está salvo no histórico. Use Copiar para colá-lo manualmente.",
+    "clipboardTitle": "Não deu para colar, está na sua área de transferência",
+    "clipboardDescription": "Pressione ⌘V onde quiser. Também está salvo no histórico.",
     "selectionReplaced": "A seleção foi substituída.",
     "dictationReplaced": "O último ditado foi substituído."
   },

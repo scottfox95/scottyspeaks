@@ -160,7 +160,7 @@ test("target IPC rejects foreign frames and releases handles on navigation, cras
   assert.equal(manager.targets.size, 0);
 });
 
-test("macOS clipboard adapter declines without touching clipboard or invoking legacy paste/copy", async () => {
+test("macOS clipboard adapter declines by leaving the transcript on the clipboard, never via legacy paste/copy", async () => {
   const fs = require("node:fs"),
     vm = require("node:vm");
   const source = fs.readFileSync(require.resolve("../src/helpers/clipboard"), "utf8");
@@ -168,13 +168,19 @@ test("macOS clipboard adapter declines without touching clipboard or invoking le
   const forbidden = () => {
     throw new Error("unexpected OS/clipboard access");
   };
+  const written = [];
+  // Only a plain text write is allowed: no reads, no ⌘V, no other formats.
+  const clipboard = new Proxy(
+    {},
+    { get: (_, key) => (key === "writeText" ? (text) => written.push(text) : forbidden) }
+  );
   vm.runInNewContext(source, {
     module,
     exports: module.exports,
     process: { platform: "darwin" },
     require: (name) =>
       name === "electron"
-        ? { clipboard: new Proxy({}, { get: () => forbidden }), systemPreferences: {} }
+        ? { clipboard, systemPreferences: {} }
         : name === "child_process"
           ? { spawn: forbidden, spawnSync: forbidden }
           : name === "./debugLogger"
@@ -184,20 +190,28 @@ test("macOS clipboard adapter declines without touching clipboard or invoking le
               : require(name),
   });
   const adapter = new module.exports();
-  assert.equal((await adapter.pasteText("retained")).manualCopy, true);
+  const unavailable = await adapter.pasteText("retained");
+  assert.equal(unavailable.manualCopy, true);
+  assert.equal(unavailable.onClipboard, true);
   adapter.recordingTargets = {
     paste: async () => ({ success: false, reason: "target-changed" }),
     selection: async () => ({ text: "explicit selection" }),
   };
-  assert.equal(
-    (await adapter.pasteText("retained", { targetToken: "x", webContents: { id: 1 } })).reason,
-    "target-changed"
-  );
+  const refused = await adapter.pasteText("retained", { targetToken: "x", webContents: { id: 1 } });
+  assert.equal(refused.reason, "target-changed");
+  assert.equal(refused.onClipboard, true);
+  assert.deepEqual(written, ["retained", "retained"]);
   assert.equal(
     (await adapter.replaceLastPaste("new", "old", { targetToken: "x", webContents: { id: 1 } }))
       .replaced,
     false
   );
+  assert.equal(written.length, 2, "replace-in-place never touches the clipboard");
+  adapter.recordingTargets.paste = async () => ({ success: true, pid: 7 });
+  const landed = await adapter.pasteText("landed", { targetToken: "x", webContents: { id: 1 } });
+  assert.equal(landed.success, true);
+  assert.equal(landed.onClipboard, undefined);
+  assert.equal(written.length, 2, "a successful paste leaves the clipboard to the helper");
   assert.equal((await adapter.captureSelection("x", 1)).text, "explicit selection");
 });
 

@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { withFolderLabels } = require("./folderLabels");
 const { speakerLabels } = require("../utils/meetingSpeakers.mjs");
 const ID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const hash = (value) => crypto.createHash("sha256").update(value).digest("hex");
@@ -231,7 +232,8 @@ class MeetingStore {
     return null;
   }
   folders() {
-    return this.index.folders;
+    // Many projects have a "docs" folder; label each with its parent so pins differ.
+    return withFolderLabels(this.index.folders);
   }
   pinFolder(directory) {
     const real = fs.realpathSync(directory);

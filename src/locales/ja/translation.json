@@ -1874,6 +1874,8 @@
   "recordingTarget": {
     "manualTitle": "コピーできるテキストがあります",
     "manualDescription": "元の入力欄を確認できませんでした。結果は履歴に保存されています。履歴の「コピー」を使って手動で貼り付けてください。",
+    "clipboardTitle": "貼り付けられませんでした。クリップボードにあります",
+    "clipboardDescription": "貼り付けたい場所で ⌘V を押してください。履歴にも保存されています。",
     "selectionReplaced": "選択したテキストを置き換えました。",
     "dictationReplaced": "前回の音声入力を置き換えました。"
   },

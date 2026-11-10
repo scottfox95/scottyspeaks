@@ -49,6 +49,16 @@ async function unwrap<T>(promise: Promise<MeetingResult<T>>): Promise<T> {
   return result.data;
 }
 const journalKey = (id: string) => `call-note-draft:${id}`;
+// Pinned folders are labelled with their parent ("TenenbaumAI / docs") so
+// several projects' "docs" folders can be told apart; full path on hover.
+const folderLabel = (folder: MeetingFolder) => folder.label || folder.name;
+const savedFileLabel = (filePath: string, folders: MeetingFolder[]) => {
+  const slash = filePath.lastIndexOf("/");
+  const dir = filePath.slice(0, slash);
+  const pinned = folders.find((folder) => folder.path === dir);
+  const where = pinned ? folderLabel(pinned) : dir.split("/").filter(Boolean).slice(-2).join(" / ");
+  return `${where} / ${filePath.slice(slash + 1)}`;
+};
 const clock = (seconds: number) => {
   const n = Math.max(0, Math.floor(seconds));
   return `${String(Math.floor(n / 60)).padStart(2, "0")}:${String(n % 60).padStart(2, "0")}`;
@@ -793,7 +803,13 @@ export default function MeetingsView() {
             </p>
             {folders.length > 0 && (
               <p className="max-w-md break-words text-xs text-muted-foreground">
-                {t("meetings.pinnedFolders")}: {folders.map((folder) => folder.name).join(" · ")}
+                {t("meetings.pinnedFolders")}:{" "}
+                {folders.map((folder, i) => (
+                  <span key={folder.id} title={folder.path}>
+                    {i > 0 && " · "}
+                    {folderLabel(folder)}
+                  </span>
+                ))}
               </p>
             )}
             <Button disabled={busy} onClick={() => act(create)}>
@@ -1229,12 +1245,13 @@ export default function MeetingsView() {
                   id="meeting-destination"
                   className="min-w-40 flex-1 rounded border border-border bg-background px-2 py-2 text-sm"
                   value={destination}
+                  title={folders.find((f) => f.id === destination)?.path}
                   onChange={(e) => setDestination(e.target.value)}
                 >
                   <option value="">{t("meetings.chooseFolder")}</option>
                   {folders.map((folder) => (
-                    <option key={folder.id} value={folder.id}>
-                      {folder.name}
+                    <option key={folder.id} value={folder.id} title={folder.path}>
+                      {folderLabel(folder)}
                     </option>
                   ))}
                 </select>
@@ -1314,9 +1331,12 @@ export default function MeetingsView() {
                 className="truncate text-[11px] text-muted-foreground"
                 title={meeting.exportPath || folders.find((f) => f.id === destination)?.path}
               >
-                {meeting.exportPath ||
-                  folders.find((f) => f.id === destination)?.path ||
-                  t("meetings.draftHelp")}
+                {meeting.exportPath
+                  ? savedFileLabel(meeting.exportPath, folders)
+                  : (() => {
+                      const pinned = folders.find((f) => f.id === destination);
+                      return pinned ? folderLabel(pinned) : t("meetings.draftHelp");
+                    })()}
               </p>
             </footer>
           </main>

@@ -10,7 +10,7 @@ Audio retention can be Off, 1, 7 or 30 days. Expiry removes ordinary dictation a
 
 Filler cleanup, explicit spoken self-corrections and exact wording are separate choices. Exact wording preserves technical spelling and bypasses style rewrites. Raw recognition remains available for comparison. Review important names, numbers, negation and consequential instructions; synthetic checks cannot establish every model’s recognition quality.
 
-SS2 remembers the intended application and field when recording starts. If it cannot verify that field later, the transcript remains available for manual Copy. A focus change does not authorize inserting into a different field. Clipboard restoration preserves supported formats and avoids replacing a newer clipboard copy. Explicit voice commands retain their own selection/replace behavior.
+SS2 remembers the intended application and field when recording starts. If it cannot verify that field later, or the paste fails, it does not paste anywhere else: the transcript is left on the clipboard (and saved in History) and a notice says "Paste didn't land, it's on your clipboard", so ⌘V puts it where you want. A focus change does not authorize inserting into a different field. After a successful paste, clipboard restoration preserves supported formats and avoids replacing a newer clipboard copy. Explicit voice commands retain their own selection/replace behavior.
 
 ## Call audio and agents
 

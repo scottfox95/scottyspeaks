@@ -1874,6 +1874,8 @@
   "recordingTarget": {
     "manualTitle": "文本已可复制",
     "manualDescription": "无法验证原始文本框。结果已保存在历史记录中。请使用其中的“复制”手动粘贴。",
+    "clipboardTitle": "未能粘贴，文本已在剪贴板中",
+    "clipboardDescription": "在需要的位置按 ⌘V。它也已保存在历史记录中。",
     "selectionReplaced": "已替换所选文本。",
     "dictationReplaced": "已替换上次听写。"
   },

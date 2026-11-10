@@ -205,8 +205,13 @@ app.whenReady().then(async () => {
     await waitFor(() => service.store.folders().length === 1, "pin from empty view");
     assert.equal(folderDialogParent, window);
     await waitFor(
-      () => js("document.body.textContent.includes('Pinned folders: Project')"),
-      "empty view pin summary"
+      () =>
+        js(
+          `document.body.textContent.includes(${JSON.stringify(
+            `Pinned folders: ${path.basename(temp)} / Project`
+          )}) && !!document.querySelector(${JSON.stringify(`span[title="${fs.realpathSync(destination)}"]`)})`
+        ),
+      "empty view pin summary shows parent / folder with the full path on hover"
     );
     await click("New call");
     await waitFor(() => js(`!!document.querySelector('#meeting-title')`), "new editor");
